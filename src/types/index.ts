@@ -44,6 +44,13 @@ export interface Upgrade {
   name: string;
   type: 'Weapon' | 'Passive';
   desc: string;
+  dmg?: number;
+  cd?: number;
+  area?: number;
+  pierce?: number;
+  crit?: number;
+  damageMult?: number;
+  cooldownMult?: number;
 }
 
 export type Upgrades = Record<string, Upgrade>;

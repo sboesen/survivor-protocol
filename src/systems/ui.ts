@@ -1,4 +1,5 @@
 import { CHARACTERS } from '../data/characters';
+import { UPGRADES } from '../data/upgrades';
 import { Utils } from '../utils';
 
 class UISystem {
@@ -128,9 +129,14 @@ class UISystem {
 
   showLevelUpScreen(
     choices: string[],
+    inventory: Record<string, number>,
+    currentStats: {
+      passives: { pierce: number; cooldown: number };
+      critChance: number;
+      dmgMult: number;
+    },
     onSelect: (id: string) => void
   ): void {
-    const { UPGRADES } = require('../data/upgrades');
     const container = document.getElementById('card-container');
     if (!container) return;
 
@@ -140,13 +146,53 @@ class UISystem {
       const def = UPGRADES[id];
       if (!def) return;
 
+      const lvl = inventory[id] || 0;
       const el = document.createElement('div');
-      el.className = 'level-card';
+      el.className = 'level-card level-card-anim';
+
+      // Build detailed stats display
+      let statsHtml = '';
+      if (def.type === 'Weapon') {
+        if (def.dmg !== undefined) {
+          const baseDmg = def.dmg * Math.pow(1.3, lvl);
+          statsHtml = `<div style="color:#4ade80">⚔ ${Math.round(baseDmg)} Damage</div>`;
+        }
+        if (def.cd !== undefined) {
+          const baseCd = def.cd * Math.pow(0.9, lvl);
+          statsHtml += `<div style="color:#60a5fa">⏱ ${Math.round(baseCd / 10) / 10}s Cooldown</div>`;
+        }
+        if (def.area !== undefined) {
+          const baseArea = def.area + (lvl * 15);
+          statsHtml += `<div style="color:#f472b6">◎ ${baseArea} Area</div>`;
+        }
+      } else {
+        // Passives
+        if (def.pierce !== undefined) {
+          const current = currentStats.passives.pierce;
+          statsHtml = `<div style="color:#4ade80">Pierce: ${current} → ${current + def.pierce}</div>`;
+        }
+        if (def.crit !== undefined) {
+          const current = Math.round(currentStats.critChance * 100);
+          statsHtml = `<div style="color:#fbbf24">Crit: ${current}% → ${current + def.crit}%</div>`;
+        }
+        if (def.damageMult !== undefined) {
+          const current = Math.round((currentStats.dmgMult - 1) * 100);
+          const next = current + Math.round(def.damageMult * 100);
+          statsHtml = `<div style="color:#ef4444">Damage: +${current}% → +${next}%</div>`;
+        }
+        if (def.cooldownMult !== undefined) {
+          const current = Math.round(currentStats.passives.cooldown * 100);
+          const next = current + Math.round(def.cooldownMult * 100);
+          statsHtml = `<div style="color:#60a5fa">Atk Spd: +${current}% → +${next}%</div>`;
+        }
+      }
+
       el.innerHTML = `
         <div class="card-type">${def.type}</div>
         <div style="color:var(--gold)">${def.name}</div>
-        <div style="font-size:10px">New!</div>
-        <div style="font-size:9px;color:#aaa;margin-top:5px">${def.desc}</div>
+        <div style="font-size:10px">${lvl === 0 ? '✨ NEW!' : '⬆ Lvl ' + lvl + ' → ' + (lvl + 1)}</div>
+        <div style="font-size:9px;color:#aaa;margin:2px 0">${def.desc}</div>
+        <div style="margin-top:8px;font-size:8px;line-height:1.4">${statsHtml}</div>
       `;
       el.onclick = () => {
         onSelect(id);

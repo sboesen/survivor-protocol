@@ -14,7 +14,9 @@ export class Loot extends Entity {
   }
 
   drawShape(ctx: CanvasContext, x: number, y: number): void {
-    const oy = Math.sin((Date.now() / 100 + this.bob) * 0.1) * 3;
+    // Use a time-based animation that works independently
+    const time = Date.now() / 200;
+    const oy = Math.sin((time + this.bob) * 0.5) * 3;
 
     if (this.type === 'chest') {
       ctx.fillStyle = '#d97706';

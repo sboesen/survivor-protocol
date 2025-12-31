@@ -12,6 +12,7 @@ class GachaSystem {
   resultChar: typeof CHARACTERS[keyof typeof CHARACTERS] | null = null;
   isDup = false;
   particles: GachaParticle[] = [];
+  animationId: number | null = null;
 
   init(): void {
     this.canvas = document.getElementById('gacha-canvas') as HTMLCanvasElement;
@@ -22,6 +23,12 @@ class GachaSystem {
   }
 
   startPull(): void {
+    // Cancel any existing animation loop
+    if (this.animationId !== null) {
+      cancelAnimationFrame(this.animationId);
+      this.animationId = null;
+    }
+
     if (SaveData.data.gold < 500) {
       alert('Insufficient Gold!');
       return;
@@ -153,9 +160,16 @@ class GachaSystem {
       if (this.resultChar) {
         Renderer.drawSprite(this.ctx, this.resultChar.id, 100, 100, scale, 1, false);
       }
+
+      // End animation after showing result
+      if (this.frames > 60) {
+        this.active = false;
+        this.drawIdle();
+        return;
+      }
     }
 
-    requestAnimationFrame(() => this.loop());
+    this.animationId = requestAnimationFrame(() => this.loop());
   }
 }
 

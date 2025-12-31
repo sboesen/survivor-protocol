@@ -312,6 +312,31 @@ button:disabled {
   text-transform: uppercase;
 }
 
+/* Wave animation for level-up cards */
+.level-card-anim {
+  animation: card-wave 0.6s ease-out;
+  background: linear-gradient(135deg, var(--ui-bg) 0%, rgba(251, 191, 36, 0.1) 50%, var(--ui-bg) 100%);
+  background-size: 200% 200%;
+}
+
+@keyframes card-wave {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+    background-position: 0% 50%;
+  }
+  50% {
+    transform: scale(1.02);
+    opacity: 1;
+    background-position: 100% 50%;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+    background-position: 0% 50%;
+  }
+}
+
 /* --- DAMAGE TEXT --- */
 .dmg-text {
   position: absolute;

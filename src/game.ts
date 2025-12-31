@@ -6,7 +6,6 @@ import { SaveData } from './systems/saveData';
 import { UI } from './systems/ui';
 import { Menu } from './systems/menu';
 import { GachaAnim } from './systems/gacha';
-import { Debug } from './systems/debug';
 import { Player } from './entities/player';
 import { Enemy } from './entities/enemy';
 import { Projectile } from './entities/projectile';
@@ -137,11 +136,22 @@ class GameCore {
     this.damageTexts = [];
     this.obstacles = [];
 
-    // Generate obstacles
+    const spawnX = CONFIG.worldSize / 2;
+    const spawnY = CONFIG.worldSize / 2;
+    const safeZone = 200; // Keep area around spawn clear
+
+    // Generate obstacles (away from spawn point)
     for (let i = 0; i < 40; i++) {
+      let ox, oy;
+      let attempts = 0;
+      do {
+        ox = Utils.rand(0, CONFIG.worldSize);
+        oy = Utils.rand(0, CONFIG.worldSize);
+        attempts++;
+      } while (attempts < 10 && Utils.getDist(ox, oy, spawnX, spawnY) < safeZone);
+
       this.obstacles.push(new Obstacle(
-        Utils.rand(0, CONFIG.worldSize),
-        Utils.rand(0, CONFIG.worldSize),
+        ox, oy,
         Utils.rand(60, 150),
         Utils.rand(60, 150),
         Math.random() > 0.9 ? 'font' : 'ruin'
@@ -568,7 +578,11 @@ class GameCore {
       if (!choices.includes(c)) choices.push(c);
     }
 
-    UI.showLevelUpScreen(choices, (id) => {
+    UI.showLevelUpScreen(choices, this.player.inventory, {
+      passives: this.player.passives,
+      critChance: this.player.critChance,
+      dmgMult: this.player.dmgMult
+    }, (id) => {
       if (this.player) {
         this.player.addUpgrade(id as any);
       }
@@ -632,9 +646,3 @@ class GameCore {
 }
 
 export const Game = new GameCore();
-
-// Expose to window for HTML event handlers
-(window as any).Game = Game;
-(window as any).Menu = Menu;
-(window as any).GachaAnim = GachaAnim;
-(window as any).Debug = Debug;

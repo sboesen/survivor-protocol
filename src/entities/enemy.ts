@@ -1,6 +1,7 @@
 import { CONFIG } from '../config';
 import type { CanvasContext, EntityType } from '../types';
 import { Entity } from './entity';
+import { Renderer } from '../systems/renderer';
 
 export class Enemy extends Entity {
   type: EntityType;
@@ -33,7 +34,7 @@ export class Enemy extends Entity {
     let hp = 15;
     let sprite: EntityType = 'basic';
     let color = '#fff';
-    let speed = 1.5 + Math.random() * 0.5;
+    let baseSpeed = 0.8 + Math.random() * 0.3; // Lower base speed
     let xp = 1;
 
     switch (type) {
@@ -42,7 +43,7 @@ export class Enemy extends Entity {
         radius = 18;
         sprite = 'elite';
         color = '#a855f7';
-        speed *= 0.7;
+        baseSpeed = 0.6 + Math.random() * 0.2;
         xp = 20;
         break;
       case 'boss':
@@ -50,7 +51,7 @@ export class Enemy extends Entity {
         radius = 25;
         sprite = 'boss';
         color = '#dc2626';
-        speed = 1.0;
+        baseSpeed = 0.7; // Slower boss
         xp = 200;
         break;
       case 'bat':
@@ -58,11 +59,16 @@ export class Enemy extends Entity {
         radius = 8;
         sprite = 'bat';
         color = '#777';
-        speed = 2.5 + Math.random() * 0.5;
+        baseSpeed = 1.8 + Math.random() * 0.4;
+        xp = 1;
         break;
       default:
         hp = 15 + mins * 10;
     }
+
+    // Scale speed with time (max 2x faster at 10 minutes)
+    const timeScale = 1 + (mins * 0.1);
+    const speed = Math.min(baseSpeed * timeScale, 3.0);
 
     super(sx, sy, radius, color);
 
@@ -110,7 +116,6 @@ export class Enemy extends Entity {
   }
 
   drawShape(ctx: CanvasContext, x: number, y: number): void {
-    const { Renderer } = require('../systems/renderer');
 
     const spriteMap: Record<EntityType, 'skeleton' | 'bat' | 'golem' | 'lich'> = {
       basic: 'skeleton',

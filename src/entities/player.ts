@@ -2,6 +2,7 @@ import { CONFIG } from '../config';
 import type { CanvasContext } from '../types';
 import type { Weapon, WeaponType, PassiveType, UpgradeType } from '../types';
 import { Entity } from './entity';
+import { Renderer } from '../systems/renderer';
 
 export interface PlayerPassives {
   pierce: number;
@@ -66,8 +67,6 @@ export class Player extends Entity {
   private _hp: number = 100;
 
   drawShape(ctx: CanvasContext, x: number, y: number): void {
-    // Import here to avoid circular dependency
-    const { Renderer } = require('../systems/renderer');
 
     // Draw Aura for orbit weapon
     if (this.inventory['orbit']) {
@@ -75,7 +74,7 @@ export class Player extends Entity {
       if (w && w.area) {
         ctx.beginPath();
         ctx.arc(x, y, w.area, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, 215, 0, ${0.1 + Math.sin(this.ultActiveTime * 0.1) * 0.05})`;
+        ctx.fillStyle = `rgba(255, 215, 0, ${0.1 + Math.sin(Date.now() * 0.003) * 0.05})`;
         ctx.fill();
         ctx.strokeStyle = 'rgba(255, 215, 0, 0.4)';
         ctx.lineWidth = 2;
