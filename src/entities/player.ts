@@ -30,6 +30,7 @@ export class Player extends Entity {
   ultCharge: number;
   ultMax: number;
   ultActiveTime: number;
+  auraAttackFrame: number;
 
   constructor(
     charId: string,
@@ -44,7 +45,7 @@ export class Player extends Entity {
     this.charId = charId;
     this.maxHp = (100 + (shopUpgrades.health * 20)) * hpMod;
     this.hp = this.maxHp;
-    this.speed = (3.5 * (1 + (shopUpgrades.speed * 0.05))) * spdMod;
+    this.speed = (7.5 * (1 + (shopUpgrades.speed * 0.05))) * spdMod;
     this.pickupRange = 60 * (1 + (shopUpgrades.magnet * 0.2));
     this.dmgMult = 1 + (shopUpgrades.damage * 0.1);
     this.critChance = 0;
@@ -58,6 +59,7 @@ export class Player extends Entity {
     this.ultCharge = 0;
     this.ultMax = 1000;
     this.ultActiveTime = 0;
+    this.auraAttackFrame = 0;
 
     this.addUpgrade(weapon);
   }
@@ -68,16 +70,21 @@ export class Player extends Entity {
 
   drawShape(ctx: CanvasContext, x: number, y: number): void {
 
-    // Draw Aura for orbit weapon
+    // Draw Aura for orbit weapon (Mop Bucket)
     if (this.inventory['orbit']) {
       const w = this.weapons.find(w => w.id === 'orbit');
       if (w && w.area) {
+        // Pulse animation synced to attack timing
+        const framesSinceAttack = this.auraAttackFrame;
+        const pulse = Math.max(0, 1 - (framesSinceAttack / 20)); // 1 at attack, fades to 0
+        const pulseSq = pulse * pulse; // Sharper fall-off
+
         ctx.beginPath();
         ctx.arc(x, y, w.area, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, 215, 0, ${0.1 + Math.sin(Date.now() * 0.003) * 0.05})`;
+        ctx.fillStyle = `rgba(200, 220, 255, ${0.05 + pulseSq * 0.2})`;
         ctx.fill();
-        ctx.strokeStyle = 'rgba(255, 215, 0, 0.4)';
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = `rgba(200, 220, 255, ${0.2 + pulseSq * 0.6})`;
+        ctx.lineWidth = 1 + pulseSq * 3;
         ctx.stroke();
       }
     }

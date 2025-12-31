@@ -7,7 +7,7 @@ export class Loot extends Entity {
   bob: number;
 
   constructor(x: number, y: number, type: 'gem' | 'chest' | 'heart') {
-    super(x, y, 0, '#000');
+    super(x, y, 8, '#000');
     this.type = type;
     this.val = 1;
     this.bob = Math.random() * 10;

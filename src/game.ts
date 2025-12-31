@@ -24,6 +24,9 @@ class GameCore {
   goldRun = 0;
   kills = 0;
   bossKills = 0;
+  lastTime = 0;
+  accumulator = 0;
+  readonly timestep = 1000 / 60; // 60 FPS fixed timestep
 
   player: Player | null = null;
   enemies: Enemy[] = [];
@@ -116,6 +119,8 @@ class GameCore {
     this.kills = 0;
     this.bossKills = 0;
     this.timeFreeze = 0;
+    this.lastTime = 0;
+    this.accumulator = 0;
 
     // Create player based on selected character
     const char = CHARACTERS[SaveData.data.selectedChar];
@@ -258,6 +263,20 @@ class GameCore {
     if (this.timeFreeze > 0) this.timeFreeze--;
     if (p.ultActiveTime > 0) p.ultActiveTime--;
 
+    // Aura animation frame tracking
+    p.auraAttackFrame++;
+
+    // Healing fountains (work even when standing still)
+    for (const o of this.obstacles) {
+      if (o.type === 'font') {
+        const dist = Utils.getDist(p.x, p.y, o.x, o.y);
+        if (dist < 40 && this.frames % 30 === 0 && p.hp < p.maxHp) {
+          p.hp++;
+          this.spawnDamageText(p.x, p.y, '+', '#0f0');
+        }
+      }
+    }
+
     // Player movement
     let dx = 0, dy = 0;
     if (this.input.keys['w']) dy = -1;
@@ -292,10 +311,7 @@ class GameCore {
         const dist = Utils.getDist(nx, ny, o.x, o.y);
 
         if (o.type === 'font') {
-          if (dist < 40 && this.frames % 30 === 0 && p.hp < p.maxHp) {
-            p.hp++;
-            this.spawnDamageText(p.x, p.y, '+', '#0f0');
-          }
+          // Healing handled above
           continue;
         }
 
@@ -349,6 +365,7 @@ class GameCore {
 
       if (w.type === 'aura' && w.area) {
         if (this.frames % 20 === 0) {
+          p.auraAttackFrame = 0; // Reset for attack animation
           this.enemies.forEach(e => {
             if (Utils.getDist(p.x, p.y, e.x, e.y) < w.area!) {
               this.hitEnemy(e, dmg, isCrit);
@@ -499,14 +516,15 @@ class GameCore {
         if (ldy > CONFIG.worldSize / 2) ldy -= CONFIG.worldSize;
         if (ldy < -CONFIG.worldSize / 2) ldy += CONFIG.worldSize;
 
-        l.x += ldx * 0.15;
-        l.y += ldy * 0.15;
+        l.x = (l.x + ldx * 0.15 + CONFIG.worldSize) % CONFIG.worldSize;
+        l.y = (l.y + ldy * 0.15 + CONFIG.worldSize) % CONFIG.worldSize;
 
-        if (d < 15) {
+        if (d < 20) {
           l.marked = true;
 
           if (l.type === 'gem') {
             p.gainXp(l.val, () => this.triggerLevelUp());
+            this.spawnDamageText(p.x, p.y, '+XP', '#0f0');
           }
           if (l.type === 'chest') this.openChest();
           if (l.type === 'heart') {
@@ -531,6 +549,9 @@ class GameCore {
     if (this.frames % 30 === 0) {
       UI.updateHud(this.goldRun, this.time, p.level, this.kills, SaveData.data.selectedChar);
     }
+
+    // Update XP bar
+    UI.updateXp(p.xp, p.nextXp, p.level);
   }
 
   hitEnemy(e: Enemy, dmg: number, isCrit: boolean): void {
@@ -638,10 +659,21 @@ class GameCore {
     ctx.fillRect(cw / 2 - 15, ch / 2 + 18, 30 * hpPct, 4);
   }
 
-  loop(): void {
-    this.update();
+  loop(currentTime = 0): void {
+    if (!this.lastTime) this.lastTime = currentTime;
+    const deltaTime = currentTime - this.lastTime;
+    this.lastTime = currentTime;
+
+    this.accumulator += deltaTime;
+
+    // Fixed timestep update - run update() exactly 60 times per second
+    while (this.accumulator >= this.timestep) {
+      this.update();
+      this.accumulator -= this.timestep;
+    }
+
     this.render();
-    requestAnimationFrame(() => this.loop());
+    requestAnimationFrame((t) => this.loop(t));
   }
 }
 
