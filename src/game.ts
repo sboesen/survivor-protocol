@@ -197,19 +197,19 @@ class GameCore {
       const type = this.player.ultName;
 
       switch (type) {
-        case 'Shield':
+        case 'Security':
           this.player.ultActiveTime = 300;
-          this.spawnDamageText(this.player.x, this.player.y, 'SHIELD UP!', '#fff');
+          this.spawnDamageText(this.player.x, this.player.y, 'SECURITY!', '#4af');
           break;
-        case 'Haste':
+        case 'Ollie':
           this.player.ultActiveTime = 300;
-          this.spawnDamageText(this.player.x, this.player.y, 'MAX SPEED!', '#fff');
+          this.spawnDamageText(this.player.x, this.player.y, 'OLLIE!', '#0f0');
           break;
-        case 'Freeze':
+        case 'ClosingTime':
           this.timeFreeze = 240;
-          this.spawnDamageText(this.player.x, this.player.y, 'TIME STOP!', '#0ff');
+          this.spawnDamageText(this.player.x, this.player.y, 'CLOSED!', '#888');
           break;
-        case 'Rage':
+        case 'GreaseFire':
           for (let i = 0; i < 12; i++) {
             const ang = (Math.PI * 2 / 12) * i;
             const proj = new Projectile(
@@ -218,7 +218,7 @@ class GameCore {
               Math.cos(ang) * 5,
               Math.sin(ang) * 5,
               20,
-              '#f00',
+              '#f80',
               100,
               100,
               999,
@@ -227,7 +227,7 @@ class GameCore {
             proj.isArc = true;
             this.projectiles.push(proj);
           }
-          this.spawnDamageText(this.player.x, this.player.y, 'RAGE!', '#f00');
+          this.spawnDamageText(this.player.x, this.player.y, 'GREASE FIRE!', '#f80');
           break;
       }
     }
@@ -275,7 +275,7 @@ class GameCore {
 
       const len = Math.hypot(dx, dy);
       const spd = p.speed * (
-        p.ultName === 'Haste' && p.ultActiveTime > 0 ? 1.5 : 1
+        p.ultName === 'Ollie' && p.ultActiveTime > 0 ? 1.5 : 1
       );
 
       if (len > 1) {
@@ -339,7 +339,7 @@ class GameCore {
     p.weapons.forEach(w => {
       if (w.curCd > 0) {
         w.curCd -= (1 + p.passives.cooldown) * (
-          p.ultName === 'Haste' && p.ultActiveTime > 0 ? 2 : 1
+          p.ultName === 'Ollie' && p.ultActiveTime > 0 ? 2 : 1
         );
       }
 
@@ -445,7 +445,7 @@ class GameCore {
     // Player-enemy collision
     this.enemies.forEach(e => {
       if (Utils.getDist(p.x, p.y, e.x, e.y) < p.radius + e.radius) {
-        if (p.ultName === 'Shield' && p.ultActiveTime > 0) return;
+        if (p.ultName === 'Security' && p.ultActiveTime > 0) return;
 
         if (this.frames % 30 === 0) {
           p.hp -= 5;
@@ -460,7 +460,7 @@ class GameCore {
       if (proj.isHostile) {
         // Hits player
         if (Utils.getDist(proj.x, proj.y, p.x, p.y) < proj.radius + p.radius) {
-          if (p.ultName === 'Shield' && p.ultActiveTime > 0) {
+          if (p.ultName === 'Security' && p.ultActiveTime > 0) {
             proj.marked = true;
             return;
           }

@@ -1,44 +1,44 @@
 import type { Character } from '../types';
 
 export const CHARACTERS: Record<string, Character> = {
-  knight: {
-    id: 'knight',
-    name: 'Vanguard',
-    icon: '🛡️',
-    weapon: 'wand',
+  janitor: {
+    id: 'janitor',
+    name: 'Janitor',
+    icon: '🧹',
+    weapon: 'orbit',
     hpMod: 1.2,
     spdMod: 0.9,
-    ult: 'Shield',
-    desc: 'Tanky. Start: Wand.'
+    ult: 'ClosingTime',
+    desc: 'Tanky. Start: Mop Bucket.'
   },
-  rogue: {
-    id: 'rogue',
-    name: 'Spectre',
-    icon: '🗡️',
+  skater: {
+    id: 'skater',
+    name: 'Skater',
+    icon: '🛹',
     weapon: 'knife',
     hpMod: 0.8,
-    spdMod: 1.2,
-    ult: 'Haste',
-    desc: 'Fast. Start: Knife.'
+    spdMod: 1.3,
+    ult: 'Ollie',
+    desc: 'Fast. Start: Thrown CDs.'
   },
-  mage: {
-    id: 'mage',
-    name: 'Arcanist',
-    icon: '🔮',
-    weapon: 'orbit',
-    hpMod: 0.9,
-    spdMod: 1.0,
-    ult: 'Freeze',
-    desc: 'AoE. Start: Aura.'
-  },
-  viking: {
-    id: 'viking',
-    name: 'Berserk',
-    icon: '🪓',
-    weapon: 'axe',
+  mallCop: {
+    id: 'mallCop',
+    name: 'Mall Cop',
+    icon: '👮',
+    weapon: 'wand',
     hpMod: 1.5,
     spdMod: 0.8,
-    ult: 'Rage',
-    desc: 'High HP. Start: Axe.'
+    ult: 'Security',
+    desc: 'High HP. Start: Pepper Spray.'
+  },
+  foodCourt: {
+    id: 'foodCourt',
+    name: 'Chef',
+    icon: '🍔',
+    weapon: 'axe',
+    hpMod: 1.0,
+    spdMod: 1.0,
+    ult: 'GreaseFire',
+    desc: 'Balanced. Start: Frying Pan.'
   }
 };

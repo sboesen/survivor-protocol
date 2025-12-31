@@ -2,58 +2,58 @@ import type { Sprites } from '../types';
 
 export const SPRITES: Sprites = {
   // Player characters
-  knight: [
-    "   ssss   ",
-    "  ssssss  ",
-    "  ssbbss  ",
-    "  ssssss  ",
-    " ssssssss ",
-    " ssbssbss ",
-    " ssbssbss ",
-    "   1  1   ",
-    "  ss  ss  ",
-    "  ss  ss  "
-  ],
-  rogue: [
+  janitor: [
     "   1111   ",
     "  111111  ",
+    "  11dd11  ",
     "  111111  ",
-    "  1r11r1  ",
-    "  111111  ",
-    " 33333333 ",
-    " 31133113 ",
-    " s  33  s ",
-    " 11    11 ",
-    " 11    11 "
+    " 11111111 ",
+    " 111b1b11 ",
+    " 111b1b11 ",
+    "    33    ",
+    "   3  3   ",
+    "   3333   "
   ],
-  mage: [
-    "   pppp   ",
-    "  pppppp  ",
-    "  ppggpp  ",
-    "  pppppp  ",
-    " pppppppp ",
-    " pp1pp1pp ",
-    " pp1pp1pp ",
-    "   2  2   ",
-    "  pp  pp  ",
-    "  pp  pp  "
-  ],
-  viking: [
-    " s ssss s ",
-    "  ssssss  ",
-    "  sggggs  ",
-    "  sg11gs  ",
-    "  sggggs  ",
+  skater: [
+    "   rrrr   ",
+    "  rrrrrr  ",
+    "  r11rr1  ",
+    "  rrrrrr  ",
     " 22222222 ",
-    " 222gg222 ",
-    " s 2222 s ",
+    " r2r222r2 ",
+    " r2r222r2 ",
+    "  22  22  ",
     " 22    22 ",
     " 22    22 "
   ],
+  mallCop: [
+    "   bbbb   ",
+    "  bbbbbbb ",
+    "  bbbbbbb ",
+    "  b11bb11 ",
+    "  bbbbbbb ",
+    " 11111111 ",
+    " b1b11b1b ",
+    "   1  1   ",
+    "  11  11  ",
+    "  11  11  "
+  ],
+  foodCourt: [
+    "   wwww   ",
+    "  wwwwww  ",
+    "  wwww11  ",
+    "  wwwwww  ",
+    " wwwwwwww ",
+    " ww11ww11 ",
+    " ww11ww11 ",
+    "   2  2   ",
+    "  ww  ww  ",
+    "  ww  ww  "
+  ],
   // Enemies
-  skeleton: [
+  shopper: [
     "   wwwww  ",
-    "  wkkwwkk ",
+    "  wggwwgg ",
     "  wwwwwww ",
     "   wwwww  ",
     "    111   ",
@@ -63,7 +63,7 @@ export const SPRITES: Sprites = {
     "   1   1  ",
     "   1   1  "
   ],
-  bat: [
+  sprinter: [
     "          ",
     " d      d ",
     " ddd  ddd ",
@@ -75,7 +75,7 @@ export const SPRITES: Sprites = {
     "          ",
     "          "
   ],
-  golem: [
+  armored: [
     "  111111  ",
     " 11r11r11 ",
     " 11111111 ",
@@ -87,16 +87,16 @@ export const SPRITES: Sprites = {
     "  33  33  ",
     "  33  33  "
   ],
-  lich: [
-    "   pppp   ",
-    "  prpprp  ",
-    "  pppppp  ",
-    "  pppppp  ",
-    " pppppppp ",
-    " ppeppepp ",
-    " ppeppepp ",
-    "   d  d   ",
-    "  dd  dd  ",
-    "  dd  dd  "
+  manager: [
+    "   wwwww  ",
+    "  wrwwrw  ",
+    "  wwwwww  ",
+    "  wwwwww  ",
+    " wwwwwwww ",
+    " ww11ww11 ",
+    " ww11ww11 ",
+    "   2  2   ",
+    "  22  22  ",
+    "  22  22  "
   ]
 };

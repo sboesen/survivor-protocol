@@ -4,9 +4,9 @@ export const CONFIG: Config = {
   worldSize: 2000,
   viewDist: 1000,
   colors: {
-    player: '#38bdf8',
-    enemy: '#ef4444',
-    obstacle: '#334155',
-    gem: '#10b981'
+    player: '#6b7280',
+    enemy: '#6d8c4f',
+    obstacle: '#4a5568',
+    gem: '#fbbf24'
   }
 };

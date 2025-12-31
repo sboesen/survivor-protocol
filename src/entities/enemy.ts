@@ -117,11 +117,11 @@ export class Enemy extends Entity {
 
   drawShape(ctx: CanvasContext, x: number, y: number): void {
 
-    const spriteMap: Record<EntityType, 'skeleton' | 'bat' | 'golem' | 'lich'> = {
-      basic: 'skeleton',
-      bat: 'bat',
-      elite: 'golem',
-      boss: 'lich'
+    const spriteMap: Record<EntityType, 'shopper' | 'sprinter' | 'armored' | 'manager'> = {
+      basic: 'shopper',
+      bat: 'sprinter',
+      elite: 'armored',
+      boss: 'manager'
     };
 
     const scale = this.type === 'boss' ? 4 : (this.type === 'elite' ? 3 : 2);

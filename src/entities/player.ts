@@ -84,8 +84,8 @@ export class Player extends Entity {
 
     Renderer.drawSprite(ctx, this.charId, x, y, 2.5);
 
-    if (this.ultName === 'Shield' && this.ultActiveTime > 0) {
-      ctx.strokeStyle = '#fff';
+    if (this.ultName === 'Security' && this.ultActiveTime > 0) {
+      ctx.strokeStyle = '#4af';
       ctx.beginPath();
       ctx.arc(x, y, 20, 0, Math.PI * 2);
       ctx.stroke();
