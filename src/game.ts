@@ -389,10 +389,10 @@ class GameCore {
 
       if (type === 'boss') {
         if (!this.enemies.find(e => e.type === 'boss')) {
-          this.enemies.push(new Enemy(p.x, p.y, 'boss', this.mins));
+          this.enemies.push(new Enemy(p.x, p.y, 'boss', this.mins, this.obstacles));
         }
       } else {
-        this.enemies.push(new Enemy(p.x, p.y, type, this.mins));
+        this.enemies.push(new Enemy(p.x, p.y, type, this.mins, this.obstacles));
       }
     }
 
@@ -734,7 +734,7 @@ class GameCore {
     });
 
     // Update enemies
-    this.enemies.forEach(e => e.update(p, this.timeFreeze));
+    this.enemies.forEach(e => e.update(p, this.timeFreeze, this.obstacles));
 
     // Player-enemy collision
     this.enemies.forEach(e => {

@@ -1,6 +1,7 @@
 import { CONFIG } from '../config';
 import type { CanvasContext, EntityType } from '../types';
 import { Entity } from './entity';
+import { Obstacle } from './obstacle';
 import { Renderer } from '../systems/renderer';
 
 export class Enemy extends Entity {
@@ -16,19 +17,30 @@ export class Enemy extends Entity {
     px: number,
     py: number,
     type: EntityType,
-    mins: number
+    mins: number,
+    obstacles: Obstacle[] = []
   ) {
-    // Spawn at random angle and distance
-    const ang = Math.random() * 6.28;
-    const dist = 600;
-    let sx = px + Math.cos(ang) * dist;
-    let sy = py + Math.sin(ang) * dist;
+    // Spawn at random angle and distance, avoiding obstacles
+    let ang: number;
+    let dist = 600;
+    let sx: number;
+    let sy: number;
+    let attempts = 0;
+    const maxAttempts = 20;
 
-    // Wrap to world bounds
-    if (sx < 0) sx += CONFIG.worldSize;
-    if (sx > CONFIG.worldSize) sx -= CONFIG.worldSize;
-    if (sy < 0) sy += CONFIG.worldSize;
-    if (sy > CONFIG.worldSize) sy -= CONFIG.worldSize;
+    do {
+      ang = Math.random() * 6.28;
+      sx = px + Math.cos(ang) * dist;
+      sy = py + Math.sin(ang) * dist;
+
+      // Wrap to world bounds
+      if (sx < 0) sx += CONFIG.worldSize;
+      if (sx > CONFIG.worldSize) sx -= CONFIG.worldSize;
+      if (sy < 0) sy += CONFIG.worldSize;
+      if (sy > CONFIG.worldSize) sy -= CONFIG.worldSize;
+
+      attempts++;
+    } while (attempts < maxAttempts && Enemy.isInsideObstacle(sx, sy, obstacles));
 
     let radius = 10;
     let hp = 15;
@@ -86,7 +98,23 @@ export class Enemy extends Entity {
   set hp(value: number) { this._hp = Math.max(0, value); }
   private _hp: number = 15;
 
-  update(player: Entity, timeFreeze: number): void {
+  private static isInsideObstacle(x: number, y: number, obstacles: Obstacle[]): boolean {
+    for (const o of obstacles) {
+      if (o.type === 'font') continue; // Skip healing fountains
+      const dist = Math.hypot(x - o.x, y - o.y);
+      if (dist < 80) {
+        // Check if position is inside obstacle bounds (with margin)
+        const margin = 30;
+        if (x > o.x - o.w / 2 - margin && x < o.x + o.w / 2 + margin &&
+            y > o.y - o.h / 2 - margin && y < o.y + o.h / 2 + margin) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  update(player: Entity, timeFreeze: number, obstacles: Obstacle[] = []): void {
     if (timeFreeze > 0) return;
 
     let dx = player.x - this.x;
@@ -99,8 +127,28 @@ export class Enemy extends Entity {
     if (dy < -CONFIG.worldSize / 2) dy += CONFIG.worldSize;
 
     const ang = Math.atan2(dy, dx);
-    this.x = (this.x + Math.cos(ang) * this.speed + CONFIG.worldSize) % CONFIG.worldSize;
-    this.y = (this.y + Math.sin(ang) * this.speed + CONFIG.worldSize) % CONFIG.worldSize;
+    const newX = (this.x + Math.cos(ang) * this.speed + CONFIG.worldSize) % CONFIG.worldSize;
+    const newY = (this.y + Math.sin(ang) * this.speed + CONFIG.worldSize) % CONFIG.worldSize;
+
+    // Check obstacle collision
+    let blocked = false;
+    for (const o of obstacles) {
+      if (o.type === 'font') continue; // Skip healing fountains
+      const dist = Math.hypot(newX - o.x, newY - o.y);
+      if (dist < 80) {
+        // Check if new position would be inside obstacle
+        if (newX > o.x - o.w / 2 - this.radius && newX < o.x + o.w / 2 + this.radius &&
+            newY > o.y - o.h / 2 - this.radius && newY < o.y + o.h / 2 + this.radius) {
+          blocked = true;
+          break;
+        }
+      }
+    }
+
+    if (!blocked) {
+      this.x = newX;
+      this.y = newY;
+    }
 
     if (this.flash > 0) this.flash--;
 
