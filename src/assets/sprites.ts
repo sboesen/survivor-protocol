@@ -50,18 +50,6 @@ export const SPRITES: Sprites = {
     "  ww  ww  ",
     "  ww  ww  "
   ],
-  teenager: [
-    "   pppp   ",
-    "  pppppp  ",
-    "  pp11pp  ",
-    "  pppppp  ",
-    " kkkkkkkk ",
-    " pkpkpkpk ",
-    " pkpkpkpk ",
-    "   kkkk   ",
-    "  kk  kk  ",
-    "  kk  kk  "
-  ],
   techSupport: [
     "   3333   ",
     "  33kk33  ",
@@ -74,18 +62,6 @@ export const SPRITES: Sprites = {
     "  33  33  ",
     "  33  33  "
   ],
-  ninja: [
-    "          ",
-    "   2222   ",
-    "  222222  ",
-    "  22dd22  ",
-    " 22222222 ",
-    " 2d22d22d ",
-    " 2d22d22d ",
-    "   2  2   ",
-    "  22  22  ",
-    "  22  22  "
-  ],
   dungeonMaster: [
     "          ",
     "   3333   ",
@@ -97,6 +73,18 @@ export const SPRITES: Sprites = {
     "   33 3   ",
     "  3   3  ",
     "     33   "
+  ],
+  teenager: [
+    "   pppp   ",
+    "  pppppp  ",
+    "  p11pp1  ",
+    "  pppppp  ",
+    " 11111111 ",
+    " 1r1r1r1r ",
+    " 1r1r1r1r ",
+    "   1  1   ",
+    "  11  11  ",
+    "  11  11  "
   ],
   // Enemies
   shopper: [

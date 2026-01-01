@@ -13,7 +13,7 @@ export interface Colors {
   gem: string;
 }
 
-export type SpriteKey = 'janitor' | 'skater' | 'mallCop' | 'foodCourt' | 'teenager' | 'techSupport' | 'ninja' | 'dungeonMaster' | 'shopper' | 'sprinter' | 'armored' | 'manager';
+export type SpriteKey = 'janitor' | 'skater' | 'mallCop' | 'foodCourt' | 'techSupport' | 'dungeonMaster' | 'teenager' | 'shopper' | 'sprinter' | 'armored' | 'manager';
 
 export type PaletteKey = '.' | 's' | 'b' | 'd' | 'g' | 'r' | 'p' | 'w' | '1' | '2' | '3' | 'k' | 'e';
 
@@ -36,7 +36,7 @@ export interface Character {
   desc: string;
 }
 
-export type WeaponType = 'wand' | 'knife' | 'orbit' | 'axe' | 'claw' | 'chain' | 'flicker' | 'fireball';
+export type WeaponType = 'pepper_spray' | 'mop_bucket' | 'frying_pan' | 'thrown_cds' | 'server_zap' | 'fireball' | 'lighter';
 export type PassiveType = 'pierce' | 'scope' | 'damage' | 'cooldown';
 export type UpgradeType = WeaponType | PassiveType;
 
@@ -62,7 +62,7 @@ export interface Weapon {
   id: WeaponType;
   cd: number;
   dmg: number;
-  type: 'nearest' | 'facing' | 'aura' | 'arc' | 'melee' | 'chain' | 'flicker' | 'fireball';
+  type: 'nearest' | 'facing' | 'aura' | 'arc' | 'chain' | 'fireball' | 'spray';
   area?: number;
   range?: number;
   falloff?: number;

@@ -265,45 +265,11 @@ class GameCore {
           }
           this.spawnDamageText(this.player.x, this.player.y, 'GREASE FIRE!', '#f80');
           break;
-        case 'GuitarSolo':
-          // AoE damage + stun around player
-          this.enemies.forEach(e => {
-            if (Utils.getDist(this.player!.x, this.player!.y, e.x, e.y) < 200) {
-              this.hitEnemy(e, 30, false);
-              e.flash = 30; // Extended stun
-            }
-          });
-          this.spawnDamageText(this.player!.x, this.player!.y, 'GUITAR SOLO!', '#f0f');
-          break;
         case 'Reboot':
           // Heal 50% HP + 5s immunity
           this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.maxHp * 0.5);
           this.player.ultActiveTime = 300;
           this.spawnDamageText(this.player.x, this.player.y, 'REBOOT!', '#0ff');
-          break;
-        case 'ShadowClone':
-          // Spawn 3 clones that attack nearby enemies
-          const clones = 3;
-          for (let i = 0; i < clones; i++) {
-            const ang = (Math.PI * 2 / clones) * i;
-            const cloneX = (this.player.x + Math.cos(ang) * 100 + CONFIG.worldSize) % CONFIG.worldSize;
-            const cloneY = (this.player.y + Math.sin(ang) * 100 + CONFIG.worldSize) % CONFIG.worldSize;
-
-            // Find nearest enemy to clone position
-            let nearest: Enemy | null = null;
-            let min = 150;
-            for (const e of this.enemies) {
-              const d = Utils.getDist(cloneX, cloneY, e.x, e.y);
-              if (d < min) {
-                min = d;
-                nearest = e;
-              }
-            }
-            if (nearest) {
-              this.hitEnemy(nearest, 50, true);
-            }
-          }
-          this.spawnDamageText(this.player.x, this.player.y, 'SHADOW CLONE!', '#888');
           break;
       }
     }
@@ -316,7 +282,7 @@ class GameCore {
 
   spawnParticles(config: ParticleSpawnConfig, count = 1): void {
     // Ensure particle type is valid
-    const validTypes: ParticleType[] = ['water', 'explosion', 'smoke', 'blood', 'spark', 'foam', 'ripple', 'caustic', 'splash', 'fire'];
+    const validTypes: ParticleType[] = ['water', 'explosion', 'smoke', 'blood', 'spark', 'foam', 'ripple', 'caustic', 'splash', 'fire', 'gas'];
     if (!validTypes.includes(config.type)) return;
 
     for (let i = 0; i < count; i++) {
@@ -603,35 +569,6 @@ class GameCore {
           proj.isArc = true;
           this.projectiles.push(proj);
           fired = true;
-        } else if (w.type === 'melee' && w.range && w.falloff !== undefined) {
-          // Claw: cone attack in facing direction with distance falloff
-          const faceX = this.input.lastDx || 1;
-          const faceY = this.input.lastDy || 0;
-          const faceAngle = Math.atan2(faceY, faceX);
-          const coneAngle = Math.PI / 3; // 60 degree cone
-
-          this.enemies.forEach(e => {
-            const dx = e.x - p.x;
-            const dy = e.y - p.y;
-            if (dx > CONFIG.worldSize / 2) return;
-            if (dx < -CONFIG.worldSize / 2) return;
-            if (dy > CONFIG.worldSize / 2) return;
-            if (dy < -CONFIG.worldSize / 2) return;
-
-            const dist = Math.hypot(dx, dy);
-            if (dist > w.range!) return;
-
-            const angle = Math.atan2(dy, dx);
-            let angleDiff = angle - faceAngle;
-            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-
-            if (Math.abs(angleDiff) < coneAngle / 2) {
-              const falloffFactor = 1 - (1 - w.falloff!) * (dist / w.range!);
-              this.hitEnemy(e, dmg * falloffFactor, isCrit);
-            }
-          });
-          fired = true;
         } else if (w.type === 'chain' && w.bounces) {
           // Chain lightning: bounces between enemies
           let targets: Enemy[] = [];
@@ -670,54 +607,6 @@ class GameCore {
             this.hitEnemy(e, dmg * falloff, isCrit);
           });
           fired = true;
-        } else if (w.type === 'flicker' && w.area) {
-          // Flicker Strike: teleport to random nearby enemy and AoE slash
-          // Only fire when weaponFire button is held (manual weapon)
-          if (!this.input.weaponFire) {
-            fired = false;
-          } else {
-            const nearbyEnemies = this.enemies.filter(e => Utils.getDist(p.x, p.y, e.x, e.y) < 500);
-
-            if (nearbyEnemies.length > 0) {
-              // Shuffle and find a safe target (not inside obstacle)
-              const shuffled = [...nearbyEnemies].sort(() => Math.random() - 0.5);
-              let safeTarget: Enemy | null = null;
-
-              for (const target of shuffled) {
-                // Check if target position is safe from obstacles
-                let inObstacle = false;
-                for (const o of this.obstacles) {
-                  if (o.type === 'font') continue;
-                  if (target.x > o.x - o.w / 2 - 20 && target.x < o.x + o.w / 2 + 20 &&
-                      target.y > o.y - o.h / 2 - 20 && target.y < o.y + o.h / 2 + 20) {
-                    inObstacle = true;
-                    break;
-                  }
-                }
-                if (!inObstacle) {
-                  safeTarget = target;
-                  break;
-                }
-              }
-
-              if (safeTarget) {
-                // Teleport player
-                p.x = safeTarget.x;
-                p.y = safeTarget.y;
-
-                // Spawn teleport effect
-                this.spawnParticles({ type: 'spark' as ParticleType, x: p.x, y: p.y }, 10);
-
-                // AoE slash around new position
-                this.enemies.forEach(e => {
-                  if (Utils.getDist(p.x, p.y, e.x, e.y) < w.area!) {
-                    this.hitEnemy(e, dmg, isCrit);
-                  }
-                });
-              }
-            }
-            fired = true;
-          }
         } else if (w.type === 'fireball') {
           // Fireball: homing projectile to nearest enemy with particle trail
           let near: Enemy | null = null;
@@ -746,6 +635,109 @@ class GameCore {
             this.fireballs.push(fireball);
             fired = true;
           }
+        } else if (w.type === 'spray') {
+          // Spray weapons (lighter: white cloud + fire sparks, pepper_spray: green toxic cloud)
+          const baseAngle = this.input.lastDx !== undefined ?
+            Math.atan2(this.input.lastDy || 0, this.input.lastDx) :
+            Math.random() * Math.PI * 2;
+
+          const isLighter = w.id === 'lighter';
+          const gasColor = isLighter ? '#ffcccc' : '#33ff33';
+          const pelletCount = isLighter ? 3 : 5;
+          const spreadAmount = isLighter ? 0.25 : 0.4;
+
+          // Spawn gas cloud particles along the stream
+          for (let i = 0; i < (isLighter ? 10 : 6); i++) {
+            const dist = 10 + Math.random() * (isLighter ? 50 : 80);
+            // Lighter: tighter spread that increases with distance
+            let gasSpread = isLighter ? spreadAmount * 0.3 : spreadAmount;
+            if (isLighter) {
+              // Even narrower close to player, widens slightly at distance
+              const distFactor = (dist - 10) / 50; // 0 to 1
+              gasSpread = spreadAmount * (0.15 + distFactor * 0.3);
+            }
+            const spreadAngle = baseAngle + (Math.random() - 0.5) * gasSpread;
+            this.spawnParticles({
+              type: 'gas' as ParticleType,
+              x: p.x + Math.cos(spreadAngle) * dist + (Math.random() - 0.5) * 10,
+              y: p.y + Math.sin(spreadAngle) * dist + (Math.random() - 0.5) * 10,
+              size: isLighter ? 5 + Math.random() * 5 : 7 + Math.random() * 5,
+              vx: Math.cos(spreadAngle) * 0.3 + (Math.random() - 0.5) * 0.5,
+              vy: Math.sin(spreadAngle) * 0.3 + (Math.random() - 0.5) * 0.5,
+              color: gasColor
+            }, 1);
+          }
+
+          // Fire particles along the stream (lighter only) - flow outward from player
+          if (isLighter) {
+            for (let i = 0; i < 5; i++) {
+              const dist = 15 + Math.random() * 30;
+              const spreadAngle = baseAngle + (Math.random() - 0.5) * 0.2;
+              // Velocity flows outward with small variance
+              const flowSpeed = 1 + Math.random() * 1.5;
+              const flowAngle = spreadAngle + (Math.random() - 0.5) * 0.3;
+              this.spawnParticles({
+                type: 'fire' as ParticleType,
+                x: p.x + Math.cos(spreadAngle) * dist + (Math.random() - 0.5) * 8,
+                y: p.y + Math.sin(spreadAngle) * dist + (Math.random() - 0.5) * 8,
+                size: 2 + Math.random() * 2,
+                vx: Math.cos(flowAngle) * flowSpeed,
+                vy: Math.sin(flowAngle) * flowSpeed
+              }, 1);
+            }
+          }
+
+          // Tiny damage pellets - pepper spray only
+          if (!isLighter) {
+            for (let i = 0; i < pelletCount; i++) {
+              const spread = (Math.random() - 0.5) * spreadAmount;
+              const angle = baseAngle + spread;
+              const speed = 6 + Math.random() * 2;
+
+              const proj = new Projectile(
+                p.x,
+                p.y,
+                Math.cos(angle) * speed,
+                Math.sin(angle) * speed,
+                1, // Tiny radius
+                '#33ff33',
+                dmg,
+                12,
+                1,
+                isCrit
+              );
+              this.projectiles.push(proj);
+            }
+          }
+
+          // Lighter direct cone damage (no visible pellets)
+          if (isLighter) {
+            for (const e of this.enemies) {
+              const dist = Utils.getDist(p.x, p.y, e.x, e.y);
+              if (dist < 60) {
+                // Check if enemy is within the cone angle
+                let edx = e.x - p.x;
+                let edy = e.y - p.y;
+
+                // Handle world wrap
+                if (edx > CONFIG.worldSize / 2) edx -= CONFIG.worldSize;
+                if (edx < -CONFIG.worldSize / 2) edx += CONFIG.worldSize;
+                if (edy > CONFIG.worldSize / 2) edy -= CONFIG.worldSize;
+                if (edy < -CONFIG.worldSize / 2) edy += CONFIG.worldSize;
+
+                const enemyAngle = Math.atan2(edy, edx);
+                let angleDiff = Math.abs(enemyAngle - baseAngle);
+                if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
+
+                // If within cone, deal damage
+                if (angleDiff < spreadAmount / 2) {
+                  this.hitEnemy(e, dmg * 2, isCrit); // Multiplied since it hits every 3 frames
+                }
+              }
+            }
+          }
+
+          fired = true;
         }
 
         if (fired) w.curCd = w.cd;

@@ -1,6 +1,6 @@
 import { CONFIG } from '../config';
 
-export type ParticleType = 'water' | 'explosion' | 'smoke' | 'blood' | 'spark' | 'foam' | 'ripple' | 'caustic' | 'splash' | 'fire';
+export type ParticleType = 'water' | 'explosion' | 'smoke' | 'blood' | 'spark' | 'foam' | 'ripple' | 'caustic' | 'splash' | 'fire' | 'gas';
 
 export interface ParticleConfig {
   type: ParticleType;
@@ -65,6 +65,7 @@ export class Particle {
       case 'caustic': return '#93c5fd';
       case 'splash': return '#bfdbfe';
       case 'fire': return '#ffaa00';
+      case 'gas': return '#33ff33'; // Default green, can be overridden with color param
       default: return '#fff';
     }
   }
@@ -81,6 +82,7 @@ export class Particle {
       case 'caustic': return 50 + Math.random() * 30;
       case 'splash': return 15 + Math.random() * 10;
       case 'fire': return 20 + Math.random() * 10;
+      case 'gas': return 50 + Math.random() * 30; // Long life for gas clouds
       default: return 30;
     }
   }
@@ -97,6 +99,7 @@ export class Particle {
       case 'caustic': return 10 + Math.random() * 15;
       case 'splash': return 5 + Math.random() * 5;
       case 'fire': return 3 + Math.random() * 3;
+      case 'gas': return 6 + Math.random() * 4; // Large soft clouds
       default: return 3;
     }
   }
@@ -113,6 +116,7 @@ export class Particle {
       case 'caustic': return 0.2;
       case 'splash': return 2;
       case 'fire': return 2 + Math.random() * 4;
+      case 'gas': return 0.5; // Gentle drift
       default: return 1;
     }
   }
@@ -180,6 +184,13 @@ export class Particle {
         // Air resistance (drag)
         this.vx *= 0.92;
         this.vy *= 0.92;
+        break;
+      case 'gas':
+        // Drifting gas cloud - gentle motion with air resistance
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vx *= 0.96;
+        this.vy *= 0.96;
         break;
     }
 
@@ -379,6 +390,20 @@ export class Particle {
         const r = Math.max(1, this.size);
         ctx.globalAlpha = alpha * 0.8;
         ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(sx, sy, r, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      }
+
+      case 'gas': {
+        // Soft gas cloud with gradient
+        const r = Math.max(2, this.size * alpha);
+        const gradient = ctx.createRadialGradient(sx, sy, 0, sx, sy, r);
+        gradient.addColorStop(0, this.color + '40'); // 25% opacity
+        gradient.addColorStop(0.5, this.color + '20'); // 12% opacity
+        gradient.addColorStop(1, this.color + '00'); // 0% opacity
+        ctx.fillStyle = gradient;
         ctx.beginPath();
         ctx.arc(sx, sy, r, 0, Math.PI * 2);
         ctx.fill();

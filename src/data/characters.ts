@@ -9,13 +9,13 @@ export const CHARACTERS: Record<string, Character> = {
     hpMod: 0.75,
     spdMod: 0.95,
     ult: 'MeteorSwarm',
-    desc: 'Arcane power. Start: Grease Fire.'
+    desc: 'Arcane power. Start: Fireball.'
   },
   janitor: {
     id: 'janitor',
     name: 'Janitor',
     icon: '🧹',
-    weapon: 'orbit',
+    weapon: 'mop_bucket',
     hpMod: 1.2,
     spdMod: 0.9,
     ult: 'ClosingTime',
@@ -25,7 +25,7 @@ export const CHARACTERS: Record<string, Character> = {
     id: 'skater',
     name: 'Skater',
     icon: '🛹',
-    weapon: 'knife',
+    weapon: 'thrown_cds',
     hpMod: 0.8,
     spdMod: 1.3,
     ult: 'Ollie',
@@ -35,7 +35,7 @@ export const CHARACTERS: Record<string, Character> = {
     id: 'mallCop',
     name: 'Mall Cop',
     icon: '👮',
-    weapon: 'wand',
+    weapon: 'pepper_spray',
     hpMod: 1.5,
     spdMod: 0.8,
     ult: 'Security',
@@ -45,40 +45,30 @@ export const CHARACTERS: Record<string, Character> = {
     id: 'foodCourt',
     name: 'Chef',
     icon: '🍔',
-    weapon: 'axe',
+    weapon: 'frying_pan',
     hpMod: 1.0,
     spdMod: 1.0,
     ult: 'GreaseFire',
     desc: 'Balanced. Start: Frying Pan.'
   },
-  teenager: {
-    id: 'teenager',
-    name: 'Teenager',
-    icon: '🎸',
-    weapon: 'claw',
-    hpMod: 0.9,
-    spdMod: 1.1,
-    ult: 'GuitarSolo',
-    desc: 'Edgy. Start: Rake Claw.'
-  },
   techSupport: {
     id: 'techSupport',
     name: 'Tech Support',
     icon: '💻',
-    weapon: 'chain',
+    weapon: 'server_zap',
     hpMod: 0.7,
     spdMod: 1.0,
     ult: 'Reboot',
     desc: 'Fragile. Start: Server Zap.'
   },
-  ninja: {
-    id: 'ninja',
-    name: 'Ninja',
-    icon: '🥷',
-    weapon: 'flicker',
-    hpMod: 0.85,
-    spdMod: 1.2,
-    ult: 'ShadowClone',
-    desc: 'Elusive. Start: Flicker Strike.'
+  teenager: {
+    id: 'teenager',
+    name: 'Teenager',
+    icon: '🧢',
+    weapon: 'lighter',
+    hpMod: 0.9,
+    spdMod: 1.1,
+    ult: 'VapeCloud',
+    desc: 'Reckless. Start: Lighter.'
   }
 };

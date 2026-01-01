@@ -70,9 +70,9 @@ export class Player extends Entity {
 
   drawShape(ctx: CanvasContext, x: number, y: number): void {
 
-    // Draw Aura for orbit weapon (Mop Bucket)
-    if (this.inventory['orbit']) {
-      const w = this.weapons.find(w => w.id === 'orbit');
+    // Draw Aura for mop_bucket weapon (Mop Bucket)
+    if (this.inventory['mop_bucket']) {
+      const w = this.weapons.find(w => w.id === 'mop_bucket');
       if (w && w.area) {
         // Pulse animation synced to attack timing
         const framesSinceAttack = this.auraAttackFrame;
@@ -116,32 +116,29 @@ export class Player extends Entity {
       if (!this.inventory[weaponType]) {
         let weapon: Weapon;
         switch (weaponType) {
-          case 'wand':
-            weapon = { id: 'wand', cd: 50, dmg: 10, type: 'nearest', curCd: 0, level: 1, baseDmg: 10 };
+          case 'pepper_spray':
+            weapon = { id: 'pepper_spray', cd: 3, dmg: 5, type: 'spray', curCd: 0, level: 1, baseDmg: 5 };
             break;
-          case 'orbit':
-            weapon = { id: 'orbit', cd: 40, dmg: 5, type: 'aura', area: 90, curCd: 0, level: 1, baseDmg: 5 };
+          case 'mop_bucket':
+            weapon = { id: 'mop_bucket', cd: 40, dmg: 5, type: 'aura', area: 90, curCd: 0, level: 1, baseDmg: 5 };
             break;
-          case 'axe':
-            weapon = { id: 'axe', cd: 70, dmg: 35, type: 'arc', curCd: 0, level: 1, baseDmg: 35 };
+          case 'frying_pan':
+            weapon = { id: 'frying_pan', cd: 70, dmg: 35, type: 'arc', curCd: 0, level: 1, baseDmg: 35 };
             break;
-          case 'knife':
-            weapon = { id: 'knife', cd: 25, dmg: 9, type: 'facing', curCd: 0, level: 1, baseDmg: 9 };
+          case 'thrown_cds':
+            weapon = { id: 'thrown_cds', cd: 25, dmg: 9, type: 'facing', curCd: 0, level: 1, baseDmg: 9 };
             break;
-          case 'claw':
-            weapon = { id: 'claw', cd: 30, dmg: 18, type: 'melee', range: 80, falloff: 0.5, curCd: 0, level: 1, baseDmg: 18 };
-            break;
-          case 'chain':
-            weapon = { id: 'chain', cd: 35, dmg: 15, type: 'chain', bounces: 4, curCd: 0, level: 1, baseDmg: 15 };
-            break;
-          case 'flicker':
-            weapon = { id: 'flicker', cd: 360, dmg: 12, type: 'flicker', area: 60, curCd: 0, level: 1, baseDmg: 12, manual: true };
+          case 'server_zap':
+            weapon = { id: 'server_zap', cd: 35, dmg: 15, type: 'chain', bounces: 4, curCd: 0, level: 1, baseDmg: 15 };
             break;
           case 'fireball':
             weapon = { id: 'fireball', cd: 200, dmg: 25, type: 'fireball', curCd: 0, level: 1, baseDmg: 25 };
             break;
+          case 'lighter':
+            weapon = { id: 'lighter', cd: 3, dmg: 1, type: 'spray', curCd: 0, level: 1, baseDmg: 1 };
+            break;
           default:
-            weapon = { id: 'wand', cd: 50, dmg: 10, type: 'nearest', curCd: 0, level: 1, baseDmg: 10 };
+            weapon = { id: 'pepper_spray', cd: 50, dmg: 10, type: 'nearest', curCd: 0, level: 1, baseDmg: 10 };
         }
         this.weapons.push(weapon);
         this.inventory[weaponType] = 1;
@@ -152,9 +149,7 @@ export class Player extends Entity {
           w.baseDmg *= 1.3;
           w.cd *= 0.9;
           if (w.type === 'aura' && w.area) w.area += 15;
-          if (w.type === 'melee' && w.range) w.range += 10;
           if (w.type === 'chain' && w.bounces) w.bounces += 1;
-          if (w.type === 'flicker' && w.area) w.area += 10;
           this.inventory[weaponType]++;
         }
       }
