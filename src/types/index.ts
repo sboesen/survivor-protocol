@@ -36,7 +36,7 @@ export interface Character {
   desc: string;
 }
 
-export type WeaponType = 'pepper_spray' | 'mop_bucket' | 'frying_pan' | 'thrown_cds' | 'server_zap' | 'fireball' | 'lighter';
+export type WeaponType = 'pepper_spray' | 'bubble_stream' | 'frying_pan' | 'thrown_cds' | 'server_zap' | 'fireball' | 'lighter';
 export type PassiveType = 'pierce' | 'scope' | 'damage' | 'cooldown';
 export type UpgradeType = WeaponType | PassiveType;
 
@@ -62,7 +62,7 @@ export interface Weapon {
   id: WeaponType;
   cd: number;
   dmg: number;
-  type: 'nearest' | 'facing' | 'aura' | 'arc' | 'chain' | 'fireball' | 'spray';
+  type: 'nearest' | 'facing' | 'aura' | 'arc' | 'chain' | 'fireball' | 'spray' | 'bubble';
   area?: number;
   range?: number;
   falloff?: number;

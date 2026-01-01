@@ -39,10 +39,6 @@ class GameCore {
   damageTexts: DamageText[] = [];
   particles: Particle[] = [];
 
-  // Mop trail state
-  private lastMopX = 0;
-  private lastMopY = 0;
-
   input: InputState = {
     x: 0,
     y: 0,
@@ -171,10 +167,6 @@ class GameCore {
     const spawnY = CONFIG.worldSize / 2;
     const safeZone = 200; // Keep area around spawn clear
 
-    // Initialize mop trail position at spawn
-    this.lastMopX = spawnX;
-    this.lastMopY = spawnY;
-
     // Generate obstacles (away from spawn point)
     for (let i = 0; i < 40; i++) {
       let ox, oy;
@@ -296,70 +288,6 @@ class GameCore {
     this.spawnParticles({ type: 'smoke', x, y }, Math.floor(count / 3));
   }
 
-  private updateMopTrail(p: Player): void {
-    // Spawn water droplets when moving
-    const dx = p.x - this.lastMopX;
-    const dy = p.y - this.lastMopY;
-    const dist = Math.hypot(dx, dy);
-
-    if (dist > 15) {
-      // Spawn water droplets along the path
-      const steps = Math.floor(dist / 15);
-      for (let i = 0; i < steps; i++) {
-        const t = (i + 1) / (steps + 1);
-        const x = this.lastMopX + dx * t;
-        const y = this.lastMopY + dy * t;
-
-        const jitter = 10;
-        const px = x + (Math.random() - 0.5) * jitter;
-        const py = y + (Math.random() - 0.5) * jitter;
-
-        // Water droplets - more frequent
-        if (Math.random() > 0.1) {
-          this.spawnParticles({
-            type: 'water',
-            x: px,
-            y: py,
-            vx: (Math.random() - 0.5) * 0.8,
-            vy: (Math.random() - 0.5) * 0.8
-          }, 1);
-        }
-
-        // Splashes - occasional
-        if (Math.random() > 0.8) {
-          this.spawnParticles({
-            type: 'splash',
-            x: px,
-            y: py,
-            vx: (Math.random() - 0.5) * 2,
-            vy: -Math.random() * 2
-          }, 1);
-        }
-
-        // Ripples - expanding rings
-        if (Math.random() > 0.6) {
-          this.spawnParticles({
-            type: 'ripple',
-            x: px,
-            y: py
-          }, 1);
-        }
-
-        // Caustics - light patches (occasional)
-        if (Math.random() > 0.9) {
-          this.spawnParticles({
-            type: 'caustic',
-            x: px,
-            y: py,
-            size: 10 + Math.random() * 15
-          }, 1);
-        }
-      }
-      this.lastMopX = p.x;
-      this.lastMopY = p.y;
-    }
-  }
-
   update(): void {
     if (!this.active || this.paused || !this.player) return;
 
@@ -447,11 +375,6 @@ class GameCore {
       }
     }
 
-    // Mop trail effect - only for janitor
-    if (p.charId === 'janitor') {
-      this.updateMopTrail(p);
-    }
-
     // Enemy spawning
     if (this.timeFreeze <= 0 && this.frames % Math.max(10, 60 - this.mins * 5) === 0) {
       let type: EntityType = 'basic';
@@ -534,6 +457,46 @@ class GameCore {
               1 + p.passives.pierce,
               isCrit
             ));
+            fired = true;
+          }
+        } else if (w.type === 'bubble') {
+          // Bubble stream: wavy projectiles to nearest enemy with floating trail
+          let near: Enemy | null = null;
+          let min = 400;
+
+          for (const e of this.enemies) {
+            const d = Utils.getDist(p.x, p.y, e.x, e.y);
+            if (d < min) {
+              min = d;
+              near = e;
+            }
+          }
+
+          if (near) {
+            let edx = near.x - p.x;
+            let edy = near.y - p.y;
+
+            if (edx > CONFIG.worldSize / 2) edx -= CONFIG.worldSize;
+            if (edx < -CONFIG.worldSize / 2) edx += CONFIG.worldSize;
+            if (edy > CONFIG.worldSize / 2) edy -= CONFIG.worldSize;
+            if (edy < -CONFIG.worldSize / 2) edy += CONFIG.worldSize;
+
+            const ang = Math.atan2(edy, edx);
+            const speed = 7;
+            const proj = new Projectile(
+              p.x,
+              p.y,
+              Math.cos(ang) * speed,
+              Math.sin(ang) * speed,
+              5,
+              '#aaddff',
+              dmg,
+              70,
+              1 + p.passives.pierce,
+              isCrit
+            );
+            proj.isBubble = true;
+            this.projectiles.push(proj);
             fired = true;
           }
         } else if (w.type === 'facing') {
@@ -747,6 +710,19 @@ class GameCore {
     // Update projectiles
     this.projectiles.forEach(proj => proj.update());
 
+    // Spawn bubble trail particles
+    this.projectiles.forEach(proj => {
+      if ((proj as any).isBubble && this.frames % 5 === 0) {
+        this.spawnParticles({
+          type: 'foam' as ParticleType,
+          x: proj.x,
+          y: proj.y,
+          size: 2 + Math.random() * 2,
+          vy: -0.5 - Math.random() * 0.5 // Float upward
+        }, 1);
+      }
+    });
+
     // Update fireballs with particle emission
     this.fireballs.forEach(fb => {
       fb.update();
@@ -794,6 +770,13 @@ class GameCore {
               Utils.getDist(proj.x, proj.y, e.x, e.y) < proj.radius + e.radius) {
             this.hitEnemy(e, proj.dmg, proj.isCrit);
             proj.hitList.push(e);
+
+            // Splash effect for bubbles
+            if ((proj as any).isBubble) {
+              this.spawnParticles({ type: 'splash' as ParticleType, x: proj.x, y: proj.y }, 5);
+              this.spawnParticles({ type: 'foam' as ParticleType, x: proj.x, y: proj.y, vy: -1 }, 3);
+            }
+
             proj.pierce--;
             if (proj.pierce <= 0) {
               proj.marked = true;

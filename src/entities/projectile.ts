@@ -5,6 +5,8 @@ import { Entity } from './entity';
 export class Projectile extends Entity {
   vx: number;
   vy: number;
+  baseVx: number;
+  baseVy: number;
   dmg: number;
   dur: number;
   pierce: number;
@@ -12,7 +14,10 @@ export class Projectile extends Entity {
   isHostile: boolean;
   hitList: Entity[];
   isArc: boolean;
+  isBubble: boolean;
   rot: number;
+  wobble: number;
+  age: number;
 
   constructor(
     x: number,
@@ -28,6 +33,8 @@ export class Projectile extends Entity {
     isHostile: boolean = false
   ) {
     super(x, y, radius, color);
+    this.baseVx = vx;
+    this.baseVy = vy;
     this.vx = vx;
     this.vy = vy;
     this.dmg = dmg;
@@ -37,10 +44,24 @@ export class Projectile extends Entity {
     this.isHostile = isHostile;
     this.hitList = [];
     this.isArc = false;
+    this.isBubble = false;
     this.rot = 0;
+    this.wobble = Math.random() * Math.PI * 2;
+    this.age = 0;
   }
 
   update(): void {
+    this.age++;
+
+    if (this.isBubble) {
+      // Wavy motion: add perpendicular sine wave
+      const perpX = -this.baseVy;
+      const perpY = this.baseVx;
+      const wobbleAmount = Math.sin(this.age * 0.3 + this.wobble) * 2;
+      this.vx = this.baseVx + perpX * wobbleAmount * 0.1;
+      this.vy = this.baseVy + perpY * wobbleAmount * 0.1;
+    }
+
     this.x = (this.x + this.vx + CONFIG.worldSize) % CONFIG.worldSize;
     this.y = (this.y + this.vy + CONFIG.worldSize) % CONFIG.worldSize;
 
@@ -62,6 +83,22 @@ export class Projectile extends Entity {
 
     if (this.isArc) {
       ctx.fillRect(-6, -6, 12, 12);
+    } else if (this.isBubble) {
+      // Draw bubble with shine
+      ctx.beginPath();
+      ctx.arc(0, 0, this.radius * 1.5, 0, Math.PI * 2);
+      ctx.strokeStyle = this.color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(200, 240, 255, 0.3)';
+      ctx.fill();
+      // Shine
+      ctx.beginPath();
+      ctx.arc(-this.radius * 0.3, -this.radius * 0.3, this.radius * 0.3, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+      ctx.fill();
     } else {
       ctx.beginPath();
       ctx.arc(0, 0, this.radius, 0, Math.PI * 2);

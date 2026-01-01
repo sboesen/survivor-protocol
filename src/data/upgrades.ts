@@ -2,7 +2,7 @@ import type { Upgrades } from '../types';
 
 export const UPGRADES: Upgrades = {
   pepper_spray: { name: 'Pepper Spray', type: 'Weapon', desc: 'Toxic green cloud spray', dmg: 5, cd: 3 },
-  mop_bucket: { name: 'Mop Bucket', type: 'Weapon', desc: 'Damaging soap puddle', dmg: 5, cd: 40, area: 90 },
+  bubble_stream: { name: 'Bubble Stream', type: 'Weapon', desc: 'Wavy bubbles that float up', dmg: 12, cd: 8 },
   frying_pan: { name: 'Frying Pan', type: 'Weapon', desc: 'High arc damage', dmg: 35, cd: 70 },
   thrown_cds: { name: 'Thrown CDs', type: 'Weapon', desc: 'Shoots facing direction', dmg: 9, cd: 25 },
   server_zap: { name: 'Server Zap', type: 'Weapon', desc: 'Lightning bounces to enemies', dmg: 15, cd: 35, bounces: 4 },

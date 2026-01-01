@@ -69,26 +69,6 @@ export class Player extends Entity {
   private _hp: number = 100;
 
   drawShape(ctx: CanvasContext, x: number, y: number): void {
-
-    // Draw Aura for mop_bucket weapon (Mop Bucket)
-    if (this.inventory['mop_bucket']) {
-      const w = this.weapons.find(w => w.id === 'mop_bucket');
-      if (w && w.area) {
-        // Pulse animation synced to attack timing
-        const framesSinceAttack = this.auraAttackFrame;
-        const pulse = Math.max(0, 1 - (framesSinceAttack / 20)); // 1 at attack, fades to 0
-        const pulseSq = pulse * pulse; // Sharper fall-off
-
-        ctx.beginPath();
-        ctx.arc(x, y, w.area, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(200, 220, 255, ${0.05 + pulseSq * 0.2})`;
-        ctx.fill();
-        ctx.strokeStyle = `rgba(200, 220, 255, ${0.2 + pulseSq * 0.6})`;
-        ctx.lineWidth = 1 + pulseSq * 3;
-        ctx.stroke();
-      }
-    }
-
     Renderer.drawSprite(ctx, this.charId, x, y, 2.5);
 
     if (this.ultName === 'Security' && this.ultActiveTime > 0) {
@@ -119,8 +99,8 @@ export class Player extends Entity {
           case 'pepper_spray':
             weapon = { id: 'pepper_spray', cd: 3, dmg: 5, type: 'spray', curCd: 0, level: 1, baseDmg: 5 };
             break;
-          case 'mop_bucket':
-            weapon = { id: 'mop_bucket', cd: 40, dmg: 5, type: 'aura', area: 90, curCd: 0, level: 1, baseDmg: 5 };
+          case 'bubble_stream':
+            weapon = { id: 'bubble_stream', cd: 8, dmg: 12, type: 'bubble', curCd: 0, level: 1, baseDmg: 12 };
             break;
           case 'frying_pan':
             weapon = { id: 'frying_pan', cd: 70, dmg: 35, type: 'arc', curCd: 0, level: 1, baseDmg: 35 };

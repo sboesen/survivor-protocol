@@ -15,11 +15,11 @@ export const CHARACTERS: Record<string, Character> = {
     id: 'janitor',
     name: 'Janitor',
     icon: '🧹',
-    weapon: 'mop_bucket',
+    weapon: 'bubble_stream',
     hpMod: 1.2,
     spdMod: 0.9,
     ult: 'ClosingTime',
-    desc: 'Tanky. Start: Mop Bucket.'
+    desc: 'Tanky. Start: Bubble Stream.'
   },
   skater: {
     id: 'skater',
