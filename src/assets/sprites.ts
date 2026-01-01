@@ -50,18 +50,6 @@ export const SPRITES: Sprites = {
     "  ww  ww  ",
     "  ww  ww  "
   ],
-  techSupport: [
-    "   3333   ",
-    "  33kk33  ",
-    "  33kk33  ",
-    "  333333  ",
-    " 33333333 ",
-    " 3k33k33k ",
-    " 3k33k33k ",
-    "   3  3   ",
-    "  33  33  ",
-    "  33  33  "
-  ],
   dungeonMaster: [
     "          ",
     "   3333   ",

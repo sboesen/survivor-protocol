@@ -51,16 +51,6 @@ export const CHARACTERS: Record<string, Character> = {
     ult: 'GreaseFire',
     desc: 'Balanced. Start: Frying Pan.'
   },
-  techSupport: {
-    id: 'techSupport',
-    name: 'Tech Support',
-    icon: '💻',
-    weapon: 'server_zap',
-    hpMod: 0.7,
-    spdMod: 1.0,
-    ult: 'Reboot',
-    desc: 'Fragile. Start: Server Zap.'
-  },
   teenager: {
     id: 'teenager',
     name: 'Teenager',

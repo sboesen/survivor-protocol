@@ -44,8 +44,7 @@ class GameCore {
     y: 0,
     keys: {},
     joy: { active: false, x: 0, y: 0, ox: 0, oy: 0 },
-    ult: false,
-    weaponFire: false
+    ult: false
   };
 
   timeFreeze = 0;
@@ -67,11 +66,9 @@ class GameCore {
     window.onkeydown = (e) => {
       this.input.keys[e.key] = true;
       if (e.key.toLowerCase() === 'z') this.triggerUlt();
-      if (e.code === 'Space') this.input.weaponFire = true;
     };
     window.onkeyup = (e) => {
       this.input.keys[e.key] = false;
-      if (e.code === 'Space') this.input.weaponFire = false;
     };
 
     // Touch/joystick input
@@ -98,19 +95,6 @@ class GameCore {
       this.input.joy.x = 0;
       this.input.joy.y = 0;
     };
-
-    // Weapon fire button touch handlers
-    const weaponFireBtn = document.getElementById('weapon-fire-btn');
-    if (weaponFireBtn) {
-      weaponFireBtn.ontouchstart = (e) => {
-        e.preventDefault();
-        this.input.weaponFire = true;
-      };
-      weaponFireBtn.ontouchend = (e) => {
-        e.preventDefault();
-        this.input.weaponFire = false;
-      };
-    }
 
     Menu.renderCharSelect();
     requestAnimationFrame(() => this.loop());
@@ -482,7 +466,7 @@ class GameCore {
             if (edy < -CONFIG.worldSize / 2) edy += CONFIG.worldSize;
 
             const ang = Math.atan2(edy, edx);
-            const speed = 7;
+            const speed = 3.5;
             const proj = new Projectile(
               p.x,
               p.y,
@@ -531,44 +515,6 @@ class GameCore {
           );
           proj.isArc = true;
           this.projectiles.push(proj);
-          fired = true;
-        } else if (w.type === 'chain' && w.bounces) {
-          // Chain lightning: bounces between enemies
-          let targets: Enemy[] = [];
-          let remaining = w.bounces + 1;
-          let currentX = p.x;
-          let currentY = p.y;
-          const hitEnemies = new Set<Enemy>();
-
-          while (remaining > 0) {
-            let nearest: Enemy | null = null;
-            let minDist = 300;
-
-            for (const e of this.enemies) {
-              if (hitEnemies.has(e)) continue;
-              const d = Utils.getDist(currentX, currentY, e.x, e.y);
-              if (d < minDist) {
-                minDist = d;
-                nearest = e;
-              }
-            }
-
-            if (nearest) {
-              targets.push(nearest);
-              hitEnemies.add(nearest);
-              currentX = nearest.x;
-              currentY = nearest.y;
-              remaining--;
-            } else {
-              break;
-            }
-          }
-
-          // Deal damage to all targets (with falloff per bounce)
-          targets.forEach((e, i) => {
-            const falloff = Math.pow(0.8, i);
-            this.hitEnemy(e, dmg * falloff, isCrit);
-          });
           fired = true;
         } else if (w.type === 'fireball') {
           // Fireball: homing projectile to nearest enemy with particle trail

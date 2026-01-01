@@ -100,16 +100,13 @@ export class Player extends Entity {
             weapon = { id: 'pepper_spray', cd: 3, dmg: 5, type: 'spray', curCd: 0, level: 1, baseDmg: 5 };
             break;
           case 'bubble_stream':
-            weapon = { id: 'bubble_stream', cd: 8, dmg: 12, type: 'bubble', curCd: 0, level: 1, baseDmg: 12 };
+            weapon = { id: 'bubble_stream', cd: 60, dmg: 12, type: 'bubble', curCd: 0, level: 1, baseDmg: 12 };
             break;
           case 'frying_pan':
             weapon = { id: 'frying_pan', cd: 70, dmg: 35, type: 'arc', curCd: 0, level: 1, baseDmg: 35 };
             break;
           case 'thrown_cds':
             weapon = { id: 'thrown_cds', cd: 25, dmg: 9, type: 'facing', curCd: 0, level: 1, baseDmg: 9 };
-            break;
-          case 'server_zap':
-            weapon = { id: 'server_zap', cd: 35, dmg: 15, type: 'chain', bounces: 4, curCd: 0, level: 1, baseDmg: 15 };
             break;
           case 'fireball':
             weapon = { id: 'fireball', cd: 200, dmg: 25, type: 'fireball', curCd: 0, level: 1, baseDmg: 25 };
@@ -129,7 +126,6 @@ export class Player extends Entity {
           w.baseDmg *= 1.3;
           w.cd *= 0.9;
           if (w.type === 'aura' && w.area) w.area += 15;
-          if (w.type === 'chain' && w.bounces) w.bounces += 1;
           this.inventory[weaponType]++;
         }
       }
