@@ -40,5 +40,35 @@ export const CHARACTERS: Record<string, Character> = {
     spdMod: 1.0,
     ult: 'GreaseFire',
     desc: 'Balanced. Start: Frying Pan.'
+  },
+  teenager: {
+    id: 'teenager',
+    name: 'Teenager',
+    icon: '🎸',
+    weapon: 'claw',
+    hpMod: 0.9,
+    spdMod: 1.1,
+    ult: 'GuitarSolo',
+    desc: 'Edgy. Start: Rake Claw.'
+  },
+  techSupport: {
+    id: 'techSupport',
+    name: 'Tech Support',
+    icon: '💻',
+    weapon: 'chain',
+    hpMod: 0.7,
+    spdMod: 1.0,
+    ult: 'Reboot',
+    desc: 'Fragile. Start: Server Zap.'
+  },
+  ninja: {
+    id: 'ninja',
+    name: 'Ninja',
+    icon: '🥷',
+    weapon: 'flicker',
+    hpMod: 0.85,
+    spdMod: 1.2,
+    ult: 'ShadowClone',
+    desc: 'Elusive. Start: Flicker Strike.'
   }
 };

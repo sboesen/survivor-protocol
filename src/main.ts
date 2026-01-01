@@ -3,12 +3,14 @@ import { Game } from './game';
 import { Menu } from './systems/menu';
 import { GachaAnim } from './systems/gacha';
 import { Debug } from './systems/debug';
+import { ParticleDebug } from './systems/particleDebug';
 
 // Expose to window for HTML onclick handlers
 (window as any).Game = Game;
 (window as any).Menu = Menu;
 (window as any).GachaAnim = GachaAnim;
 (window as any).Debug = Debug;
+(window as any).ParticleDebug = ParticleDebug;
 
 // Start the game when DOM is ready
 if (document.readyState === 'loading') {

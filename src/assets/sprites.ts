@@ -50,6 +50,42 @@ export const SPRITES: Sprites = {
     "  ww  ww  ",
     "  ww  ww  "
   ],
+  teenager: [
+    "   pppp   ",
+    "  pppppp  ",
+    "  pp11pp  ",
+    "  pppppp  ",
+    " kkkkkkkk ",
+    " pkpkpkpk ",
+    " pkpkpkpk ",
+    "   kkkk   ",
+    "  kk  kk  ",
+    "  kk  kk  "
+  ],
+  techSupport: [
+    "   3333   ",
+    "  33kk33  ",
+    "  33kk33  ",
+    "  333333  ",
+    " 33333333 ",
+    " 3k33k33k ",
+    " 3k33k33k ",
+    "   3  3   ",
+    "  33  33  ",
+    "  33  33  "
+  ],
+  ninja: [
+    "          ",
+    "   2222   ",
+    "  222222  ",
+    "  22dd22  ",
+    " 22222222 ",
+    " 2d22d22d ",
+    " 2d22d22d ",
+    "   2  2   ",
+    "  22  22  ",
+    "  22  22  "
+  ],
   // Enemies
   shopper: [
     "   wwwww  ",

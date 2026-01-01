@@ -13,7 +13,7 @@ export interface Colors {
   gem: string;
 }
 
-export type SpriteKey = 'janitor' | 'skater' | 'mallCop' | 'foodCourt' | 'shopper' | 'sprinter' | 'armored' | 'manager';
+export type SpriteKey = 'janitor' | 'skater' | 'mallCop' | 'foodCourt' | 'teenager' | 'techSupport' | 'ninja' | 'shopper' | 'sprinter' | 'armored' | 'manager';
 
 export type PaletteKey = '.' | 's' | 'b' | 'd' | 'g' | 'r' | 'p' | 'w' | '1' | '2' | '3' | 'k' | 'e';
 
@@ -36,7 +36,7 @@ export interface Character {
   desc: string;
 }
 
-export type WeaponType = 'wand' | 'knife' | 'orbit' | 'axe';
+export type WeaponType = 'wand' | 'knife' | 'orbit' | 'axe' | 'claw' | 'chain' | 'flicker';
 export type PassiveType = 'pierce' | 'scope' | 'damage' | 'cooldown';
 export type UpgradeType = WeaponType | PassiveType;
 
@@ -47,6 +47,9 @@ export interface Upgrade {
   dmg?: number;
   cd?: number;
   area?: number;
+  range?: number;
+  falloff?: number;
+  bounces?: number;
   pierce?: number;
   crit?: number;
   damageMult?: number;
@@ -59,11 +62,15 @@ export interface Weapon {
   id: WeaponType;
   cd: number;
   dmg: number;
-  type: 'nearest' | 'facing' | 'aura' | 'arc';
+  type: 'nearest' | 'facing' | 'aura' | 'arc' | 'melee' | 'chain' | 'flicker';
   area?: number;
+  range?: number;
+  falloff?: number;
+  bounces?: number;
   curCd: number;
   level: number;
   baseDmg: number;
+  manual?: boolean; // Requires button press to fire
 }
 
 export interface ShopItem {
@@ -109,6 +116,7 @@ export interface InputState {
   keys: Record<string, boolean>;
   joy: JoystickState;
   ult: boolean;
+  weaponFire: boolean;
   lastDx?: number;
   lastDy?: number;
 }

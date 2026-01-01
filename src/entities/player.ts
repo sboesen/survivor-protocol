@@ -128,6 +128,15 @@ export class Player extends Entity {
           case 'knife':
             weapon = { id: 'knife', cd: 25, dmg: 9, type: 'facing', curCd: 0, level: 1, baseDmg: 9 };
             break;
+          case 'claw':
+            weapon = { id: 'claw', cd: 30, dmg: 18, type: 'melee', range: 80, falloff: 0.5, curCd: 0, level: 1, baseDmg: 18 };
+            break;
+          case 'chain':
+            weapon = { id: 'chain', cd: 35, dmg: 15, type: 'chain', bounces: 4, curCd: 0, level: 1, baseDmg: 15 };
+            break;
+          case 'flicker':
+            weapon = { id: 'flicker', cd: 360, dmg: 12, type: 'flicker', area: 60, curCd: 0, level: 1, baseDmg: 12, manual: true };
+            break;
           default:
             weapon = { id: 'wand', cd: 50, dmg: 10, type: 'nearest', curCd: 0, level: 1, baseDmg: 10 };
         }
@@ -140,6 +149,9 @@ export class Player extends Entity {
           w.baseDmg *= 1.3;
           w.cd *= 0.9;
           if (w.type === 'aura' && w.area) w.area += 15;
+          if (w.type === 'melee' && w.range) w.range += 10;
+          if (w.type === 'chain' && w.bounces) w.bounces += 1;
+          if (w.type === 'flicker' && w.area) w.area += 10;
           this.inventory[weaponType]++;
         }
       }

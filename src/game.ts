@@ -11,6 +11,7 @@ import { Enemy } from './entities/enemy';
 import { Projectile } from './entities/projectile';
 import { Loot } from './entities/loot';
 import { Obstacle } from './entities/obstacle';
+import { Particle, type ParticleSpawnConfig, type ParticleType } from './entities/particle';
 import type { InputState, DamageText, EntityType } from './types';
 
 class GameCore {
@@ -34,13 +35,19 @@ class GameCore {
   loot: Loot[] = [];
   obstacles: Obstacle[] = [];
   damageTexts: DamageText[] = [];
+  particles: Particle[] = [];
+
+  // Mop trail state
+  private lastMopX = 0;
+  private lastMopY = 0;
 
   input: InputState = {
     x: 0,
     y: 0,
     keys: {},
     joy: { active: false, x: 0, y: 0, ox: 0, oy: 0 },
-    ult: false
+    ult: false,
+    weaponFire: false
   };
 
   timeFreeze = 0;
@@ -61,10 +68,12 @@ class GameCore {
     // Keyboard input
     window.onkeydown = (e) => {
       this.input.keys[e.key] = true;
-      if (e.code === 'Space') this.triggerUlt();
+      if (e.key.toLowerCase() === 'z') this.triggerUlt();
+      if (e.code === 'Space') this.input.weaponFire = true;
     };
     window.onkeyup = (e) => {
       this.input.keys[e.key] = false;
+      if (e.code === 'Space') this.input.weaponFire = false;
     };
 
     // Touch/joystick input
@@ -91,6 +100,19 @@ class GameCore {
       this.input.joy.x = 0;
       this.input.joy.y = 0;
     };
+
+    // Weapon fire button touch handlers
+    const weaponFireBtn = document.getElementById('weapon-fire-btn');
+    if (weaponFireBtn) {
+      weaponFireBtn.ontouchstart = (e) => {
+        e.preventDefault();
+        this.input.weaponFire = true;
+      };
+      weaponFireBtn.ontouchend = (e) => {
+        e.preventDefault();
+        this.input.weaponFire = false;
+      };
+    }
 
     Menu.renderCharSelect();
     requestAnimationFrame(() => this.loop());
@@ -139,11 +161,16 @@ class GameCore {
     this.projectiles = [];
     this.loot = [];
     this.damageTexts = [];
+    this.particles = [];
     this.obstacles = [];
 
     const spawnX = CONFIG.worldSize / 2;
     const spawnY = CONFIG.worldSize / 2;
     const safeZone = 200; // Keep area around spawn clear
+
+    // Initialize mop trail position at spawn
+    this.lastMopX = spawnX;
+    this.lastMopY = spawnY;
 
     // Generate obstacles (away from spawn point)
     for (let i = 0; i < 40; i++) {
@@ -234,6 +261,46 @@ class GameCore {
           }
           this.spawnDamageText(this.player.x, this.player.y, 'GREASE FIRE!', '#f80');
           break;
+        case 'GuitarSolo':
+          // AoE damage + stun around player
+          this.enemies.forEach(e => {
+            if (Utils.getDist(this.player!.x, this.player!.y, e.x, e.y) < 200) {
+              this.hitEnemy(e, 30, false);
+              e.flash = 30; // Extended stun
+            }
+          });
+          this.spawnDamageText(this.player!.x, this.player!.y, 'GUITAR SOLO!', '#f0f');
+          break;
+        case 'Reboot':
+          // Heal 50% HP + 5s immunity
+          this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.maxHp * 0.5);
+          this.player.ultActiveTime = 300;
+          this.spawnDamageText(this.player.x, this.player.y, 'REBOOT!', '#0ff');
+          break;
+        case 'ShadowClone':
+          // Spawn 3 clones that attack nearby enemies
+          const clones = 3;
+          for (let i = 0; i < clones; i++) {
+            const ang = (Math.PI * 2 / clones) * i;
+            const cloneX = (this.player.x + Math.cos(ang) * 100 + CONFIG.worldSize) % CONFIG.worldSize;
+            const cloneY = (this.player.y + Math.sin(ang) * 100 + CONFIG.worldSize) % CONFIG.worldSize;
+
+            // Find nearest enemy to clone position
+            let nearest: Enemy | null = null;
+            let min = 150;
+            for (const e of this.enemies) {
+              const d = Utils.getDist(cloneX, cloneY, e.x, e.y);
+              if (d < min) {
+                min = d;
+                nearest = e;
+              }
+            }
+            if (nearest) {
+              this.hitEnemy(nearest, 50, true);
+            }
+          }
+          this.spawnDamageText(this.player.x, this.player.y, 'SHADOW CLONE!', '#888');
+          break;
       }
     }
   }
@@ -241,6 +308,86 @@ class GameCore {
   spawnDamageText(wx: number, wy: number, txt: string | number, color = '#fff', isCrit = false): void {
     const el = UI.spawnDamageText(wx, wy, txt, color, isCrit);
     this.damageTexts.push({ el, wx, wy, life: 50 });
+  }
+
+  spawnParticles(config: ParticleSpawnConfig, count = 1): void {
+    // Ensure particle type is valid
+    const validTypes: ParticleType[] = ['water', 'explosion', 'smoke', 'blood', 'spark', 'foam', 'ripple', 'caustic', 'splash'];
+    if (!validTypes.includes(config.type)) return;
+
+    for (let i = 0; i < count; i++) {
+      this.particles.push(new Particle(config));
+    }
+  }
+
+  spawnExplosion(x: number, y: number, size = 1): void {
+    const count = Math.floor(15 * size);
+    this.spawnParticles({ type: 'explosion' as ParticleType, x, y }, count);
+    this.spawnParticles({ type: 'smoke', x, y }, Math.floor(count / 3));
+  }
+
+  private updateMopTrail(p: Player): void {
+    // Spawn water droplets when moving
+    const dx = p.x - this.lastMopX;
+    const dy = p.y - this.lastMopY;
+    const dist = Math.hypot(dx, dy);
+
+    if (dist > 15) {
+      // Spawn water droplets along the path
+      const steps = Math.floor(dist / 15);
+      for (let i = 0; i < steps; i++) {
+        const t = (i + 1) / (steps + 1);
+        const x = this.lastMopX + dx * t;
+        const y = this.lastMopY + dy * t;
+
+        const jitter = 10;
+        const px = x + (Math.random() - 0.5) * jitter;
+        const py = y + (Math.random() - 0.5) * jitter;
+
+        // Water droplets - more frequent
+        if (Math.random() > 0.1) {
+          this.spawnParticles({
+            type: 'water',
+            x: px,
+            y: py,
+            vx: (Math.random() - 0.5) * 0.8,
+            vy: (Math.random() - 0.5) * 0.8
+          }, 1);
+        }
+
+        // Splashes - occasional
+        if (Math.random() > 0.8) {
+          this.spawnParticles({
+            type: 'splash',
+            x: px,
+            y: py,
+            vx: (Math.random() - 0.5) * 2,
+            vy: -Math.random() * 2
+          }, 1);
+        }
+
+        // Ripples - expanding rings
+        if (Math.random() > 0.6) {
+          this.spawnParticles({
+            type: 'ripple',
+            x: px,
+            y: py
+          }, 1);
+        }
+
+        // Caustics - light patches (occasional)
+        if (Math.random() > 0.9) {
+          this.spawnParticles({
+            type: 'caustic',
+            x: px,
+            y: py,
+            size: 10 + Math.random() * 15
+          }, 1);
+        }
+      }
+      this.lastMopX = p.x;
+      this.lastMopY = p.y;
+    }
   }
 
   update(): void {
@@ -329,6 +476,9 @@ class GameCore {
         p.y = ny;
       }
     }
+
+    // Mop trail effect
+    this.updateMopTrail(p);
 
     // Enemy spawning
     if (this.timeFreeze <= 0 && this.frames % Math.max(10, 60 - this.mins * 5) === 0) {
@@ -447,6 +597,121 @@ class GameCore {
           proj.isArc = true;
           this.projectiles.push(proj);
           fired = true;
+        } else if (w.type === 'melee' && w.range && w.falloff !== undefined) {
+          // Claw: cone attack in facing direction with distance falloff
+          const faceX = this.input.lastDx || 1;
+          const faceY = this.input.lastDy || 0;
+          const faceAngle = Math.atan2(faceY, faceX);
+          const coneAngle = Math.PI / 3; // 60 degree cone
+
+          this.enemies.forEach(e => {
+            const dx = e.x - p.x;
+            const dy = e.y - p.y;
+            if (dx > CONFIG.worldSize / 2) return;
+            if (dx < -CONFIG.worldSize / 2) return;
+            if (dy > CONFIG.worldSize / 2) return;
+            if (dy < -CONFIG.worldSize / 2) return;
+
+            const dist = Math.hypot(dx, dy);
+            if (dist > w.range!) return;
+
+            const angle = Math.atan2(dy, dx);
+            let angleDiff = angle - faceAngle;
+            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+            if (Math.abs(angleDiff) < coneAngle / 2) {
+              const falloffFactor = 1 - (1 - w.falloff!) * (dist / w.range!);
+              this.hitEnemy(e, dmg * falloffFactor, isCrit);
+            }
+          });
+          fired = true;
+        } else if (w.type === 'chain' && w.bounces) {
+          // Chain lightning: bounces between enemies
+          let targets: Enemy[] = [];
+          let remaining = w.bounces + 1;
+          let currentX = p.x;
+          let currentY = p.y;
+          const hitEnemies = new Set<Enemy>();
+
+          while (remaining > 0) {
+            let nearest: Enemy | null = null;
+            let minDist = 300;
+
+            for (const e of this.enemies) {
+              if (hitEnemies.has(e)) continue;
+              const d = Utils.getDist(currentX, currentY, e.x, e.y);
+              if (d < minDist) {
+                minDist = d;
+                nearest = e;
+              }
+            }
+
+            if (nearest) {
+              targets.push(nearest);
+              hitEnemies.add(nearest);
+              currentX = nearest.x;
+              currentY = nearest.y;
+              remaining--;
+            } else {
+              break;
+            }
+          }
+
+          // Deal damage to all targets (with falloff per bounce)
+          targets.forEach((e, i) => {
+            const falloff = Math.pow(0.8, i);
+            this.hitEnemy(e, dmg * falloff, isCrit);
+          });
+          fired = true;
+        } else if (w.type === 'flicker' && w.area) {
+          // Flicker Strike: teleport to random nearby enemy and AoE slash
+          // Only fire when weaponFire button is held (manual weapon)
+          if (!this.input.weaponFire) {
+            fired = false;
+          } else {
+            const nearbyEnemies = this.enemies.filter(e => Utils.getDist(p.x, p.y, e.x, e.y) < 500);
+
+            if (nearbyEnemies.length > 0) {
+              // Shuffle and find a safe target (not inside obstacle)
+              const shuffled = [...nearbyEnemies].sort(() => Math.random() - 0.5);
+              let safeTarget: Enemy | null = null;
+
+              for (const target of shuffled) {
+                // Check if target position is safe from obstacles
+                let inObstacle = false;
+                for (const o of this.obstacles) {
+                  if (o.type === 'font') continue;
+                  if (target.x > o.x - o.w / 2 - 20 && target.x < o.x + o.w / 2 + 20 &&
+                      target.y > o.y - o.h / 2 - 20 && target.y < o.y + o.h / 2 + 20) {
+                    inObstacle = true;
+                    break;
+                  }
+                }
+                if (!inObstacle) {
+                  safeTarget = target;
+                  break;
+                }
+              }
+
+              if (safeTarget) {
+                // Teleport player
+                p.x = safeTarget.x;
+                p.y = safeTarget.y;
+
+                // Spawn teleport effect
+                this.spawnParticles({ type: 'spark' as ParticleType, x: p.x, y: p.y }, 10);
+
+                // AoE slash around new position
+                this.enemies.forEach(e => {
+                  if (Utils.getDist(p.x, p.y, e.x, e.y) < w.area!) {
+                    this.hitEnemy(e, dmg, isCrit);
+                  }
+                });
+              }
+            }
+            fired = true;
+          }
         }
 
         if (fired) w.curCd = w.cd;
@@ -462,7 +727,7 @@ class GameCore {
     // Player-enemy collision
     this.enemies.forEach(e => {
       if (Utils.getDist(p.x, p.y, e.x, e.y) < p.radius + e.radius) {
-        if (p.ultName === 'Security' && p.ultActiveTime > 0) return;
+        if ((p.ultName === 'Security' || p.ultName === 'Reboot') && p.ultActiveTime > 0) return;
 
         if (this.frames % 30 === 0) {
           p.hp -= 5;
@@ -477,7 +742,7 @@ class GameCore {
       if (proj.isHostile) {
         // Hits player
         if (Utils.getDist(proj.x, proj.y, p.x, p.y) < proj.radius + p.radius) {
-          if (p.ultName === 'Security' && p.ultActiveTime > 0) {
+          if ((p.ultName === 'Security' || p.ultName === 'Reboot') && p.ultActiveTime > 0) {
             proj.marked = true;
             return;
           }
@@ -541,6 +806,10 @@ class GameCore {
     this.loot = this.loot.filter(x => !x.marked);
     this.damageTexts = this.damageTexts.filter(t => t.life > 0);
 
+    // Update and cleanup particles
+    this.particles.forEach(pt => pt.update());
+    this.particles = this.particles.filter(pt => !pt.marked);
+
     // Update damage text positions
     UI.updateDamageTexts(this.damageTexts, p.x, p.y, this.frames);
     UI.updateUlt(p.ultCharge, p.ultMax);
@@ -568,6 +837,13 @@ class GameCore {
       if (e.type === 'boss') this.bossKills++;
 
       UI.updateHud(this.goldRun, this.time, this.player?.level || 1, this.kills, SaveData.data.selectedChar);
+
+      // Death explosion effect
+      const explosionSize = e.type === 'boss' ? 5 : (e.type === 'elite' ? 2 : 1);
+      this.spawnExplosion(e.x, e.y, explosionSize);
+
+      // Blood particles
+      this.spawnParticles({ type: 'blood', x: e.x, y: e.y }, 8 * explosionSize);
 
       // Drop loot
       if (e.type === 'boss' || e.type === 'elite') {
@@ -647,6 +923,7 @@ class GameCore {
     // Draw entities
     this.obstacles.forEach(o => o.draw(ctx, px, py, cw, ch));
     this.loot.forEach(l => l.draw(ctx, px, py, cw, ch));
+    this.particles.forEach(pt => pt.draw(ctx, px, py, cw, ch));
     this.enemies.forEach(e => e.draw(ctx, px, py, cw, ch));
     this.projectiles.forEach(proj => proj.draw(ctx, px, py, cw, ch));
     p.draw(ctx, px, py, cw, ch);
