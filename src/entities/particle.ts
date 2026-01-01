@@ -1,6 +1,6 @@
 import { CONFIG } from '../config';
 
-export type ParticleType = 'water' | 'explosion' | 'smoke' | 'blood' | 'spark' | 'foam' | 'ripple' | 'caustic' | 'splash';
+export type ParticleType = 'water' | 'explosion' | 'smoke' | 'blood' | 'spark' | 'foam' | 'ripple' | 'caustic' | 'splash' | 'fire';
 
 export interface ParticleConfig {
   type: ParticleType;
@@ -64,6 +64,7 @@ export class Particle {
       case 'ripple': return '#60a5fa';
       case 'caustic': return '#93c5fd';
       case 'splash': return '#bfdbfe';
+      case 'fire': return '#ffaa00';
       default: return '#fff';
     }
   }
@@ -79,6 +80,7 @@ export class Particle {
       case 'ripple': return 25 + Math.random() * 10;
       case 'caustic': return 50 + Math.random() * 30;
       case 'splash': return 15 + Math.random() * 10;
+      case 'fire': return 20 + Math.random() * 10;
       default: return 30;
     }
   }
@@ -94,6 +96,7 @@ export class Particle {
       case 'ripple': return 3;
       case 'caustic': return 10 + Math.random() * 15;
       case 'splash': return 5 + Math.random() * 5;
+      case 'fire': return 3 + Math.random() * 3;
       default: return 3;
     }
   }
@@ -109,6 +112,7 @@ export class Particle {
       case 'ripple': return 0;
       case 'caustic': return 0.2;
       case 'splash': return 2;
+      case 'fire': return 2 + Math.random() * 4;
       default: return 1;
     }
   }
@@ -169,6 +173,13 @@ export class Particle {
         this.y += this.vy;
         this.vy += 0.08;
         this.vx *= 0.97;
+        break;
+      case 'fire':
+        this.x += this.vx;
+        this.y += this.vy;
+        // Air resistance (drag)
+        this.vx *= 0.92;
+        this.vy *= 0.92;
         break;
     }
 
@@ -324,6 +335,30 @@ export class Particle {
         const r = Math.max(1, this.size);
         ctx.globalAlpha = alpha;
         ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(sx, sy, r, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      }
+
+      case 'fire': {
+        // Dynamic Color Shift: White -> Yellow -> Orange -> Red
+        const r = Math.max(1, this.size * alpha);
+        let fireColor: string;
+
+        if (progress < 0.2) {
+          // White to Yellow (life > 0.8)
+          fireColor = '#ffffff';
+        } else if (progress < 0.5) {
+          // Yellow to Orange (0.5 < life <= 0.8)
+          fireColor = '#ffcc00';
+        } else {
+          // Orange to Red (life <= 0.5)
+          fireColor = '#ff4400';
+        }
+
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = fireColor;
         ctx.beginPath();
         ctx.arc(sx, sy, r, 0, Math.PI * 2);
         ctx.fill();

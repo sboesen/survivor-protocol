@@ -86,6 +86,18 @@ export const SPRITES: Sprites = {
     "  22  22  ",
     "  22  22  "
   ],
+  dungeonMaster: [
+    "          ",
+    "   3333   ",
+    "  333333  ",
+    " 33r3r33  ",
+    " 33333333 ",
+    " 3r3333r3 ",
+    "  333333  ",
+    "   33 3   ",
+    "  3   3  ",
+    "     33   "
+  ],
   // Enemies
   shopper: [
     "   wwwww  ",

@@ -1,6 +1,16 @@
 import type { Character } from '../types';
 
 export const CHARACTERS: Record<string, Character> = {
+  dungeonMaster: {
+    id: 'dungeonMaster',
+    name: 'Dungeon Master',
+    icon: '🐉',
+    weapon: 'fireball',
+    hpMod: 0.75,
+    spdMod: 0.95,
+    ult: 'MeteorSwarm',
+    desc: 'Arcane power. Start: Grease Fire.'
+  },
   janitor: {
     id: 'janitor',
     name: 'Janitor',

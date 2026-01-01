@@ -9,6 +9,7 @@ import { GachaAnim } from './systems/gacha';
 import { Player } from './entities/player';
 import { Enemy } from './entities/enemy';
 import { Projectile } from './entities/projectile';
+import { FireballProjectile } from './entities/fireballProjectile';
 import { Loot } from './entities/loot';
 import { Obstacle } from './entities/obstacle';
 import { Particle, type ParticleSpawnConfig, type ParticleType } from './entities/particle';
@@ -32,6 +33,7 @@ class GameCore {
   player: Player | null = null;
   enemies: Enemy[] = [];
   projectiles: Projectile[] = [];
+  fireballs: FireballProjectile[] = [];
   loot: Loot[] = [];
   obstacles: Obstacle[] = [];
   damageTexts: DamageText[] = [];
@@ -159,6 +161,7 @@ class GameCore {
 
     this.enemies = [];
     this.projectiles = [];
+    this.fireballs = [];
     this.loot = [];
     this.damageTexts = [];
     this.particles = [];
@@ -186,7 +189,8 @@ class GameCore {
         ox, oy,
         Utils.rand(60, 150),
         Utils.rand(60, 150),
-        Math.random() > 0.9 ? 'font' : 'ruin'
+        // TODO: Refactor healing fountains - add depleted stage, limited charges, respawn mechanic
+        'ruin' // Temporarily disabled 'font' spawning (was: Math.random() > 0.9 ? 'font' : 'ruin')
       ));
     }
 
@@ -312,7 +316,7 @@ class GameCore {
 
   spawnParticles(config: ParticleSpawnConfig, count = 1): void {
     // Ensure particle type is valid
-    const validTypes: ParticleType[] = ['water', 'explosion', 'smoke', 'blood', 'spark', 'foam', 'ripple', 'caustic', 'splash'];
+    const validTypes: ParticleType[] = ['water', 'explosion', 'smoke', 'blood', 'spark', 'foam', 'ripple', 'caustic', 'splash', 'fire'];
     if (!validTypes.includes(config.type)) return;
 
     for (let i = 0; i < count; i++) {
@@ -477,8 +481,10 @@ class GameCore {
       }
     }
 
-    // Mop trail effect
-    this.updateMopTrail(p);
+    // Mop trail effect - only for janitor
+    if (p.charId === 'janitor') {
+      this.updateMopTrail(p);
+    }
 
     // Enemy spawning
     if (this.timeFreeze <= 0 && this.frames % Math.max(10, 60 - this.mins * 5) === 0) {
@@ -591,7 +597,7 @@ class GameCore {
             '#aaa',
             dmg * 2,
             60,
-            5,
+            3 + p.passives.pierce,
             isCrit
           );
           proj.isArc = true;
@@ -712,6 +718,34 @@ class GameCore {
             }
             fired = true;
           }
+        } else if (w.type === 'fireball') {
+          // Fireball: homing projectile to nearest enemy with particle trail
+          let near: Enemy | null = null;
+          let min = 400;
+
+          for (const e of this.enemies) {
+            const d = Utils.getDist(p.x, p.y, e.x, e.y);
+            if (d < min) {
+              min = d;
+              near = e;
+            }
+          }
+
+          if (near) {
+            const fireball = new FireballProjectile(
+              p.x,
+              p.y,
+              near.x,
+              near.y,
+              6, // speed
+              dmg,
+              90, // duration (frames)
+              1 + p.passives.pierce, // pierce
+              isCrit
+            );
+            this.fireballs.push(fireball);
+            fired = true;
+          }
         }
 
         if (fired) w.curCd = w.cd;
@@ -720,6 +754,16 @@ class GameCore {
 
     // Update projectiles
     this.projectiles.forEach(proj => proj.update());
+
+    // Update fireballs with particle emission
+    this.fireballs.forEach(fb => {
+      fb.update();
+
+      // Emit trail particles
+      if (fb.shouldEmitTrail()) {
+        this.spawnParticles({ type: 'fire' as ParticleType, x: fb.x, y: fb.y, size: fb.getTrailParticleSize() }, fb.getTrailParticleCount());
+      }
+    });
 
     // Update enemies
     this.enemies.forEach(e => e.update(p, this.timeFreeze));
@@ -768,6 +812,31 @@ class GameCore {
       }
     });
 
+    // Fireball collisions
+    this.fireballs.forEach(fb => {
+      for (const e of this.enemies) {
+        if (!fb.hitList.includes(e) &&
+            Utils.getDist(fb.x, fb.y, e.x, e.y) < fb.radius + e.radius) {
+          this.hitEnemy(e, fb.dmg, fb.isCrit);
+          fb.hitList.push(e);
+
+          // Explosion particles on hit
+          this.spawnParticles({ type: 'fire' as ParticleType, x: fb.x, y: fb.y }, fb.getExplosionParticleCount());
+
+          fb.pierce--;
+          if (fb.pierce <= 0) {
+            fb.marked = true;
+            break;
+          }
+        }
+      }
+
+      // Fireball expires - spawn explosion
+      if (fb.marked && fb.dur <= 0) {
+        this.spawnParticles({ type: 'fire' as ParticleType, x: fb.x, y: fb.y }, fb.getExplosionParticleCount());
+      }
+    });
+
     // Loot collection
     this.loot.forEach(l => {
       const d = Utils.getDist(p.x, p.y, l.x, l.y);
@@ -802,6 +871,7 @@ class GameCore {
 
     // Cleanup
     this.projectiles = this.projectiles.filter(x => !x.marked);
+    this.fireballs = this.fireballs.filter(x => !x.marked);
     this.enemies = this.enemies.filter(x => !x.marked);
     this.loot = this.loot.filter(x => !x.marked);
     this.damageTexts = this.damageTexts.filter(t => t.life > 0);
@@ -926,6 +996,7 @@ class GameCore {
     this.particles.forEach(pt => pt.draw(ctx, px, py, cw, ch));
     this.enemies.forEach(e => e.draw(ctx, px, py, cw, ch));
     this.projectiles.forEach(proj => proj.draw(ctx, px, py, cw, ch));
+    this.fireballs.forEach(fb => fb.draw(ctx, px, py, cw, ch));
     p.draw(ctx, px, py, cw, ch);
 
     // Player health bar

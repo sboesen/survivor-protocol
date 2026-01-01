@@ -137,6 +137,9 @@ export class Player extends Entity {
           case 'flicker':
             weapon = { id: 'flicker', cd: 360, dmg: 12, type: 'flicker', area: 60, curCd: 0, level: 1, baseDmg: 12, manual: true };
             break;
+          case 'fireball':
+            weapon = { id: 'fireball', cd: 200, dmg: 25, type: 'fireball', curCd: 0, level: 1, baseDmg: 25 };
+            break;
           default:
             weapon = { id: 'wand', cd: 50, dmg: 10, type: 'nearest', curCd: 0, level: 1, baseDmg: 10 };
         }

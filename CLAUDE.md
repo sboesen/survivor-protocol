@@ -37,18 +37,23 @@ Survivor Protocol is a vampire survivor-style browser game built with TypeScript
 - Entities have a `marked` flag for deletion
 
 ### Character System
-- `src/data/characters.ts` - Defines 4 characters (knight, rogue, mage, viking)
-- Each has: `hpMod`, `spdMod`, starting `weapon`, and `ult` (Shield, Haste, Freeze, Rage)
+- `src/data/characters.ts` - Defines 8 characters (Janitor, Skater, Mall Cop, Chef, Teenager, Tech Support, Ninja, Dungeon Master)
+- Each has: `hpMod`, `spdMod`, starting `weapon`, and `ult`
 - `src/entities/player.ts` - Player class with weapons, passives, XP, leveling, ult charge
 
 ### Weapons
 - Defined in `src/types/index.ts` as `Weapon` interface
-- 4 types with different firing behaviors:
-  - `nearest` - Auto-targets closest enemy (Wand)
-  - `facing` - Shoots in last moved direction (Knife)
-  - `aura` - Area damage around player (Orbit)
-  - `arc` - Parabolic arc projectile (Axe)
+- 8 types with different firing behaviors:
+  - `nearest` - Auto-targets closest enemy (Pepper Spray/Wand)
+  - `facing` - Shoots in last moved direction (Thrown CDs/Knife)
+  - `aura` - Area damage around player (Mop Bucket/Orbit)
+  - `arc` - Parabolic arc projectile (Frying Pan/Axe)
+  - `melee` - Cone attack with distance falloff (Rake Claw)
+  - `chain` - Bounces between enemies (Server Zap)
+  - `flicker` - Teleport strike (Flicker Strike)
+  - `fireball` - Homing projectile with particle trail (Grease Fire)
 - Weapons level up: damage ×1.3, cooldown ×0.9 per level
+- **IMPORTANT**: When adding new projectile weapons, use `1 + p.passives.pierce` (or similar) for pierce value so "Sharp Edges" upgrade works
 
 ### Upgrades
 - `src/data/upgrades.ts` - Weapons and passives offered during level-up
@@ -63,8 +68,9 @@ Survivor Protocol is a vampire survivor-style browser game built with TypeScript
 
 ### Save System
 - `src/systems/saveData.ts` - `SaveData` singleton persists to localStorage
-- Key: `survivor_proto_v2_3`
+- Key: `survivor_protocol_v2`
 - Stores: gold, owned characters, selected character, shop upgrades (damage, health, speed, magnet)
+- Uses `??` nullish coalescing for safe merging when loading saved data
 
 ### Rendering
 - `src/systems/renderer.ts` - `Renderer.drawSprite()` draws pixel art from sprite maps
