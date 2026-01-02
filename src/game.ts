@@ -249,6 +249,18 @@ class GameCore {
     }
 
     UI.updateHud(0, 0, 1, 0, char.id, 0, 0);
+
+    // Warm up JIT by running fireball code once
+    this.warmupFireball();
+  }
+
+  private warmupFireball(): void {
+    // Pre-compile fireball code to prevent first-shot lag
+    const fb = new FireballProjectile(0, 0, 100, 100, 5, 10, 60, 1, false);
+    for (let i = 0; i < 5; i++) fb.update();
+    fb.shouldEmitTrail();
+    fb.getTrailParticleCount();
+    fb.getExplosionParticleCount();
   }
 
   quitRun(): void {

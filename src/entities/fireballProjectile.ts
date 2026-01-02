@@ -88,7 +88,7 @@ export class FireballProjectile extends Entity {
    * Get the number of trail particles to emit.
    */
   getTrailParticleCount(): number {
-    return 6;
+    return 2;
   }
 
   /**
@@ -102,7 +102,7 @@ export class FireballProjectile extends Entity {
    * Get the number of explosion particles to emit on impact.
    */
   getExplosionParticleCount(): number {
-    return 60;
+    return 25;
   }
 
   drawShape(ctx: CanvasContext, x: number, y: number): void {
