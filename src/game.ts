@@ -1232,10 +1232,6 @@ class GameCore {
     }
     ctx.stroke();
 
-    // Draw fire particle illuminations (before entities so lights appear on ground)
-    this.particles.forEach(pt => pt.drawIllumination(ctx, px, py, cw, ch));
-    this.fireballs.forEach(fb => fb.drawIllumination(ctx, px, py, cw, ch));
-
     // Draw entities
     this.obstacles.forEach(o => o.draw(ctx, px, py, cw, ch));
     this.loot.forEach(l => l.draw(ctx, px, py, cw, ch));
@@ -1244,6 +1240,10 @@ class GameCore {
     this.projectiles.forEach(proj => proj.draw(ctx, px, py, cw, ch));
     this.fireballs.forEach(fb => fb.draw(ctx, px, py, cw, ch));
     p.draw(ctx, px, py, cw, ch);
+
+    // Draw illuminations AFTER entities so the light effect appears on top using 'lighter' composite
+    this.particles.forEach(pt => pt.drawIllumination(ctx, px, py, cw, ch));
+    this.fireballs.forEach(fb => fb.drawIllumination(ctx, px, py, cw, ch));
     ctx.restore();
 
     // Draw joysticks (mobile only)

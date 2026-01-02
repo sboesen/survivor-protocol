@@ -176,7 +176,7 @@ export class FireballProjectile extends Entity {
     ctx.save();
 
     // Larger illumination radius - more dramatic lighting
-    const pulseScale = 1 + Math.sin(this.pulsePhase) * 0.3;
+    const pulseScale = 1 + Math.sin(this.pulsePhase) * 0.08;
     const illumRadius = this.radius * 12 * pulseScale;
 
     // Create radial gradient for ground illumination - brighter and more visible
