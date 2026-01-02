@@ -241,11 +241,9 @@ export class Particle {
 
     if (!isFinite(sx) || !isFinite(sy)) return;
 
-    // Save context state
-    ctx.save();
-
     const progress = 1 - (this.life / this.maxLife);
     const alpha = Math.max(0, 1 - progress);
+    const prevAlpha = ctx.globalAlpha;
 
     // Draw based on type
     switch (this.type) {
@@ -397,13 +395,10 @@ export class Particle {
       }
 
       case 'gas': {
-        // Soft gas cloud with gradient
+        // Soft gas cloud - simple circle with alpha
         const r = Math.max(2, this.size * alpha);
-        const gradient = ctx.createRadialGradient(sx, sy, 0, sx, sy, r);
-        gradient.addColorStop(0, this.color + '40'); // 25% opacity
-        gradient.addColorStop(0.5, this.color + '20'); // 12% opacity
-        gradient.addColorStop(1, this.color + '00'); // 0% opacity
-        ctx.fillStyle = gradient;
+        ctx.globalAlpha = alpha * 0.3;
+        ctx.fillStyle = this.color;
         ctx.beginPath();
         ctx.arc(sx, sy, r, 0, Math.PI * 2);
         ctx.fill();
@@ -421,7 +416,7 @@ export class Particle {
       }
     }
 
-    ctx.restore();
+    ctx.globalAlpha = prevAlpha;
   }
 
   /**
