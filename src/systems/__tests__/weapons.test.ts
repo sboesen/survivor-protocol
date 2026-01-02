@@ -8,6 +8,8 @@ import {
   fireSpray,
   checkAura,
   fireWeapon,
+  calculateWeaponDamage,
+  decrementCooldown,
   type WeaponFireResult,
 } from '../weapons';
 import type { Weapon } from '../../types';
@@ -369,6 +371,102 @@ describe('weapons', () => {
       const result = checkAura(w, 20, 10, true);
 
       expect(result.auraDamage!.isCrit).toBe(true);
+    });
+  });
+
+  describe('calculateWeaponDamage', () => {
+    it('should calculate normal damage without crit', () => {
+      const result = calculateWeaponDamage(10, 1.5, 0.2, 0.5);
+
+      expect(result.isCrit).toBe(false);
+      expect(result.damage).toBe(15); // 10 * 1.5
+    });
+
+    it('should calculate crit damage (3x multiplier)', () => {
+      const result = calculateWeaponDamage(10, 1.5, 0.2, 0.1);
+
+      expect(result.isCrit).toBe(true);
+      expect(result.damage).toBe(45); // 10 * 1.5 * 3
+    });
+
+    it('should not crit when random value equals crit chance', () => {
+      const result = calculateWeaponDamage(10, 1, 0.2, 0.2);
+
+      expect(result.isCrit).toBe(false);
+    });
+
+    it('should crit when random value is less than crit chance', () => {
+      const result = calculateWeaponDamage(10, 1, 0.2, 0.199);
+
+      expect(result.isCrit).toBe(true);
+    });
+
+    it('should always crit with 100% crit chance', () => {
+      const result = calculateWeaponDamage(10, 1, 1, 0.999);
+
+      expect(result.isCrit).toBe(true);
+    });
+
+    it('should never crit with 0% crit chance', () => {
+      const result = calculateWeaponDamage(10, 1, 0, 0);
+
+      expect(result.isCrit).toBe(false);
+    });
+
+    it('should handle fractional damage', () => {
+      const result = calculateWeaponDamage(7, 1.3, 0, 0.5);
+
+      expect(result.damage).toBeCloseTo(9.1, 1);
+    });
+
+    it('should handle zero base damage', () => {
+      const result = calculateWeaponDamage(0, 2, 0.5, 0);
+
+      expect(result.damage).toBe(0);
+    });
+  });
+
+  describe('decrementCooldown', () => {
+    it('should decrement cooldown by 1 with no bonuses', () => {
+      const result = decrementCooldown(10, 0, false);
+
+      expect(result).toBe(9);
+    });
+
+    it('should decrement cooldown by more with cooldown bonus', () => {
+      const result = decrementCooldown(10, 0.5, false);
+
+      expect(result).toBe(8.5); // 10 - (1 + 0.5)
+    });
+
+    it('should double decrement when Ollie ult is active', () => {
+      const result = decrementCooldown(10, 0, true);
+
+      expect(result).toBe(8); // 10 - (1 * 2)
+    });
+
+    it('should combine cooldown bonus with Ollie ult', () => {
+      const result = decrementCooldown(10, 0.5, true);
+
+      expect(result).toBe(7); // 10 - ((1 + 0.5) * 2) = 10 - 3
+    });
+
+    it('should clamp to zero when fully cooled down', () => {
+      const result = decrementCooldown(0.5, 0, false);
+
+      expect(result).toBe(0);
+    });
+
+    it('should handle already-zero cooldown', () => {
+      const result = decrementCooldown(0, 0, false);
+
+      expect(result).toBe(0);
+    });
+
+    it('should handle large cooldown values', () => {
+      const result = decrementCooldown(1000, 2, true);
+
+      expect(result).toBe(994); // 1000 - ((1 + 2) * 2) = 1000 - 6
     });
   });
 

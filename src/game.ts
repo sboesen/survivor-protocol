@@ -27,7 +27,7 @@ import {
   findNearestEnemy,
   calculateWrappedAngle,
 } from './systems/targeting';
-import { fireWeapon } from './systems/weapons';
+import { fireWeapon, calculateWeaponDamage, decrementCooldown } from './systems/weapons';
 import {
   calculateLootDrop,
   calculateChestGold,
@@ -480,14 +480,16 @@ class GameCore {
     // Weapons
     p.weapons.forEach(w => {
       if (w.curCd > 0) {
-        w.curCd -= (1 + p.items.cooldown) * (
-          p.ultName === 'Ollie' && p.ultActiveTime > 0 ? 2 : 1
+        w.curCd = decrementCooldown(
+          w.curCd,
+          p.items.cooldown,
+          p.ultName === 'Ollie' && p.ultActiveTime > 0
         );
       }
 
-      let dmg = w.baseDmg * p.dmgMult;
-      const isCrit = Math.random() < p.critChance;
-      if (isCrit) dmg *= 3;
+      const damageResult = calculateWeaponDamage(w.baseDmg, p.dmgMult, p.critChance);
+      const dmg = damageResult.damage;
+      const isCrit = damageResult.isCrit;
 
       // Handle aura separately (returns early)
       if (w.type === 'aura' && w.area) {

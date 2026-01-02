@@ -347,6 +347,51 @@ export function checkAura(
 }
 
 /**
+ * Result of weapon damage calculation.
+ */
+export interface DamageResult {
+  damage: number;
+  isCrit: boolean;
+}
+
+/**
+ * Calculate weapon damage with critical hit.
+ *
+ * @param baseDmg - Base weapon damage
+ * @param dmgMult - Player damage multiplier
+ * @param critChance - Player critical hit chance (0-1)
+ * @param randomValue - Random value [0,1) for crit check (allows testing)
+ * @returns Damage result with final damage and crit status
+ */
+export function calculateWeaponDamage(
+  baseDmg: number,
+  dmgMult: number,
+  critChance: number,
+  randomValue: number = Math.random()
+): DamageResult {
+  const isCrit = randomValue < critChance;
+  const damage = baseDmg * dmgMult * (isCrit ? 3 : 1);
+  return { damage, isCrit };
+}
+
+/**
+ * Calculate how much to decrement weapon cooldown.
+ *
+ * @param currentCd - Current cooldown value
+ * @param cooldownBonus - Player cooldown reduction bonus (e.g., from items)
+ * @param isOllieUltActive - Whether Ollie's ultimate is active (doubles cooldown speed)
+ * @returns New cooldown value (clamped to 0)
+ */
+export function decrementCooldown(
+  currentCd: number,
+  cooldownBonus: number,
+  isOllieUltActive: boolean = false
+): number {
+  const decrement = (1 + cooldownBonus) * (isOllieUltActive ? 2 : 1);
+  return Math.max(0, currentCd - decrement);
+}
+
+/**
  * Main weapon firing function.
  * Returns data about what should be spawned without side effects.
  */
