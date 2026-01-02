@@ -34,6 +34,13 @@ import {
   calculateExplosionParticles,
   calculateDeathExplosionSize,
 } from './systems/combat';
+import {
+  hasDamageImmunity,
+  calculateRebootHeal,
+  getUltConfig,
+  calculateGreaseFireProjectiles,
+  getTimeFreezeDuration,
+} from './systems/ultimates';
 import { Player } from './entities/player';
 import { Enemy } from './entities/enemy';
 import { Projectile } from './entities/projectile';
@@ -357,46 +364,45 @@ class GameCore {
     if (this.player.ultCharge >= this.player.ultMax) {
       this.player.ultCharge = 0;
       const type = this.player.ultName;
+      const config = getUltConfig(type);
+
+      if (!config) return;
+
+      this.spawnDamageText(this.player.x, this.player.y, config.text, config.color);
 
       switch (type) {
         case 'Security':
-          this.player.ultActiveTime = 300;
-          this.spawnDamageText(this.player.x, this.player.y, 'SECURITY!', '#4af');
-          break;
         case 'Ollie':
-          this.player.ultActiveTime = 300;
-          this.spawnDamageText(this.player.x, this.player.y, 'OLLIE!', '#0f0');
+        case 'Reboot':
+          this.player.ultActiveTime = config.duration;
           break;
         case 'ClosingTime':
-          this.timeFreeze = 240;
-          this.spawnDamageText(this.player.x, this.player.y, 'CLOSED!', '#888');
+          this.timeFreeze = getTimeFreezeDuration();
           break;
         case 'GreaseFire':
-          for (let i = 0; i < 12; i++) {
-            const ang = (Math.PI * 2 / 12) * i;
+          const projectiles = calculateGreaseFireProjectiles(this.player.x, this.player.y);
+          for (const projData of projectiles) {
             const proj = new Projectile(
               this.player.x,
               this.player.y,
-              Math.cos(ang) * 5,
-              Math.sin(ang) * 5,
-              20,
-              '#f80',
+              projData.vx,
+              projData.vy,
+              projData.damage,
+              projData.color,
+              projData.duration,
               100,
-              100,
-              999,
+              projData.pierce,
               true
             );
             proj.isArc = true;
             this.projectiles.push(proj);
           }
-          this.spawnDamageText(this.player.x, this.player.y, 'GREASE FIRE!', '#f80');
           break;
-        case 'Reboot':
-          // Heal 50% HP + 5s immunity
-          this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.maxHp * 0.5);
-          this.player.ultActiveTime = 300;
-          this.spawnDamageText(this.player.x, this.player.y, 'REBOOT!', '#0ff');
-          break;
+      }
+
+      // Reboot also heals
+      if (type === 'Reboot') {
+        this.player.hp = calculateRebootHeal(this.player.hp, this.player.maxHp);
       }
     }
   }
@@ -678,7 +684,7 @@ class GameCore {
     // Player-enemy collision
     this.enemies.forEach(e => {
       if (Utils.getDist(p.x, p.y, e.x, e.y) < p.radius + e.radius) {
-        if ((p.ultName === 'Security' || p.ultName === 'Reboot') && p.ultActiveTime > 0) return;
+        if (hasDamageImmunity(p.ultName, p.ultActiveTime)) return;
 
         if (this.frames % 30 === 0) {
           p.hp -= 5;
@@ -693,7 +699,7 @@ class GameCore {
       if (proj.isHostile) {
         // Hits player
         if (Utils.getDist(proj.x, proj.y, p.x, p.y) < proj.radius + p.radius) {
-          if ((p.ultName === 'Security' || p.ultName === 'Reboot') && p.ultActiveTime > 0) {
+          if (hasDamageImmunity(p.ultName, p.ultActiveTime)) {
             proj.marked = true;
             return;
           }
