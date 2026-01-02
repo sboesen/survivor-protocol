@@ -8,18 +8,24 @@ class UISystem {
     time: number,
     level: number,
     kills: number,
-    selectedChar: string
+    selectedChar: string,
+    particles: number = 0,
+    enemies: number = 0
   ): void {
     const goldEl = document.getElementById('hud-gold');
     const timerEl = document.getElementById('hud-timer');
     const levelEl = document.getElementById('hud-level');
     const killsEl = document.getElementById('hud-kills');
     const charEl = document.getElementById('hud-char');
+    const particlesEl = document.getElementById('hud-particles');
+    const enemiesEl = document.getElementById('hud-enemies');
 
     if (goldEl) goldEl.textContent = `💰 ${gold}`;
     if (timerEl) timerEl.textContent = Utils.fmtTime(time);
     if (levelEl) levelEl.textContent = level.toString();
     if (killsEl) killsEl.textContent = kills.toString();
+    if (particlesEl) particlesEl.textContent = particles.toString();
+    if (enemiesEl) enemiesEl.textContent = enemies.toString();
     if (charEl) {
       const char = CHARACTERS[selectedChar];
       if (char) charEl.textContent = char.name;
@@ -178,17 +184,36 @@ class UISystem {
       // Build detailed stats display
       let statsHtml = '';
       if (def.type === 'Weapon') {
+        const isNew = lvl === 0;
         if (def.dmg !== undefined) {
-          const baseDmg = def.dmg * Math.pow(1.3, lvl);
-          statsHtml = `<div style="color:#4ade80">⚔ ${Math.round(baseDmg)} Damage</div>`;
+          if (isNew) {
+            statsHtml = `<div style="color:#4ade80">⚔ ${def.dmg} DMG</div>`;
+          } else {
+            const currentDmg = def.dmg * Math.pow(1.3, lvl);
+            const nextDmg = def.dmg * Math.pow(1.3, lvl + 1);
+            statsHtml = `<div style="color:#4ade80">⚔ ${Math.round(currentDmg)} → ${Math.round(nextDmg)} DMG</div>`;
+          }
         }
         if (def.cd !== undefined) {
-          const baseCd = def.cd * Math.pow(0.9, lvl);
-          statsHtml += `<div style="color:#60a5fa">⏱ ${Math.round(baseCd / 10) / 10}s Cooldown</div>`;
+          const cdSec = Math.round(def.cd / 10) / 10;
+          if (isNew) {
+            statsHtml += `<div style="color:#60a5fa">⏱ ${cdSec}s CD</div>`;
+          } else {
+            const currentCd = def.cd * Math.pow(0.9, lvl);
+            const nextCd = def.cd * Math.pow(0.9, lvl + 1);
+            const currentCdSec = Math.round(currentCd / 10) / 10;
+            const nextCdSec = Math.round(nextCd / 10) / 10;
+            statsHtml += `<div style="color:#60a5fa">⏱ ${currentCdSec}s → ${nextCdSec}s CD</div>`;
+          }
         }
         if (def.area !== undefined) {
-          const baseArea = def.area + (lvl * 15);
-          statsHtml += `<div style="color:#f472b6">◎ ${baseArea} Area</div>`;
+          if (isNew) {
+            statsHtml += `<div style="color:#f472b6">◎ ${def.area} Area</div>`;
+          } else {
+            const currentArea = def.area + (lvl * 15);
+            const nextArea = def.area + ((lvl + 1) * 15);
+            statsHtml += `<div style="color:#f472b6">◎ ${currentArea} → ${nextArea} Area</div>`;
+          }
         }
       } else {
         // Items

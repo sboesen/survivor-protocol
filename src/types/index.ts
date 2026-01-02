@@ -126,10 +126,12 @@ export interface InputState {
   x: number;
   y: number;
   keys: Record<string, boolean>;
-  joy: JoystickState;
+  joy: JoystickState; // Movement joystick (left side on mobile)
+  aimJoy: JoystickState; // Aim joystick (right side on mobile)
   ult: boolean;
   lastDx?: number;
   lastDy?: number;
+  aimAngle?: number; // Aim angle in radians (from mouse or aim joystick)
 }
 
 export interface JoystickState {

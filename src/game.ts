@@ -44,6 +44,7 @@ class GameCore {
     y: 0,
     keys: {},
     joy: { active: false, x: 0, y: 0, ox: 0, oy: 0 },
+    aimJoy: { active: false, x: 0, y: 0, ox: 0, oy: 0 },
     ult: false
   };
 
@@ -71,29 +72,80 @@ class GameCore {
       this.input.keys[e.key] = false;
     };
 
-    // Touch/joystick input
+    // Mouse aim tracking - updates aim angle based on cursor position relative to player
+    window.onmousemove = (e) => {
+      if (!this.canvas || !this.player) return;
+      const rect = this.canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      // Calculate angle from center of screen (player position) to mouse
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      this.input.aimAngle = Math.atan2(mouseY - centerY, mouseX - centerX);
+      // Deactivate aim joystick when using mouse
+      this.input.aimJoy.active = false;
+    };
+
+    // Touch/joystick input - split into two zones
     const tz = this.canvas;
     tz.ontouchstart = (e) => {
       e.preventDefault();
-      this.input.joy.active = true;
-      this.input.joy.ox = e.touches[0].clientX;
-      this.input.joy.oy = e.touches[0].clientY;
+      for (const touch of e.changedTouches) {
+        const halfWidth = window.innerWidth / 2;
+        if (touch.clientX < halfWidth) {
+          // Left side: movement joystick
+          this.input.joy.active = true;
+          this.input.joy.ox = touch.clientX;
+          this.input.joy.oy = touch.clientY;
+        } else {
+          // Right side: aim joystick
+          this.input.aimJoy.active = true;
+          this.input.aimJoy.ox = touch.clientX;
+          this.input.aimJoy.oy = touch.clientY;
+        }
+      }
     };
     tz.ontouchmove = (e) => {
       e.preventDefault();
-      if (!this.input.joy.active) return;
-      const dx = e.touches[0].clientX - this.input.joy.ox;
-      const dy = e.touches[0].clientY - this.input.joy.oy;
-      const dist = Math.hypot(dx, dy);
-      const scale = Math.min(dist, 50) / 50;
-      const angle = Math.atan2(dy, dx);
-      this.input.joy.x = Math.cos(angle) * scale;
-      this.input.joy.y = Math.sin(angle) * scale;
+      for (const touch of e.changedTouches) {
+        const halfWidth = window.innerWidth / 2;
+        if (touch.clientX < halfWidth) {
+          // Left side: movement joystick
+          if (!this.input.joy.active) continue;
+          const dx = touch.clientX - this.input.joy.ox;
+          const dy = touch.clientY - this.input.joy.oy;
+          const dist = Math.hypot(dx, dy);
+          const scale = Math.min(dist, 50) / 50;
+          const angle = Math.atan2(dy, dx);
+          this.input.joy.x = Math.cos(angle) * scale;
+          this.input.joy.y = Math.sin(angle) * scale;
+        } else {
+          // Right side: aim joystick
+          if (!this.input.aimJoy.active) continue;
+          const dx = touch.clientX - this.input.aimJoy.ox;
+          const dy = touch.clientY - this.input.aimJoy.oy;
+          const angle = Math.atan2(dy, dx);
+          this.input.aimJoy.x = Math.cos(angle);
+          this.input.aimJoy.y = Math.sin(angle);
+          this.input.aimAngle = angle;
+        }
+      }
     };
-    tz.ontouchend = () => {
-      this.input.joy.active = false;
-      this.input.joy.x = 0;
-      this.input.joy.y = 0;
+    tz.ontouchend = (e) => {
+      for (const touch of e.changedTouches) {
+        const halfWidth = window.innerWidth / 2;
+        if (touch.clientX < halfWidth) {
+          // Left side: movement joystick
+          this.input.joy.active = false;
+          this.input.joy.x = 0;
+          this.input.joy.y = 0;
+        } else {
+          // Right side: aim joystick
+          this.input.aimJoy.active = false;
+          this.input.aimJoy.x = 0;
+          this.input.aimJoy.y = 0;
+        }
+      }
     };
 
     Menu.renderCharSelect();
@@ -187,7 +239,7 @@ class GameCore {
       }
     }
 
-    UI.updateHud(0, 0, 1, 0, char.id);
+    UI.updateHud(0, 0, 1, 0, char.id, 0, 0);
   }
 
   quitRun(): void {
@@ -507,14 +559,14 @@ class GameCore {
             fired = true;
           }
         } else if (w.type === 'facing') {
-          const vx = this.input.lastDx || 1;
-          const vy = this.input.lastDy || 0;
+          // Use aimAngle from mouse/aim joystick, fallback to movement direction
+          const aimAngle = this.input.aimAngle ?? Math.atan2(this.input.lastDy || 0, this.input.lastDx || 1);
           const speed = 10 * (w.speedMult || 1);
           const count = (w.projectileCount || 1) + p.items.projectile;
 
           for (let i = 0; i < count; i++) {
             const spread = (Math.random() - 0.5) * 0.2;
-            const angle = Math.atan2(vy, vx) + spread;
+            const angle = aimAngle + spread;
             this.projectiles.push(new Projectile(
               p.x,
               p.y,
@@ -628,9 +680,12 @@ class GameCore {
           }
         } else if (w.type === 'spray') {
           // Spray weapons (lighter: white cloud + fire sparks, pepper_spray: green toxic cloud)
-          const baseAngle = this.input.lastDx !== undefined ?
-            Math.atan2(this.input.lastDy || 0, this.input.lastDx) :
-            Math.random() * Math.PI * 2;
+          // Use aimAngle from mouse/aim joystick, fallback to movement direction
+          const baseAngle = this.input.aimAngle ?? (
+            this.input.lastDx !== undefined ?
+              Math.atan2(this.input.lastDy || 0, this.input.lastDx) :
+              Math.random() * Math.PI * 2
+          );
 
           const isLighter = w.id === 'lighter';
           const gasColor = isLighter ? '#ffcccc' : '#33ff33';
@@ -766,7 +821,7 @@ class GameCore {
     });
 
     // Update enemies
-    this.enemies.forEach(e => e.update(p, this.timeFreeze, this.obstacles));
+    this.enemies.forEach(e => e.update(p, this.timeFreeze, this.obstacles, this.frames));
 
     // Player-enemy collision
     this.enemies.forEach(e => {
@@ -972,7 +1027,7 @@ class GameCore {
 
     // Update HUD
     if (this.frames % 30 === 0) {
-      UI.updateHud(this.goldRun, this.time, p.level, this.kills, SaveData.data.selectedChar);
+      UI.updateHud(this.goldRun, this.time, p.level, this.kills, SaveData.data.selectedChar, this.particles.length, this.enemies.length);
     }
 
     // Update XP bar
@@ -992,7 +1047,7 @@ class GameCore {
 
       if (e.type === 'boss') this.bossKills++;
 
-      UI.updateHud(this.goldRun, this.time, this.player?.level || 1, this.kills, SaveData.data.selectedChar);
+      UI.updateHud(this.goldRun, this.time, this.player?.level || 1, this.kills, SaveData.data.selectedChar, this.particles.length, this.enemies.length);
 
       // Death explosion effect
       const explosionSize = e.type === 'boss' ? 5 : (e.type === 'elite' ? 2 : 1);
@@ -1084,6 +1139,46 @@ class GameCore {
     this.projectiles.forEach(proj => proj.draw(ctx, px, py, cw, ch));
     this.fireballs.forEach(fb => fb.draw(ctx, px, py, cw, ch));
     p.draw(ctx, px, py, cw, ch);
+
+    // Draw joysticks (mobile only)
+    const joyRadius = 50;
+    const knobRadius = 20;
+
+    // Movement joystick (left)
+    if (this.input.joy.active) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(this.input.joy.ox, this.input.joy.oy, joyRadius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.beginPath();
+      const joyKnobX = this.input.joy.ox + this.input.joy.x * joyRadius;
+      const joyKnobY = this.input.joy.oy + this.input.joy.y * joyRadius;
+      ctx.arc(joyKnobX, joyKnobY, knobRadius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Aim joystick (right)
+    if (this.input.aimJoy.active) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255, 200, 100, 0.3)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(this.input.aimJoy.ox, this.input.aimJoy.oy, joyRadius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(255, 200, 100, 0.5)';
+      ctx.beginPath();
+      const aimKnobX = this.input.aimJoy.ox + this.input.aimJoy.x * joyRadius;
+      const aimKnobY = this.input.aimJoy.oy + this.input.aimJoy.y * joyRadius;
+      ctx.arc(aimKnobX, aimKnobY, knobRadius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
 
     // Player health bar
     const hpPct = p.hp / p.maxHp;

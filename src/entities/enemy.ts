@@ -3,6 +3,7 @@ import type { CanvasContext, EntityType } from '../types';
 import { Entity } from './entity';
 import { Obstacle } from './obstacle';
 import { Renderer } from '../systems/renderer';
+import { updateObstacleGrid, getPathDirection } from '../utils/pathfinding';
 
 export class Enemy extends Entity {
   type: EntityType;
@@ -114,8 +115,11 @@ export class Enemy extends Entity {
     return false;
   }
 
-  update(player: Entity, timeFreeze: number, obstacles: Obstacle[] = []): void {
+  update(player: Entity, timeFreeze: number, obstacles: Obstacle[] = [], frame: number = 0): void {
     if (timeFreeze > 0) return;
+
+    // Update obstacle grid periodically
+    updateObstacleGrid(obstacles, frame);
 
     let dx = player.x - this.x;
     let dy = player.y - this.y;
@@ -126,30 +130,26 @@ export class Enemy extends Entity {
     if (dy > CONFIG.worldSize / 2) dy -= CONFIG.worldSize;
     if (dy < -CONFIG.worldSize / 2) dy += CONFIG.worldSize;
 
-    const ang = Math.atan2(dy, dx);
+    // Try pathfinding first
+    const pathDir = getPathDirection(this.x, this.y, player.x, player.y, this.speed);
 
-    // Try multiple movement directions for better pathfinding
-    const moveAttempts = [
-      { angle: ang, weight: 1.0 },           // Direct path to player
-      { angle: ang + 0.5, weight: 0.7 },     // 30 degrees right
-      { angle: ang - 0.5, weight: 0.7 },     // 30 degrees left
-      { angle: ang + 1.2, weight: 0.4 },     // ~70 degrees right
-      { angle: ang - 1.2, weight: 0.4 },     // ~70 degrees left
-    ];
+    if (pathDir) {
+      this.x = (this.x + pathDir.dx + CONFIG.worldSize) % CONFIG.worldSize;
+      this.y = (this.y + pathDir.dy + CONFIG.worldSize) % CONFIG.worldSize;
+    } else {
+      // Fallback to simple direct movement if pathfinding fails
+      const ang = Math.atan2(dy, dx);
+      const newX = (this.x + Math.cos(ang) * this.speed + CONFIG.worldSize) % CONFIG.worldSize;
+      const newY = (this.y + Math.sin(ang) * this.speed + CONFIG.worldSize) % CONFIG.worldSize;
 
-    for (const attempt of moveAttempts) {
-      const testX = (this.x + Math.cos(attempt.angle) * this.speed + CONFIG.worldSize) % CONFIG.worldSize;
-      const testY = (this.y + Math.sin(attempt.angle) * this.speed + CONFIG.worldSize) % CONFIG.worldSize;
-
-      // Check obstacle collision
+      // Check obstacle collision for fallback
       let blocked = false;
       for (const o of obstacles) {
-        if (o.type === 'font') continue; // Skip healing fountains
-        const dist = Math.hypot(testX - o.x, testY - o.y);
+        if (o.type === 'font') continue;
+        const dist = Math.hypot(newX - o.x, newY - o.y);
         if (dist < 80) {
-          // Check if new position would be inside obstacle
-          if (testX > o.x - o.w / 2 - this.radius && testX < o.x + o.w / 2 + this.radius &&
-              testY > o.y - o.h / 2 - this.radius && testY < o.y + o.h / 2 + this.radius) {
+          if (newX > o.x - o.w / 2 - this.radius && newX < o.x + o.w / 2 + this.radius &&
+              newY > o.y - o.h / 2 - this.radius && newY < o.y + o.h / 2 + this.radius) {
             blocked = true;
             break;
           }
@@ -157,22 +157,8 @@ export class Enemy extends Entity {
       }
 
       if (!blocked) {
-        // Also check if this direction gets us closer to player than current position
-        const currentDist = Math.hypot(dx, dy);
-        const newDistToPlayer = Math.hypot(player.x - testX, player.y - testY);
-        // Handle wrap for distance check
-        let wrappedNewDist = newDistToPlayer;
-        if (player.x - testX > CONFIG.worldSize / 2) wrappedNewDist = Math.hypot(player.x - testX - CONFIG.worldSize, player.y - testY);
-        if (player.x - testX < -CONFIG.worldSize / 2) wrappedNewDist = Math.hypot(player.x - testX + CONFIG.worldSize, player.y - testY);
-        if (player.y - testY > CONFIG.worldSize / 2) wrappedNewDist = Math.hypot(player.x - testX, player.y - testY - CONFIG.worldSize);
-        if (player.y - testY < -CONFIG.worldSize / 2) wrappedNewDist = Math.hypot(player.x - testX, player.y - testY + CONFIG.worldSize);
-
-        // Move if this is the primary direction OR if it doesn't take us further from player
-        if (attempt.weight >= 1.0 || wrappedNewDist < currentDist + this.speed * 1.5) {
-          this.x = testX;
-          this.y = testY;
-          break;
-        }
+        this.x = newX;
+        this.y = newY;
       }
     }
 
@@ -183,8 +169,6 @@ export class Enemy extends Entity {
       this.shootTimer++;
       if (this.shootTimer > 90) {
         this.shootTimer = 0;
-        // Note: projectiles are managed by the game, not here
-        // This is tracked for visual/game timing purposes
       }
     }
   }
