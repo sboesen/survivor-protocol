@@ -1194,7 +1194,7 @@ class GameCore {
     const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
     const zoomScale = isMobile ? 0.7 : 1;
 
-    // Draw grid
+    // Draw grid/floor
     ctx.save();
     if (zoomScale < 1) {
       // Center the zoom
@@ -1202,22 +1202,43 @@ class GameCore {
       ctx.scale(zoomScale, zoomScale);
       ctx.translate(-cw / 2, -ch / 2);
     }
-    ctx.strokeStyle = '#1e293b';
-    ctx.lineWidth = 1;
-    const gridSize = 100;
-    const offsetX = px % gridSize;
-    const offsetY = py % gridSize;
 
-    ctx.beginPath();
-    for (let x = -offsetX; x < cw; x += gridSize) {
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, ch);
+    // Industrial floor tiles - matches metallic obstacle style
+    const tileSize = 100;
+    const offsetX = px % tileSize;
+    const offsetY = py % tileSize;
+
+    // Calculate tile range to draw
+    const startTileX = Math.floor(-offsetX / tileSize) - 1;
+    const startTileY = Math.floor(-offsetY / tileSize) - 1;
+    const endTileX = Math.ceil((cw - offsetX) / tileSize) + 1;
+    const endTileY = Math.ceil((ch - offsetY) / tileSize) + 1;
+
+    for (let ty = startTileY; ty < endTileY; ty++) {
+      for (let tx = startTileX; tx < endTileX; tx++) {
+        const screenX = tx * tileSize + offsetX;
+        const screenY = ty * tileSize + offsetY;
+
+        // Base floor color (dark, matches obstacle style)
+        ctx.fillStyle = '#1a1f2e';
+        ctx.fillRect(screenX, screenY, tileSize, tileSize);
+
+        // Subtle panel border
+        ctx.strokeStyle = '#252b3d';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(screenX + 1, screenY + 1, tileSize - 2, tileSize - 2);
+
+        // Small floor rivet in corner (subtle detail)
+        ctx.fillStyle = '#2d3548';
+        ctx.beginPath();
+        ctx.arc(screenX + tileSize - 8, screenY + tileSize - 8, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Very subtle center panel line
+        ctx.fillStyle = '#1e2535';
+        ctx.fillRect(screenX + tileSize / 2 - 1, screenY + 10, 2, tileSize - 20);
+      }
     }
-    for (let y = -offsetY; y < ch; y += gridSize) {
-      ctx.moveTo(0, y);
-      ctx.lineTo(cw, y);
-    }
-    ctx.stroke();
 
     // Draw fire particle illuminations (before entities so lights appear on ground)
     this.particles.forEach(pt => pt.drawIllumination(ctx, px, py, cw, ch));
