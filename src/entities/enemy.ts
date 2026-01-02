@@ -130,36 +130,43 @@ export class Enemy extends Entity {
     if (dy > CONFIG.worldSize / 2) dy -= CONFIG.worldSize;
     if (dy < -CONFIG.worldSize / 2) dy += CONFIG.worldSize;
 
-    // Try pathfinding first
-    const pathDir = getPathDirection(this.x, this.y, player.x, player.y, this.speed);
+    const dist = Math.hypot(dx, dy);
 
-    if (pathDir) {
-      this.x = (this.x + pathDir.dx + CONFIG.worldSize) % CONFIG.worldSize;
-      this.y = (this.y + pathDir.dy + CONFIG.worldSize) % CONFIG.worldSize;
-    } else {
-      // Fallback to simple direct movement if pathfinding fails
-      const ang = Math.atan2(dy, dx);
-      const newX = (this.x + Math.cos(ang) * this.speed + CONFIG.worldSize) % CONFIG.worldSize;
-      const newY = (this.y + Math.sin(ang) * this.speed + CONFIG.worldSize) % CONFIG.worldSize;
+    // Only use pathfinding when nearby (within 400px) to avoid wrapping issues
+    const usePathfinding = dist < 400 && obstacles.length > 0;
 
-      // Check obstacle collision for fallback
-      let blocked = false;
-      for (const o of obstacles) {
-        if (o.type === 'font') continue;
-        const dist = Math.hypot(newX - o.x, newY - o.y);
-        if (dist < 80) {
-          if (newX > o.x - o.w / 2 - this.radius && newX < o.x + o.w / 2 + this.radius &&
-              newY > o.y - o.h / 2 - this.radius && newY < o.y + o.h / 2 + this.radius) {
-            blocked = true;
-            break;
-          }
+    if (usePathfinding) {
+      const pathDir = getPathDirection(this.x, this.y, player.x, player.y, this.speed);
+      if (pathDir) {
+        this.x = (this.x + pathDir.dx + CONFIG.worldSize) % CONFIG.worldSize;
+        this.y = (this.y + pathDir.dy + CONFIG.worldSize) % CONFIG.worldSize;
+        if (this.flash > 0) this.flash--;
+        return;
+      }
+    }
+
+    // Direct movement (either no pathfinding or it failed)
+    const ang = Math.atan2(dy, dx);
+    const newX = (this.x + Math.cos(ang) * this.speed + CONFIG.worldSize) % CONFIG.worldSize;
+    const newY = (this.y + Math.sin(ang) * this.speed + CONFIG.worldSize) % CONFIG.worldSize;
+
+    // Check obstacle collision
+    let blocked = false;
+    for (const o of obstacles) {
+      if (o.type === 'font') continue;
+      const dist = Math.hypot(newX - o.x, newY - o.y);
+      if (dist < 80) {
+        if (newX > o.x - o.w / 2 - this.radius && newX < o.x + o.w / 2 + this.radius &&
+            newY > o.y - o.h / 2 - this.radius && newY < o.y + o.h / 2 + this.radius) {
+          blocked = true;
+          break;
         }
       }
+    }
 
-      if (!blocked) {
-        this.x = newX;
-        this.y = newY;
-      }
+    if (!blocked) {
+      this.x = newX;
+      this.y = newY;
     }
 
     if (this.flash > 0) this.flash--;
