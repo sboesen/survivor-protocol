@@ -46,6 +46,12 @@ import {
   getTimeFreezeDuration,
 } from './systems/ultimates';
 import { selectUpgradeChoices } from './systems/levelUp';
+import {
+  isValidParticleType,
+  calculateParticleSpawnCount,
+  canSpawnParticles,
+  MAX_PARTICLES,
+} from './systems/particleSpawning';
 import { Player } from './entities/player';
 import { Enemy } from './entities/enemy';
 import { Projectile } from './entities/projectile';
@@ -418,17 +424,14 @@ class GameCore {
   }
 
   spawnParticles(config: ParticleSpawnConfig, count = 1): void {
-    // Cap particles to prevent performance issues
-    const MAX_PARTICLES = 2500;
-    if (this.particles.length >= MAX_PARTICLES) return;
+    // Check if particle type is valid
+    if (!isValidParticleType(config.type)) return;
 
-    // Ensure particle type is valid
-    const validTypes: ParticleType[] = ['water', 'explosion', 'smoke', 'blood', 'spark', 'foam', 'ripple', 'caustic', 'splash', 'fire', 'gas'];
-    if (!validTypes.includes(config.type)) return;
+    // Check if we can spawn more particles
+    if (!canSpawnParticles(this.particles.length)) return;
 
-    // Adjust count if we're near the cap
-    const available = MAX_PARTICLES - this.particles.length;
-    const actualCount = Math.min(count, available);
+    // Calculate actual count based on available space
+    const actualCount = calculateParticleSpawnCount(count, this.particles.length);
 
     for (let i = 0; i < actualCount; i++) {
       this.particles.push(new Particle(config));
