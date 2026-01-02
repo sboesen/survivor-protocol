@@ -1107,3 +1107,4 @@ class GameCore {
 }
 
 export const Game = new GameCore();
+export { GameCore };

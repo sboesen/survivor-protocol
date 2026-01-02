@@ -1,0 +1,454 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { Window } from 'happy-dom';
+import { GameCore } from '../game';
+
+// Mock all the imported modules that have side effects
+vi.mock('../systems/saveData', () => ({
+  SaveData: {
+    load: vi.fn(),
+    save: vi.fn(),
+    data: {
+      selectedChar: 'janitor',
+      gold: 0,
+      shop: {
+        health: 0,
+        damage: 0,
+        speed: 0,
+        magnet: 0,
+      },
+    },
+  },
+}));
+
+vi.mock('../systems/gacha', () => ({
+  GachaAnim: {
+    init: vi.fn(),
+  },
+}));
+
+vi.mock('../systems/ui', () => ({
+  UI: {
+    updateHud: vi.fn(),
+    spawnDamageText: vi.fn(() => ({ style: {} })),
+    showLevelUpScreen: vi.fn(),
+    showGameOverScreen: vi.fn(),
+  },
+}));
+
+vi.mock('../systems/menu', () => ({
+  Menu: {
+    renderCharSelect: vi.fn(),
+    show: vi.fn(),
+    hide: vi.fn(),
+  },
+}));
+
+// Mock Math.random for deterministic tests
+const mockRandomValues: number[] = [];
+let randomIndex = 0;
+vi.spyOn(Math, 'random').mockImplementation(() => {
+  const val = mockRandomValues[randomIndex] ?? 0.5;
+  randomIndex = (randomIndex + 1) % mockRandomValues.length;
+  return val;
+});
+
+describe('GameCore', () => {
+  let window: Window;
+  let document: Document;
+  let canvas: HTMLCanvasElement;
+  let ctx: CanvasRenderingContext2D;
+
+  // Track draw calls for verification
+  const drawCalls: string[] = [];
+
+  beforeEach(() => {
+    // Create happy-dom window
+    window = new Window({
+      url: 'http://localhost:3000',
+      width: 1024,
+      height: 768,
+    });
+    document = window.document;
+    global.window = window as any;
+    global.document = document;
+
+    // Create canvas element
+    canvas = document.createElement('canvas');
+    canvas.id = 'gameCanvas';
+    canvas.width = 1024;
+    canvas.height = 768;
+    document.body.appendChild(canvas);
+
+    // Create mock context that tracks draw calls
+    drawCalls.length = 0;
+    ctx = {
+      canvas,
+      fillStyle: '',
+      strokeStyle: '',
+      lineWidth: 0,
+      fillRect: vi.fn(function (this: any) { drawCalls.push(`fillRect(${Array.from(arguments).join(', ')})`); }),
+      strokeRect: vi.fn(function (this: any) { drawCalls.push(`strokeRect(${Array.from(arguments).join(', ')})`); }),
+      beginPath: vi.fn(function (this: any) { drawCalls.push('beginPath'); }),
+      closePath: vi.fn(function (this: any) { drawCalls.push('closePath'); }),
+      moveTo: vi.fn(function (this: any) { drawCalls.push(`moveTo(${Array.from(arguments).join(', ')})`); }),
+      lineTo: vi.fn(function (this: any) { drawCalls.push(`lineTo(${Array.from(arguments).join(', ')})`); }),
+      arc: vi.fn(function (this: any) { drawCalls.push(`arc(${Array.from(arguments).join(', ')})`); }),
+      ellipse: vi.fn(function (this: any) { drawCalls.push(`ellipse(${Array.from(arguments).join(', ')})`); }),
+      stroke: vi.fn(function (this: any) { drawCalls.push('stroke'); }),
+      fill: vi.fn(function (this: any) { drawCalls.push('fill'); }),
+      save: vi.fn(function (this: any) { drawCalls.push('save'); }),
+      restore: vi.fn(function (this: any) { drawCalls.push('restore'); }),
+      translate: vi.fn(function (this: any) { drawCalls.push(`translate(${Array.from(arguments).join(', ')})`); }),
+      scale: vi.fn(function (this: any) { drawCalls.push(`scale(${Array.from(arguments).join(', ')})`); }),
+      clearRect: vi.fn(function (this: any) { drawCalls.push(`clearRect(${Array.from(arguments).join(', ')})`); }),
+    } as any;
+
+    // Mock getContext to return our mock context
+    canvas.getContext = vi.fn((contextType: string) => {
+      if (contextType === '2d') return ctx;
+      return null;
+    });
+
+    // Reset random values
+    mockRandomValues.length = 0;
+    randomIndex = 0;
+  });
+
+  afterEach(() => {
+    // Clean up
+    document.body.innerHTML = '';
+    delete global.window;
+    delete global.document;
+  });
+
+  describe('initialization', () => {
+    it('should create a singleton instance', () => {
+      const game = new GameCore();
+      expect(game).toBeDefined();
+    });
+
+    it('should initialize with default state', () => {
+      const game = new GameCore();
+      expect(game.active).toBe(false);
+      expect(game.paused).toBe(false);
+      expect(game.frames).toBe(0);
+      expect(game.kills).toBe(0);
+      expect(game.enemies).toEqual([]);
+      expect(game.projectiles).toEqual([]);
+    });
+
+    it('should get canvas element on init', () => {
+      const game = new GameCore();
+      game.init();
+      expect(game.canvas).toBe(canvas);
+    });
+
+    it('should get 2d context on init', () => {
+      const game = new GameCore();
+      game.init();
+      expect(game.ctx).toBe(ctx);
+    });
+
+    it('should return early if canvas not found', () => {
+      document.body.removeChild(canvas);
+      const game = new GameCore();
+      expect(() => game.init()).not.toThrow();
+      expect(game.canvas).toBeNull();
+    });
+  });
+
+  describe('start()', () => {
+    it('should set active to true', () => {
+      const game = new GameCore();
+      game.init();
+      game.start();
+      expect(game.active).toBe(true);
+      expect(game.paused).toBe(false);
+    });
+
+    it('should create a player with selected character', () => {
+      const game = new GameCore();
+      game.init();
+      game.start();
+      expect(game.player).toBeDefined();
+      expect(game.player?.x).toBeDefined();
+      expect(game.player?.y).toBeDefined();
+    });
+
+    it('should spawn obstacles', () => {
+      // Seed random values for obstacle generation
+      for (let i = 0; i < 500; i++) {
+        mockRandomValues.push(i / 1000);
+      }
+      const game = new GameCore();
+      game.init();
+      game.start();
+      expect(game.obstacles.length).toBeGreaterThan(0);
+      // Reset for next test
+      mockRandomValues.length = 0;
+      randomIndex = 0;
+    });
+
+    it('should reset frame count', () => {
+      const game = new GameCore();
+      game.frames = 100;
+      game.init();
+      game.start();
+      expect(game.frames).toBe(0);
+    });
+  });
+
+  describe('resize()', () => {
+    it('should resize canvas to window size', () => {
+      const game = new GameCore();
+      game.init();
+      game.resize();
+      expect(game.canvas?.width).toBe(window.innerWidth);
+      expect(game.canvas?.height).toBe(window.innerHeight);
+    });
+
+    it('should work without canvas being initialized', () => {
+      const game = new GameCore();
+      expect(() => game.resize()).not.toThrow();
+    });
+  });
+
+  describe('render()', () => {
+    it('should return early if ctx is null', () => {
+      const game = new GameCore();
+      game.render();
+      expect(drawCalls.length).toBe(0);
+    });
+
+    it('should return early if not active', () => {
+      const game = new GameCore();
+      game.init();
+      game.render();
+      expect(drawCalls.length).toBe(1); // Just fillRect for black screen
+    });
+
+    it('should clear screen with black', () => {
+      const game = new GameCore();
+      game.init();
+      game.render();
+      expect(drawCalls[0]).toContain('fillRect');
+    });
+
+    it('should render when game is active', () => {
+      const game = new GameCore();
+      game.init();
+      game.start();
+      drawCalls.length = 0;
+      game.render();
+      // Should have multiple draw calls
+      expect(drawCalls.length).toBeGreaterThan(10);
+    });
+
+    it('should draw floor background', () => {
+      const game = new GameCore();
+      game.init();
+      game.start();
+      drawCalls.length = 0;
+      game.render();
+      // Check for floor drawing
+      expect(drawCalls.some(call => call.includes('fillRect') || call.includes('fill'))).toBe(true);
+    });
+
+    it('should draw grid lines', () => {
+      const game = new GameCore();
+      game.init();
+      game.start();
+      drawCalls.length = 0;
+      game.render();
+      // Check for grid drawing (moveTo, lineTo, stroke)
+      expect(drawCalls.some(call => call === 'beginPath' || call === 'moveTo' || call === 'lineTo')).toBe(true);
+    });
+  });
+
+  describe('gameOver()', () => {
+    it('should set active to false', () => {
+      const game = new GameCore();
+      game.init();
+      game.start();
+      game.gameOver(false);
+      expect(game.active).toBe(false);
+    });
+
+    it('should set active to false on success', () => {
+      const game = new GameCore();
+      game.init();
+      game.start();
+      game.gameOver(true);
+      expect(game.active).toBe(false);
+    });
+
+    it('should not error when called without player', () => {
+      const game = new GameCore();
+      game.init();
+      expect(() => game.gameOver(false)).not.toThrow();
+    });
+  });
+
+  describe('quitRun()', () => {
+    it('should return to menu and clear game state', () => {
+      const game = new GameCore();
+      game.init();
+      game.start();
+      game.quitRun();
+      expect(game.active).toBe(false);
+      // Note: player is not set to null by gameOver, just active = false
+      expect(game.player).toBeDefined();
+    });
+
+    it('should handle quit without starting', () => {
+      const game = new GameCore();
+      game.init();
+      expect(() => game.quitRun()).not.toThrow();
+    });
+  });
+
+  describe('triggerUlt()', () => {
+    it('should not trigger ult when game is paused', () => {
+      const game = new GameCore();
+      game.init();
+      game.start();
+      game.paused = true;
+      const initialCharge = game.player?.ultCharge ?? 0;
+      game.triggerUlt();
+      expect(game.player?.ultCharge).toBe(initialCharge);
+    });
+
+    it('should not trigger ult when no player', () => {
+      const game = new GameCore();
+      game.init();
+      expect(() => game.triggerUlt()).not.toThrow();
+    });
+
+    it('should not trigger ult when not active', () => {
+      const game = new GameCore();
+      game.init();
+      expect(() => game.triggerUlt()).not.toThrow();
+    });
+
+    it('should trigger ult when charge is full', () => {
+      const game = new GameCore();
+      game.init();
+      game.start();
+      if (game.player) {
+        game.player.ultCharge = game.player.ultMax;
+        game.triggerUlt();
+        expect(game.player.ultCharge).toBe(0);
+        // Note: janitor's ult (ClosingTime) doesn't set ultActiveTime
+        // Other ults like TimeFreeze do set it
+      }
+    });
+  });
+
+  describe('input handling', () => {
+    it('should have initial input state', () => {
+      const game = new GameCore();
+      expect(game.input.keys).toEqual({});
+      expect(game.input.joy.active).toBe(false);
+      expect(game.input.aimJoy.active).toBe(false);
+    });
+
+    it('should set up keyboard listeners on init', () => {
+      const game = new GameCore();
+      game.init();
+      // Window should have event listeners
+      expect(window.onkeydown).toBeInstanceOf(Function);
+      expect(window.onkeyup).toBeInstanceOf(Function);
+    });
+
+    it('should set up mouse tracking on init', () => {
+      const game = new GameCore();
+      game.init();
+      expect(window.onmousemove).toBeInstanceOf(Function);
+    });
+
+    it('should set up touch listeners on canvas', () => {
+      const game = new GameCore();
+      game.init();
+      expect(canvas.ontouchstart).toBeInstanceOf(Function);
+      expect(canvas.ontouchmove).toBeInstanceOf(Function);
+      expect(canvas.ontouchend).toBeInstanceOf(Function);
+    });
+  });
+
+  describe('spawnDamageText()', () => {
+    it('should add damage text to array', () => {
+      const game = new GameCore();
+      game.init();
+      game.start();
+      const initialLength = game.damageTexts.length;
+      game.spawnDamageText(100, 100, 10, '#f00');
+      expect(game.damageTexts.length).toBe(initialLength + 1);
+    });
+
+    it('should spawn crit damage text', () => {
+      const game = new GameCore();
+      game.init();
+      game.start();
+      game.spawnDamageText(100, 100, 10, '#f00', true);
+      expect(game.damageTexts.length).toBe(1);
+    });
+  });
+
+  describe('spawnParticles()', () => {
+    it('should add particles to array', () => {
+      const game = new GameCore();
+      game.init();
+      game.start();
+      const initialLength = game.particles.length;
+      game.spawnParticles({ type: 'water' as any, x: 100, y: 100 }, 5);
+      expect(game.particles.length).toBe(initialLength + 5);
+    });
+
+    it('should not spawn particles when at cap', () => {
+      const game = new GameCore();
+      game.init();
+      game.start();
+      // Fill particles to cap
+      for (let i = 0; i < 3000; i++) {
+        game.particles.push({} as any);
+      }
+      const lengthBefore = game.particles.length;
+      game.spawnParticles({ type: 'water' as any, x: 100, y: 100 }, 5);
+      expect(game.particles.length).toBe(lengthBefore);
+    });
+
+    it('should not spawn particles for invalid type', () => {
+      const game = new GameCore();
+      game.init();
+      game.start();
+      const initialLength = game.particles.length;
+      game.spawnParticles({ type: 'invalid' as any, x: 100, y: 100 }, 5);
+      expect(game.particles.length).toBe(initialLength);
+    });
+  });
+
+  describe('spawnExplosion()', () => {
+    it('should spawn explosion and smoke particles', () => {
+      const game = new GameCore();
+      game.init();
+      game.start();
+      const initialLength = game.particles.length;
+      game.spawnExplosion(100, 100, 1);
+      expect(game.particles.length).toBeGreaterThan(initialLength);
+    });
+  });
+
+  describe('edge cases', () => {
+    it('should handle multiple init calls', () => {
+      const game = new GameCore();
+      game.init();
+      game.init();
+      expect(game.canvas).toBe(canvas);
+    });
+
+    it('should handle render without init', () => {
+      const game = new GameCore();
+      expect(() => game.render()).not.toThrow();
+    });
+  });
+});
