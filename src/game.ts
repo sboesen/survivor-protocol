@@ -459,31 +459,39 @@ class GameCore {
         dy /= len;
       }
 
+      // Check collision helper - returns true if position is blocked
+      const isBlocked = (x: number, y: number): boolean => {
+        for (const o of this.obstacles) {
+          if (o.type === 'font') continue;
+          const dist = Utils.getDist(x, y, o.x, o.y);
+          if (dist < 80) {
+            if (x > CONFIG.worldSize - 50 || x < 50 || y > CONFIG.worldSize - 50 || y < 50) continue;
+            if (x > o.x - o.w / 2 - 8 && x < o.x + o.w / 2 + 8 &&
+                y > o.y - o.h / 2 - 8 && y < o.y + o.h / 2 + 8) {
+              return true;
+            }
+          }
+        }
+        return false;
+      };
+
+      // Try full diagonal movement first
       let nx = (p.x + dx * spd + CONFIG.worldSize) % CONFIG.worldSize;
       let ny = (p.y + dy * spd + CONFIG.worldSize) % CONFIG.worldSize;
 
-      // Collision with obstacles
-      let blocked = false;
-      for (const o of this.obstacles) {
-        const dist = Utils.getDist(nx, ny, o.x, o.y);
-
-        if (o.type === 'font') {
-          // Healing handled above
-          continue;
-        }
-
-        if (dist < 80) {
-          if (nx > CONFIG.worldSize - 50 || nx < 50 || ny > CONFIG.worldSize - 50 || ny < 50) continue;
-          if (nx > o.x - o.w / 2 - 8 && nx < o.x + o.w / 2 + 8 &&
-              ny > o.y - o.h / 2 - 8 && ny < o.y + o.h / 2 + 8) {
-            blocked = true;
-          }
-        }
-      }
-
-      if (!blocked) {
+      if (!isBlocked(nx, ny)) {
         p.x = nx;
         p.y = ny;
+      } else {
+        // Wall sliding: try each axis separately
+        const tryX = (p.x + dx * spd + CONFIG.worldSize) % CONFIG.worldSize;
+        if (!isBlocked(tryX, p.y)) {
+          p.x = tryX;
+        }
+        const tryY = (p.y + dy * spd + CONFIG.worldSize) % CONFIG.worldSize;
+        if (!isBlocked(p.x, tryY)) {
+          p.y = tryY;
+        }
       }
     }
 
