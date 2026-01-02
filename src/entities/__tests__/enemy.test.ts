@@ -35,13 +35,20 @@ vi.mock('../../utils/pathfinding', () => ({
   getPathDirection: vi.fn(() => null),
 }));
 
+// Concrete Entity subclass for testing (Entity is abstract)
+class TestEntity extends Entity {
+  drawShape(_ctx: CanvasContext, _x: number, _y: number): void {
+    // Empty implementation for testing
+  }
+}
+
 describe('Enemy', () => {
   describe('constructor - basic enemy', () => {
     let enemy: Enemy;
-    let playerEntity: Entity;
+    let playerEntity: TestEntity;
 
     beforeEach(() => {
-      playerEntity = new Entity(1000, 1000, 12, '#fff');
+      playerEntity = new TestEntity(1000, 1000, 12, '#fff');
       enemy = new Enemy(1000, 1000, 'basic', 0);
     });
 
@@ -78,10 +85,10 @@ describe('Enemy', () => {
 
   describe('constructor - bat enemy', () => {
     let enemy: Enemy;
-    let playerEntity: Entity;
+    let playerEntity: TestEntity;
 
     beforeEach(() => {
-      playerEntity = new Entity(1000, 1000, 12, '#fff');
+      playerEntity = new TestEntity(1000, 1000, 12, '#fff');
       enemy = new Enemy(1000, 1000, 'bat', 0);
     });
 
@@ -107,10 +114,10 @@ describe('Enemy', () => {
 
   describe('constructor - elite enemy', () => {
     let enemy: Enemy;
-    let playerEntity: Entity;
+    let playerEntity: TestEntity;
 
     beforeEach(() => {
-      playerEntity = new Entity(1000, 1000, 12, '#fff');
+      playerEntity = new TestEntity(1000, 1000, 12, '#fff');
       enemy = new Enemy(1000, 1000, 'elite', 5);
     });
 
@@ -143,10 +150,10 @@ describe('Enemy', () => {
 
   describe('constructor - boss enemy', () => {
     let enemy: Enemy;
-    let playerEntity: Entity;
+    let playerEntity: TestEntity;
 
     beforeEach(() => {
-      playerEntity = new Entity(1000, 1000, 12, '#fff');
+      playerEntity = new TestEntity(1000, 1000, 12, '#fff');
       enemy = new Enemy(1000, 1000, 'boss', 10);
     });
 
@@ -178,13 +185,13 @@ describe('Enemy', () => {
 
   describe('constructor - time scaling', () => {
     it('should scale enemy HP with time (basic)', () => {
-      const playerEntity = new Entity(1000, 1000, 12, '#fff');
+      const playerEntity = new TestEntity(1000, 1000, 12, '#fff');
       const enemy = new Enemy(1000, 1000, 'basic', 5); // 5 minutes
       expect(enemy.maxHp).toBe(15 + 5 * 10); // 15 + 50 = 65
     });
 
     it('should scale speed with time (capped at 2x at 10 min)', () => {
-      const playerEntity = new Entity(1000, 1000, 12, '#fff');
+      const playerEntity = new TestEntity(1000, 1000, 12, '#fff');
       const enemy = new Enemy(1000, 1000, 'basic', 10); // 10 minutes
       // Base speed 0.8-1.1, timeScale 2.0 (1 + 10 * 0.1), capped at 3.0
       expect(enemy.speed).toBeGreaterThan(1.6);
@@ -196,7 +203,6 @@ describe('Enemy', () => {
     let enemy: Enemy;
 
     beforeEach(() => {
-      const playerEntity = new Entity(1000, 1000, 12, '#fff');
       enemy = new Enemy(1000, 1000, 'basic', 0);
     });
 
@@ -222,11 +228,11 @@ describe('Enemy', () => {
 
   describe('update', () => {
     let enemy: Enemy;
-    let playerEntity: Entity;
+    let playerEntity: TestEntity;
     let obstacles: Obstacle[];
 
     beforeEach(() => {
-      playerEntity = new Entity(1000, 1000, 12, '#fff');
+      playerEntity = new TestEntity(1000, 1000, 12, '#fff');
       enemy = new Enemy(1000, 1000, 'basic', 0);
       obstacles = [];
     });
@@ -267,10 +273,10 @@ describe('Enemy', () => {
 
   describe('update - boss shootTimer', () => {
     let enemy: Enemy;
-    let playerEntity: Entity;
+    let playerEntity: TestEntity;
 
     beforeEach(() => {
-      playerEntity = new Entity(1000, 1000, 12, '#fff');
+      playerEntity = new TestEntity(1000, 1000, 12, '#fff');
       enemy = new Enemy(1000, 1000, 'boss', 0);
     });
 
@@ -289,7 +295,7 @@ describe('Enemy', () => {
 
   describe('obstacle avoidance during spawn', () => {
     it('should try to avoid spawning inside obstacles', () => {
-      const playerEntity = new Entity(1000, 1000, 12, '#fff');
+      const playerEntity = new TestEntity(1000, 1000, 12, '#fff');
       const obstacle = new Obstacle(1400, 1000, 100, 100, 'ruin');
 
       // Create multiple enemies - they should try to avoid the obstacle
@@ -311,7 +317,7 @@ describe('Enemy', () => {
     });
 
     it('should ignore font type obstacles for collision', () => {
-      const playerEntity = new Entity(1000, 1000, 12, '#fff');
+      const playerEntity = new TestEntity(1000, 1000, 12, '#fff');
       const fountain = new Obstacle(1400, 1000, 100, 100, 'font');
 
       // Enemy should spawn regardless of fountain position
@@ -321,10 +327,10 @@ describe('Enemy', () => {
 
   describe('world wrapping during movement', () => {
     let enemy: Enemy;
-    let playerEntity: Entity;
+    let playerEntity: TestEntity;
 
     beforeEach(() => {
-      playerEntity = new Entity(1000, 1000, 12, '#fff');
+      playerEntity = new TestEntity(1000, 1000, 12, '#fff');
       enemy = new Enemy(1000, 1000, 'basic', 0);
     });
 
@@ -345,25 +351,21 @@ describe('Enemy', () => {
 
   describe('sprite mapping', () => {
     it('should map basic to shopper', () => {
-      const playerEntity = new Entity(1000, 1000, 12, '#fff');
       const enemy = new Enemy(1000, 1000, 'basic', 0);
       expect(enemy.sprite).toBe('basic');
     });
 
     it('should map bat to sprinter', () => {
-      const playerEntity = new Entity(1000, 1000, 12, '#fff');
       const enemy = new Enemy(1000, 1000, 'bat', 0);
       expect(enemy.sprite).toBe('bat');
     });
 
     it('should map elite to armored', () => {
-      const playerEntity = new Entity(1000, 1000, 12, '#fff');
       const enemy = new Enemy(1000, 1000, 'elite', 0);
       expect(enemy.sprite).toBe('elite');
     });
 
     it('should map boss to manager', () => {
-      const playerEntity = new Entity(1000, 1000, 12, '#fff');
       const enemy = new Enemy(1000, 1000, 'boss', 0);
       expect(enemy.sprite).toBe('boss');
     });
@@ -371,7 +373,6 @@ describe('Enemy', () => {
 
   describe('marked property (inherited from Entity)', () => {
     it('should be toggleable', () => {
-      const playerEntity = new Entity(1000, 1000, 12, '#fff');
       const enemy = new Enemy(1000, 1000, 'basic', 0);
       expect(enemy.marked).toBe(false);
       enemy.marked = true;

@@ -88,32 +88,41 @@ class GameCore {
 
     // Touch/joystick input - split into two zones
     const tz = this.canvas;
+    const getCanvasPos = (clientX: number, clientY: number) => {
+      const rect = tz.getBoundingClientRect();
+      return {
+        x: clientX - rect.left,
+        y: clientY - rect.top,
+      };
+    };
     tz.ontouchstart = (e) => {
       e.preventDefault();
       for (const touch of e.changedTouches) {
+        const pos = getCanvasPos(touch.clientX, touch.clientY);
         const halfWidth = window.innerWidth / 2;
         if (touch.clientX < halfWidth) {
           // Left side: movement joystick
           this.input.joy.active = true;
-          this.input.joy.ox = touch.clientX;
-          this.input.joy.oy = touch.clientY;
+          this.input.joy.ox = pos.x;
+          this.input.joy.oy = pos.y;
         } else {
           // Right side: aim joystick
           this.input.aimJoy.active = true;
-          this.input.aimJoy.ox = touch.clientX;
-          this.input.aimJoy.oy = touch.clientY;
+          this.input.aimJoy.ox = pos.x;
+          this.input.aimJoy.oy = pos.y;
         }
       }
     };
     tz.ontouchmove = (e) => {
       e.preventDefault();
       for (const touch of e.changedTouches) {
+        const pos = getCanvasPos(touch.clientX, touch.clientY);
         const halfWidth = window.innerWidth / 2;
         if (touch.clientX < halfWidth) {
           // Left side: movement joystick
           if (!this.input.joy.active) continue;
-          const dx = touch.clientX - this.input.joy.ox;
-          const dy = touch.clientY - this.input.joy.oy;
+          const dx = pos.x - this.input.joy.ox;
+          const dy = pos.y - this.input.joy.oy;
           const dist = Math.hypot(dx, dy);
           const scale = Math.min(dist, 50) / 50;
           const angle = Math.atan2(dy, dx);
@@ -122,8 +131,8 @@ class GameCore {
         } else {
           // Right side: aim joystick
           if (!this.input.aimJoy.active) continue;
-          const dx = touch.clientX - this.input.aimJoy.ox;
-          const dy = touch.clientY - this.input.aimJoy.oy;
+          const dx = pos.x - this.input.aimJoy.ox;
+          const dy = pos.y - this.input.aimJoy.oy;
           const angle = Math.atan2(dy, dx);
           this.input.aimJoy.x = Math.cos(angle);
           this.input.aimJoy.y = Math.sin(angle);
@@ -1145,6 +1154,8 @@ class GameCore {
     p.draw(ctx, px, py, cw, ch);
 
     // Draw joysticks (mobile only)
+    // Shift up by 40px so joystick appears above finger
+    const joyOffsetY = 40;
     const joyRadius = 50;
     const knobRadius = 20;
 
@@ -1154,13 +1165,13 @@ class GameCore {
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(this.input.joy.ox, this.input.joy.oy, joyRadius, 0, Math.PI * 2);
+      ctx.arc(this.input.joy.ox, this.input.joy.oy - joyOffsetY, joyRadius, 0, Math.PI * 2);
       ctx.stroke();
 
       ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
       ctx.beginPath();
       const joyKnobX = this.input.joy.ox + this.input.joy.x * joyRadius;
-      const joyKnobY = this.input.joy.oy + this.input.joy.y * joyRadius;
+      const joyKnobY = this.input.joy.oy - joyOffsetY + this.input.joy.y * joyRadius;
       ctx.arc(joyKnobX, joyKnobY, knobRadius, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
@@ -1172,13 +1183,13 @@ class GameCore {
       ctx.strokeStyle = 'rgba(255, 200, 100, 0.3)';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(this.input.aimJoy.ox, this.input.aimJoy.oy, joyRadius, 0, Math.PI * 2);
+      ctx.arc(this.input.aimJoy.ox, this.input.aimJoy.oy - joyOffsetY, joyRadius, 0, Math.PI * 2);
       ctx.stroke();
 
       ctx.fillStyle = 'rgba(255, 200, 100, 0.5)';
       ctx.beginPath();
       const aimKnobX = this.input.aimJoy.ox + this.input.aimJoy.x * joyRadius;
-      const aimKnobY = this.input.aimJoy.oy + this.input.aimJoy.y * joyRadius;
+      const aimKnobY = this.input.aimJoy.oy - joyOffsetY + this.input.aimJoy.y * joyRadius;
       ctx.arc(aimKnobX, aimKnobY, knobRadius, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();

@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Player } from '../player';
 import type { CanvasContext } from '../../types';
 
+type MockCallback = () => void;
+
 // Mock canvas context
 const mockCtx = {
   save: () => {},
@@ -29,10 +31,10 @@ vi.mock('../../systems/renderer', () => ({
 
 describe('Player', () => {
   let player: Player;
-  let levelUpCallback: ReturnType<typeof vi.fn>;
+  let levelUpCallback: MockCallback & { mockClear: () => void; mockReset: () => void; calls: unknown[] };
 
   beforeEach(() => {
-    levelUpCallback = vi.fn();
+    levelUpCallback = vi.fn() as unknown as MockCallback & { mockClear: () => void; mockReset: () => void; calls: unknown[] };
     player = new Player(
       'dungeonMaster',
       0.75,  // hpMod

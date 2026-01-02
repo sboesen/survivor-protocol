@@ -171,26 +171,38 @@ export class FireballProjectile extends Entity {
     const sy = ry + ch / 2;
 
     // Culling (generous bounds for illumination)
-    if (sx < -100 || sx > cw + 100 || sy < -100 || sy > ch + 100) return;
+    if (sx < -150 || sx > cw + 150 || sy < -150 || sy > ch + 150) return;
 
     ctx.save();
 
-    // Larger illumination radius than the fireball itself
-    const pulseScale = 1 + Math.sin(this.pulsePhase) * 0.2;
-    const illumRadius = this.radius * 6 * pulseScale;
+    // Larger illumination radius - more dramatic lighting
+    const pulseScale = 1 + Math.sin(this.pulsePhase) * 0.3;
+    const illumRadius = this.radius * 12 * pulseScale;
 
-    // Create radial gradient for ground illumination
+    // Create radial gradient for ground illumination - brighter and more visible
     const gradient = ctx.createRadialGradient(sx, sy, 0, sx, sy, illumRadius);
-    gradient.addColorStop(0, 'rgba(255, 180, 80, 0.25)'); // Bright warm center
-    gradient.addColorStop(0.3, 'rgba(255, 120, 40, 0.12)'); // Mid glow
-    gradient.addColorStop(0.7, 'rgba(255, 80, 20, 0.04)'); // Outer glow
-    gradient.addColorStop(1, 'rgba(255, 50, 0, 0)'); // Fade to nothing
+    gradient.addColorStop(0, 'rgba(255, 200, 100, 0.5)');   // Bright warm center (increased opacity)
+    gradient.addColorStop(0.2, 'rgba(255, 150, 50, 0.3)');   // Mid-inner glow
+    gradient.addColorStop(0.5, 'rgba(255, 100, 30, 0.15)');  // Mid glow
+    gradient.addColorStop(0.8, 'rgba(255, 60, 10, 0.05)');    // Outer glow
+    gradient.addColorStop(1, 'rgba(255, 30, 0, 0)');        // Fade to nothing
 
     // Use lighter composite to add brightness to the scene
     ctx.globalCompositeOperation = 'lighter';
     ctx.fillStyle = gradient;
     ctx.beginPath();
     ctx.arc(sx, sy, illumRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Add secondary brighter core for extra pop
+    const coreRadius = this.radius * 4;
+    const coreGradient = ctx.createRadialGradient(sx, sy, 0, sx, sy, coreRadius);
+    coreGradient.addColorStop(0, 'rgba(255, 255, 200, 0.4)');
+    coreGradient.addColorStop(0.5, 'rgba(255, 200, 100, 0.2)');
+    coreGradient.addColorStop(1, 'rgba(255, 100, 50, 0)');
+    ctx.fillStyle = coreGradient;
+    ctx.beginPath();
+    ctx.arc(sx, sy, coreRadius, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.restore();
