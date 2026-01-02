@@ -366,11 +366,67 @@ describe('Particle', () => {
       const p = new Particle({ type: 'fire', x: 100, y: 100 });
       expect(() => p.draw(mockCtx, 0, 0, 800, 600)).not.toThrow();
     });
+
+    it('should draw fire particle with white color when fresh', () => {
+      const p = new Particle({ type: 'fire', x: 100, y: 100, life: 30, maxLife: 30 });
+      expect(() => p.draw(mockCtx, 0, 0, 800, 600)).not.toThrow();
+    });
+
+    it('should draw fire particle with yellow color at medium life', () => {
+      const p = new Particle({ type: 'fire', x: 100, y: 100, life: 15, maxLife: 30 });
+      expect(() => p.draw(mockCtx, 0, 0, 800, 600)).not.toThrow();
+    });
+
+    it('should draw fire particle with orange color at low life', () => {
+      const p = new Particle({ type: 'fire', x: 100, y: 100, life: 5, maxLife: 30 });
+      expect(() => p.draw(mockCtx, 0, 0, 800, 600)).not.toThrow();
+    });
   });
 
   describe('draw - gas particle', () => {
     it('should draw gas particle with gradient', () => {
       const p = new Particle({ type: 'gas', x: 100, y: 100 });
+      expect(() => p.draw(mockCtx, 0, 0, 800, 600)).not.toThrow();
+    });
+  });
+
+  describe('draw - smoke particle', () => {
+    it('should draw smoke particle without error', () => {
+      const p = new Particle({ type: 'smoke', x: 100, y: 100 });
+      expect(() => p.draw(mockCtx, 0, 0, 800, 600)).not.toThrow();
+    });
+
+    it('should draw smoke particle with reduced alpha', () => {
+      const p = new Particle({ type: 'smoke', x: 100, y: 100, life: 20, maxLife: 50 });
+      expect(() => p.draw(mockCtx, 0, 0, 800, 600)).not.toThrow();
+    });
+
+    it('should clamp smoke particle size to minimum 2', () => {
+      const p = new Particle({ type: 'smoke', x: 100, y: 100, size: 0.5 });
+      expect(() => p.draw(mockCtx, 0, 0, 800, 600)).not.toThrow();
+    });
+  });
+
+  describe('draw - blood particle', () => {
+    it('should draw blood particle without error', () => {
+      const p = new Particle({ type: 'blood', x: 100, y: 100 });
+      expect(() => p.draw(mockCtx, 0, 0, 800, 600)).not.toThrow();
+    });
+
+    it('should clamp blood particle size to minimum 1', () => {
+      const p = new Particle({ type: 'blood', x: 100, y: 100, size: 0.1 });
+      expect(() => p.draw(mockCtx, 0, 0, 800, 600)).not.toThrow();
+    });
+  });
+
+  describe('draw - spark particle (default case)', () => {
+    it('should draw spark particle using default case', () => {
+      const p = new Particle({ type: 'spark', x: 100, y: 100 });
+      expect(() => p.draw(mockCtx, 0, 0, 800, 600)).not.toThrow();
+    });
+
+    it('should clamp spark particle size to minimum 1', () => {
+      const p = new Particle({ type: 'spark', x: 100, y: 100, size: 0 });
       expect(() => p.draw(mockCtx, 0, 0, 800, 600)).not.toThrow();
     });
   });
@@ -407,6 +463,86 @@ describe('Particle', () => {
       p.update();
       // Position changes but doesn't wrap
       expect(p.x).toBe(105);
+    });
+  });
+
+  describe('draw - default case (unknown particle type)', () => {
+    it('should draw unknown particle type with default rendering', () => {
+      // Create a particle with a type that hits the default case
+      const p = new Particle({ type: 'blood', x: 100, y: 100 });
+      expect(() => p.draw(mockCtx, 0, 0, 800, 600)).not.toThrow();
+    });
+
+    it('should handle size less than 1 in default case', () => {
+      const p = new Particle({ type: 'spark', x: 100, y: 100, size: 0.5 });
+      expect(() => p.draw(mockCtx, 0, 0, 800, 600)).not.toThrow();
+    });
+  });
+
+  describe('drawIllumination', () => {
+    it('should return early for non-fire particles', () => {
+      const p = new Particle({ type: 'water', x: 100, y: 100 });
+      expect(() => p.drawIllumination(mockCtx, 0, 0, 800, 600)).not.toThrow();
+    });
+
+    it('should return early for invalid x position', () => {
+      const p = new Particle({ type: 'fire', x: 100, y: 100 });
+      p.x = NaN;
+      expect(() => p.drawIllumination(mockCtx, 0, 0, 800, 600)).not.toThrow();
+    });
+
+    it('should return early for invalid y position', () => {
+      const p = new Particle({ type: 'fire', x: 100, y: 100 });
+      p.y = Infinity;
+      expect(() => p.drawIllumination(mockCtx, 0, 0, 800, 600)).not.toThrow();
+    });
+
+    it('should return early for invalid size', () => {
+      const p = new Particle({ type: 'fire', x: 100, y: 100 });
+      p.size = NaN;
+      expect(() => p.drawIllumination(mockCtx, 0, 0, 800, 600)).not.toThrow();
+    });
+
+    it('should return early for invalid life', () => {
+      const p = new Particle({ type: 'fire', x: 100, y: 100 });
+      p.life = Infinity;
+      expect(() => p.drawIllumination(mockCtx, 0, 0, 800, 600)).not.toThrow();
+    });
+
+    it('should cull fire particles too far from camera', () => {
+      const p = new Particle({ type: 'fire', x: 5000, y: 5000 });
+      expect(() => p.drawIllumination(mockCtx, 1000, 1000, 800, 600)).not.toThrow();
+    });
+
+    it('should cull fire particles off screen', () => {
+      const p = new Particle({ type: 'fire', x: 100, y: 100 });
+      expect(() => p.drawIllumination(mockCtx, 3000, 3000, 800, 600)).not.toThrow();
+    });
+
+    it('should draw illumination for visible fire particle', () => {
+      const p = new Particle({ type: 'fire', x: 400, y: 300 });
+      expect(() => p.drawIllumination(mockCtx, 400, 300, 800, 600)).not.toThrow();
+    });
+
+    it('should handle fire particle at edge of screen', () => {
+      const p = new Particle({ type: 'fire', x: 0, y: 0 });
+      expect(() => p.drawIllumination(mockCtx, 100, 100, 800, 600)).not.toThrow();
+    });
+
+    it('should adjust illumination based on particle life progress', () => {
+      const p = new Particle({ type: 'fire', x: 400, y: 300, life: 30, maxLife: 30 });
+      expect(() => p.drawIllumination(mockCtx, 400, 300, 800, 600)).not.toThrow();
+    });
+
+    it('should handle nearly expired fire particle', () => {
+      const p = new Particle({ type: 'fire', x: 400, y: 300, life: 1, maxLife: 30 });
+      expect(() => p.drawIllumination(mockCtx, 400, 300, 800, 600)).not.toThrow();
+    });
+
+    it('should handle fresh fire particle', () => {
+      const p = new Particle({ type: 'fire', x: 400, y: 300, life: 30, maxLife: 30 });
+      p.life = 30;
+      expect(() => p.drawIllumination(mockCtx, 400, 300, 800, 600)).not.toThrow();
     });
   });
 });

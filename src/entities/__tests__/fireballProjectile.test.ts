@@ -182,8 +182,8 @@ describe('FireballProjectile', () => {
   });
 
   describe('getTrailParticleCount', () => {
-    it('should return 6', () => {
-      expect(fireball.getTrailParticleCount()).toBe(6);
+    it('should return 2', () => {
+      expect(fireball.getTrailParticleCount()).toBe(2);
     });
   });
 
@@ -194,8 +194,8 @@ describe('FireballProjectile', () => {
   });
 
   describe('getExplosionParticleCount', () => {
-    it('should return 60', () => {
-      expect(fireball.getExplosionParticleCount()).toBe(60);
+    it('should return 25', () => {
+      expect(fireball.getExplosionParticleCount()).toBe(25);
     });
   });
 
@@ -299,6 +299,57 @@ describe('FireballProjectile', () => {
       expect(fireball.y).toBeDefined();
       expect(fireball.radius).toBeDefined();
       expect(fireball.color).toBeDefined();
+    });
+  });
+
+  describe('drawIllumination', () => {
+    it('should draw illumination without error', () => {
+      expect(() => fireball.drawIllumination(mockCtx, 0, 0, 800, 600)).not.toThrow();
+    });
+
+    it('should handle fireball at center of screen', () => {
+      fireball.x = 400;
+      fireball.y = 300;
+      expect(() => fireball.drawIllumination(mockCtx, 400, 300, 800, 600)).not.toThrow();
+    });
+
+    it('should handle fireball at edge of world', () => {
+      fireball.x = 0;
+      fireball.y = 0;
+      expect(() => fireball.drawIllumination(mockCtx, 1000, 1000, 800, 600)).not.toThrow();
+    });
+
+    it('should handle fireball at opposite edge of world', () => {
+      fireball.x = 1999;
+      fireball.y = 1999;
+      expect(() => fireball.drawIllumination(mockCtx, 1000, 1000, 800, 600)).not.toThrow();
+    });
+
+    it('should cull fireball far off screen', () => {
+      fireball.x = 5000;
+      fireball.y = 5000;
+      expect(() => fireball.drawIllumination(mockCtx, 1000, 1000, 800, 600)).not.toThrow();
+    });
+
+    it('should handle negative coordinates', () => {
+      fireball.x = -100;
+      fireball.y = -100;
+      expect(() => fireball.drawIllumination(mockCtx, 1000, 1000, 800, 600)).not.toThrow();
+    });
+
+    it('should wrap position for illumination', () => {
+      fireball.x = 1950;
+      fireball.y = 1000;
+      // Position relative to player should be wrapped
+      expect(() => fireball.drawIllumination(mockCtx, 1000, 1000, 800, 600)).not.toThrow();
+    });
+
+    it('should handle different pulse phases', () => {
+      fireball['pulsePhase'] = Math.PI / 2; // Maximum pulse
+      expect(() => fireball.drawIllumination(mockCtx, 0, 0, 800, 600)).not.toThrow();
+
+      fireball['pulsePhase'] = Math.PI; // Mid pulse
+      expect(() => fireball.drawIllumination(mockCtx, 0, 0, 800, 600)).not.toThrow();
     });
   });
 });

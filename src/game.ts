@@ -6,6 +6,28 @@ import { SaveData } from './systems/saveData';
 import { UI } from './systems/ui';
 import { Menu } from './systems/menu';
 import { GachaAnim } from './systems/gacha';
+import { calculateGameOverRewards } from './systems/scoring';
+import { calculateSpawn } from './systems/spawning';
+import {
+  isLootInRange,
+  calculateLootMagnetPosition,
+  canCollectLoot,
+  calculateLootEffect,
+  applyLootEffectToPlayer,
+} from './systems/lootCollection';
+import {
+  calculateTimeState,
+  calculateUltCharge,
+  decrementTimeFreeze,
+  decrementUltActiveTime,
+  shouldUpdateHud,
+} from './systems/timeManager';
+import { processPlayerMovement } from './systems/movement';
+import {
+  findNearestEnemy,
+  calculateWrappedAngle,
+} from './systems/targeting';
+import { fireWeapon } from './systems/weapons';
 import { Player } from './entities/player';
 import { Enemy } from './entities/enemy';
 import { Projectile } from './entities/projectile';
@@ -300,12 +322,14 @@ class GameCore {
   gameOver(success = false): void {
     this.active = false;
 
-    const survivalBonus = Math.floor(this.goldRun * (this.mins * 0.2));
-    const killBonus = Math.floor(this.kills / 100) * 50;
-    const bossBonus = this.bossKills * 200;
-    const total = this.goldRun + survivalBonus + killBonus + bossBonus;
+    const rewards = calculateGameOverRewards({
+      goldRun: this.goldRun,
+      mins: this.mins,
+      kills: this.kills,
+      bossKills: this.bossKills,
+    });
 
-    SaveData.data.gold += total;
+    SaveData.data.gold += rewards.total;
     SaveData.save();
 
     UI.showGameOverScreen(success, this.goldRun, this.mins, this.kills, this.bossKills);
@@ -408,112 +432,43 @@ class GameCore {
     this.frames++;
 
     // Time tracking
-    if (this.frames % 60 === 0) {
-      this.time++;
-      this.mins = Math.floor(this.time / 60);
-      if (p.ultCharge < p.ultMax) {
-        p.ultCharge += 5;
-      }
-    }
+    const timeState = calculateTimeState(this.frames);
+    this.time = timeState.time;
+    this.mins = timeState.mins;
+    p.ultCharge = calculateUltCharge(this.frames, p.ultCharge, p.ultMax);
 
     // Ultimate cooldown
-    if (this.timeFreeze > 0) this.timeFreeze--;
-    if (p.ultActiveTime > 0) p.ultActiveTime--;
+    this.timeFreeze = decrementTimeFreeze(this.timeFreeze);
+    p.ultActiveTime = decrementUltActiveTime(p.ultActiveTime);
 
     // Aura animation frame tracking
     p.auraAttackFrame++;
 
-    // Healing fountains (work even when standing still)
-    for (const o of this.obstacles) {
-      if (o.type === 'font') {
-        const dist = Utils.getDist(p.x, p.y, o.x, o.y);
-        if (dist < 40 && this.frames % 30 === 0 && p.hp < p.maxHp) {
-          p.hp++;
-          this.spawnDamageText(p.x, p.y, '+', '#0f0');
-        }
-      }
-    }
-
     // Player movement
-    let dx = 0, dy = 0;
-    if (this.input.keys['w']) dy = -1;
-    if (this.input.keys['s']) dy = 1;
-    if (this.input.keys['a']) dx = -1;
-    if (this.input.keys['d']) dx = 1;
-    if (this.input.joy.active) {
-      dx = this.input.joy.x;
-      dy = this.input.joy.y;
-    }
-
-    if (dx !== 0 || dy !== 0) {
-      this.input.lastDx = dx;
-      this.input.lastDy = dy;
-
-      const len = Math.hypot(dx, dy);
-      const spd = p.speed * (
-        p.ultName === 'Ollie' && p.ultActiveTime > 0 ? 1.5 : 1
-      );
-
-      if (len > 1) {
-        dx /= len;
-        dy /= len;
-      }
-
-      // Check collision helper - returns true if position is blocked
-      const isBlocked = (x: number, y: number): boolean => {
-        for (const o of this.obstacles) {
-          if (o.type === 'font') continue;
-          const dist = Utils.getDist(x, y, o.x, o.y);
-          if (dist < 80) {
-            if (x > CONFIG.worldSize - 50 || x < 50 || y > CONFIG.worldSize - 50 || y < 50) continue;
-            if (x > o.x - o.w / 2 - 8 && x < o.x + o.w / 2 + 8 &&
-                y > o.y - o.h / 2 - 8 && y < o.y + o.h / 2 + 8) {
-              return true;
-            }
-          }
-        }
-        return false;
-      };
-
-      // Try full diagonal movement first
-      let nx = (p.x + dx * spd + CONFIG.worldSize) % CONFIG.worldSize;
-      let ny = (p.y + dy * spd + CONFIG.worldSize) % CONFIG.worldSize;
-
-      if (!isBlocked(nx, ny)) {
-        p.x = nx;
-        p.y = ny;
-      } else {
-        // Wall sliding: try each axis separately
-        const tryX = (p.x + dx * spd + CONFIG.worldSize) % CONFIG.worldSize;
-        if (!isBlocked(tryX, p.y)) {
-          p.x = tryX;
-        }
-        const tryY = (p.y + dy * spd + CONFIG.worldSize) % CONFIG.worldSize;
-        if (!isBlocked(p.x, tryY)) {
-          p.y = tryY;
-        }
-      }
-    }
+    const movementResult = processPlayerMovement(
+      p.x, p.y,
+      this.input,
+      p.speed,
+      p.ultName,
+      p.ultActiveTime,
+      this.obstacles
+    );
+    p.x = movementResult.x;
+    p.y = movementResult.y;
+    this.input.lastDx = movementResult.lastDx;
+    this.input.lastDy = movementResult.lastDy;
 
     // Enemy spawning
-    if (this.timeFreeze <= 0 && this.frames % Math.max(10, 60 - this.mins * 5) === 0) {
-      let type: EntityType = 'basic';
+    const spawnDecision = calculateSpawn({
+      frames: this.frames,
+      time: this.time,
+      mins: this.mins,
+      timeFreeze: this.timeFreeze,
+      hasExistingBoss: this.enemies.some(e => e.type === 'boss'),
+    });
 
-      if (this.time > 0 && this.time % 300 === 0) {
-        type = 'boss';
-      } else if (this.time > 0 && this.time % 60 === 0) {
-        type = 'elite';
-      } else if (Math.random() > 0.9) {
-        type = 'bat';
-      }
-
-      if (type === 'boss') {
-        if (!this.enemies.find(e => e.type === 'boss')) {
-          this.enemies.push(new Enemy(p.x, p.y, 'boss', this.mins, this.obstacles));
-        }
-      } else {
-        this.enemies.push(new Enemy(p.x, p.y, type, this.mins, this.obstacles));
-      }
+    if (spawnDecision.shouldSpawn && spawnDecision.type) {
+      this.enemies.push(new Enemy(p.x, p.y, spawnDecision.type, this.mins, this.obstacles));
     }
 
     // Weapons
@@ -528,12 +483,14 @@ class GameCore {
       const isCrit = Math.random() < p.critChance;
       if (isCrit) dmg *= 3;
 
+      // Handle aura separately (returns early)
       if (w.type === 'aura' && w.area) {
-        if (this.frames % 20 === 0) {
-          p.auraAttackFrame = 0; // Reset for attack animation
+        const result = fireWeapon('aura', w.id, { x: p.x, y: p.y }, this.enemies, w, dmg, isCrit, 1 + p.items.pierce, this.input.lastDx, this.input.lastDy, this.input.aimAngle, this.frames, p.items.projectile);
+        if (result.fired && result.auraDamage) {
+          p.auraAttackFrame = 0;
           this.enemies.forEach(e => {
-            if (Utils.getDist(p.x, p.y, e.x, e.y) < w.area!) {
-              this.hitEnemy(e, dmg, isCrit);
+            if (Utils.getDist(p.x, p.y, e.x, e.y) < result.auraDamage!.area) {
+              this.hitEnemy(e, result.auraDamage!.dmg, result.auraDamage!.isCrit);
             }
           });
         }
@@ -541,323 +498,143 @@ class GameCore {
       }
 
       if (w.curCd <= 0) {
-        let fired = false;
+        const result = fireWeapon(w.type, w.id, { x: p.x, y: p.y }, this.enemies, w, dmg, isCrit, 1 + p.items.pierce, this.input.lastDx, this.input.lastDy, this.input.aimAngle, this.frames, p.items.projectile);
 
-        if (w.type === 'nearest') {
-          let near: Enemy | null = null;
-          let min = 400;
-
-          for (const e of this.enemies) {
-            const d = Utils.getDist(p.x, p.y, e.x, e.y);
-            if (d < min) {
-              min = d;
-              near = e;
-            }
-          }
-
-          if (near) {
-            let edx = near.x - p.x;
-            let edy = near.y - p.y;
-
-            if (edx > CONFIG.worldSize / 2) edx -= CONFIG.worldSize;
-            if (edx < -CONFIG.worldSize / 2) edx += CONFIG.worldSize;
-            if (edy > CONFIG.worldSize / 2) edy -= CONFIG.worldSize;
-            if (edy < -CONFIG.worldSize / 2) edy += CONFIG.worldSize;
-
-            const ang = Math.atan2(edy, edx);
-            this.projectiles.push(new Projectile(
-              p.x,
-              p.y,
-              Math.cos(ang) * 8,
-              Math.sin(ang) * 8,
-              5,
-              '#0ff',
-              dmg,
-              60,
-              1 + p.items.pierce,
-              isCrit
-            ));
-            fired = true;
-          }
-        } else if (w.type === 'bubble') {
-          // Bubble stream: wavy projectiles to nearest enemy with floating trail
-          let near: Enemy | null = null;
-          let min = 400;
-
-          for (const e of this.enemies) {
-            const d = Utils.getDist(p.x, p.y, e.x, e.y);
-            if (d < min) {
-              min = d;
-              near = e;
-            }
-          }
-
-          if (near) {
-            let edx = near.x - p.x;
-            let edy = near.y - p.y;
-
-            if (edx > CONFIG.worldSize / 2) edx -= CONFIG.worldSize;
-            if (edx < -CONFIG.worldSize / 2) edx += CONFIG.worldSize;
-            if (edy > CONFIG.worldSize / 2) edy -= CONFIG.worldSize;
-            if (edy < -CONFIG.worldSize / 2) edy += CONFIG.worldSize;
-
-            const ang = Math.atan2(edy, edx);
-            const speed = 3.5 * (w.speedMult || 1);
-            const count = (w.projectileCount || 1) + p.items.projectile;
-
-            for (let i = 0; i < count; i++) {
-              const spread = (i - (count - 1) / 2) * 0.15;
+        if (result.fired) {
+          // Create projectiles from result data
+          if (result.projectiles) {
+            for (const projData of result.projectiles) {
               const proj = new Projectile(
-                p.x,
-                p.y,
-                Math.cos(ang + spread) * speed,
-                Math.sin(ang + spread) * speed,
-                5,
-                '#aaddff',
-                dmg,
-                70,
-                1 + p.items.pierce,
-                isCrit
+                projData.x,
+                projData.y,
+                projData.vx,
+                projData.vy,
+                projData.radius,
+                projData.color,
+                projData.dmg,
+                projData.duration,
+                projData.pierce,
+                projData.isCrit
               );
-              proj.isBubble = true;
-              if (w.splits) proj.splits = true;
+              if (projData.isBubble) (proj as any).isBubble = true;
+              if (projData.splits) (proj as any).splits = true;
+              if (projData.isArc) (proj as any).isArc = true;
+              if (projData.explodeRadius) proj.explodeRadius = projData.explodeRadius;
+              if (projData.knockback) proj.knockback = projData.knockback;
               this.projectiles.push(proj);
             }
-            fired = true;
-          }
-        } else if (w.type === 'facing') {
-          // Use aimAngle from mouse/aim joystick, fallback to movement direction
-          const aimAngle = this.input.aimAngle ?? Math.atan2(this.input.lastDy || 0, this.input.lastDx || 1);
-          const speed = 10 * (w.speedMult || 1);
-          const count = (w.projectileCount || 1) + p.items.projectile;
-
-          for (let i = 0; i < count; i++) {
-            const spread = (Math.random() - 0.5) * 0.2;
-            const angle = aimAngle + spread;
-            this.projectiles.push(new Projectile(
-              p.x,
-              p.y,
-              Math.cos(angle) * speed,
-              Math.sin(angle) * speed,
-              4,
-              '#f00',
-              dmg,
-              40,
-              2 + p.items.pierce,
-              isCrit
-            ));
-          }
-          fired = true;
-        } else if (w.type === 'arc') {
-          const count = (w.projectileCount || 1) + p.items.projectile;
-          const size = w.size || 10;
-
-          for (let i = 0; i < count; i++) {
-            const vx = (Math.random() - 0.5) * 4;
-            const proj = new Projectile(
-              p.x,
-              p.y,
-              vx,
-              -10,
-              size,
-              '#aaa',
-              dmg * 2,
-              60,
-              3 + p.items.pierce,
-              isCrit
-            );
-            proj.isArc = true;
-            if (w.explodeRadius) proj.explodeRadius = w.explodeRadius;
-            if (w.knockback) proj.knockback = w.knockback;
-            this.projectiles.push(proj);
-          }
-          fired = true;
-        } else if (w.type === 'fireball') {
-          // Fireball: homing projectile to nearest enemy with particle trail
-          let near: Enemy | null = null;
-          let min = 400;
-
-          for (const e of this.enemies) {
-            const d = Utils.getDist(p.x, p.y, e.x, e.y);
-            if (d < min) {
-              min = d;
-              near = e;
-            }
           }
 
-          if (near) {
-            const speed = 6 * (w.speedMult || 1);
-            const duration = 90 * (w.speedMult || 1);
-            const count = (w.projectileCount || 1) + p.items.projectile;
-
-            // Calculate base angle to target
-            let edx = near.x - p.x;
-            let edy = near.y - p.y;
-            if (edx > CONFIG.worldSize / 2) edx -= CONFIG.worldSize;
-            if (edx < -CONFIG.worldSize / 2) edx += CONFIG.worldSize;
-            if (edy > CONFIG.worldSize / 2) edy -= CONFIG.worldSize;
-            if (edy < -CONFIG.worldSize / 2) edy += CONFIG.worldSize;
-            const baseAngle = Math.atan2(edy, edx);
-
-            for (let i = 0; i < count; i++) {
-              // Spread fireballs in a fan pattern - reduced spread, keep one straight for even counts
-              let spreadAngle = 0;
-              if (count > 1) {
-                const spread = 0.08; // Much smaller spread
-                if (count % 2 === 0) {
-                  // Even count: keep middle two going straight, spread others
-                  const half = count / 2;
-                  if (i < half - 1) {
-                    spreadAngle = -(half - 1 - i) * spread;
-                  } else if (i >= half) {
-                    spreadAngle = (i - half + 1) * spread;
-                  }
-                  // i === half - 1 and i === half both go straight (spreadAngle = 0)
-                } else {
-                  // Odd count: center one goes straight
-                  spreadAngle = (i - (count - 1) / 2) * spread;
-                }
-              }
-              const targetAngle = baseAngle + spreadAngle;
-              const targetX = p.x + Math.cos(targetAngle) * 400;
-              const targetY = p.y + Math.sin(targetAngle) * 400;
-
-              // Offset starting position so fireballs don't overlap at spawn
-              const perpAngle = baseAngle + Math.PI / 2;
-              const startOffset = 15 * Math.sin(spreadAngle); // Spread starts perpendicular to aim
-              const startX = p.x + Math.cos(perpAngle) * startOffset;
-              const startY = p.y + Math.sin(perpAngle) * startOffset;
-
+          // Create fireballs from result data
+          if (result.fireballs) {
+            for (const fbData of result.fireballs) {
               const fireball = new FireballProjectile(
-                startX,
-                startY,
-                targetX,
-                targetY,
-                speed,
-                dmg,
-                duration,
-                1 + p.items.pierce,
-                isCrit
+                fbData.startX,
+                fbData.startY,
+                fbData.targetX,
+                fbData.targetY,
+                fbData.speed,
+                fbData.dmg,
+                fbData.duration,
+                fbData.pierce,
+                fbData.isCrit
               );
-              if (w.explodeRadius) fireball.explodeRadius = w.explodeRadius;
-              if (w.trailDamage) fireball.trailDamage = w.trailDamage;
+              if (fbData.explodeRadius) fireball.explodeRadius = fbData.explodeRadius;
+              if (fbData.trailDamage) fireball.trailDamage = fbData.trailDamage;
               this.fireballs.push(fireball);
             }
-            fired = true;
-          }
-        } else if (w.type === 'spray') {
-          // Spray weapons (lighter: white cloud + fire sparks, pepper_spray: green toxic cloud)
-          // Use aimAngle from mouse/aim joystick, fallback to movement direction
-          const baseAngle = this.input.aimAngle ?? (
-            this.input.lastDx !== undefined ?
-              Math.atan2(this.input.lastDy || 0, this.input.lastDx) :
-              Math.random() * Math.PI * 2
-          );
-
-          const isLighter = w.id === 'lighter';
-          const gasColor = isLighter ? '#ffcccc' : '#33ff33';
-          // Use weapon properties for upgrades
-          const pelletCount = isLighter ? 3 : (w.pelletCount || 5);
-          const spreadAmount = w.spread || (isLighter ? 0.25 : 0.4);
-          const coneLength = w.coneLength || 60;
-
-          // Spawn gas cloud particles along the stream
-          for (let i = 0; i < (isLighter ? 10 : 6); i++) {
-            const dist = 10 + Math.random() * (isLighter ? 50 : 80);
-            // Lighter: tighter spread that increases with distance
-            let gasSpread = isLighter ? spreadAmount * 0.3 : spreadAmount;
-            if (isLighter) {
-              // Even narrower close to player, widens slightly at distance
-              const distFactor = (dist - 10) / 50; // 0 to 1
-              gasSpread = spreadAmount * (0.15 + distFactor * 0.3);
-            }
-            const spreadAngle = baseAngle + (Math.random() - 0.5) * gasSpread;
-            this.spawnParticles({
-              type: 'gas' as ParticleType,
-              x: p.x + Math.cos(spreadAngle) * dist + (Math.random() - 0.5) * 10,
-              y: p.y + Math.sin(spreadAngle) * dist + (Math.random() - 0.5) * 10,
-              size: isLighter ? 5 + Math.random() * 5 : 7 + Math.random() * 5,
-              vx: Math.cos(spreadAngle) * 0.3 + (Math.random() - 0.5) * 0.5,
-              vy: Math.sin(spreadAngle) * 0.3 + (Math.random() - 0.5) * 0.5,
-              color: gasColor
-            }, 1);
           }
 
-          // Fire particles along the stream (lighter only) - flow outward from player
-          if (isLighter) {
-            const fireCount = w.speedMult ? Math.floor(5 * w.speedMult) : 5;
-            const flowMult = w.speedMult || 1;
-            for (let i = 0; i < fireCount; i++) {
-              const dist = 15 + Math.random() * 30 * flowMult;
-              const spreadAngle = baseAngle + (Math.random() - 0.5) * 0.2;
-              // Velocity flows outward with small variance
-              const flowSpeed = (1 + Math.random() * 1.5) * flowMult;
-              const flowAngle = spreadAngle + (Math.random() - 0.5) * 0.3;
+          // Handle spray weapon effects
+          if (result.spray) {
+            const { baseAngle, isLighter, gasColor, pelletCount, spreadAmount, coneLength } = result.spray;
+
+            // Spawn gas cloud particles
+            for (let i = 0; i < (isLighter ? 10 : 6); i++) {
+              const dist = 10 + Math.random() * (isLighter ? 50 : 80);
+              let gasSpread = isLighter ? spreadAmount * 0.3 : spreadAmount;
+              if (isLighter) {
+                const distFactor = (dist - 10) / 50;
+                gasSpread = spreadAmount * (0.15 + distFactor * 0.3);
+              }
+              const spreadAngle = baseAngle + (Math.random() - 0.5) * gasSpread;
               this.spawnParticles({
-                type: 'fire' as ParticleType,
-                x: p.x + Math.cos(spreadAngle) * dist + (Math.random() - 0.5) * 8,
-                y: p.y + Math.sin(spreadAngle) * dist + (Math.random() - 0.5) * 8,
-                size: 2 + Math.random() * 2,
-                vx: Math.cos(flowAngle) * flowSpeed,
-                vy: Math.sin(flowAngle) * flowSpeed
+                type: 'gas' as ParticleType,
+                x: p.x + Math.cos(spreadAngle) * dist + (Math.random() - 0.5) * 10,
+                y: p.y + Math.sin(spreadAngle) * dist + (Math.random() - 0.5) * 10,
+                size: isLighter ? 5 + Math.random() * 5 : 7 + Math.random() * 5,
+                vx: Math.cos(spreadAngle) * 0.3 + (Math.random() - 0.5) * 0.5,
+                vy: Math.sin(spreadAngle) * 0.3 + (Math.random() - 0.5) * 0.5,
+                color: gasColor
               }, 1);
             }
-          }
 
-          // Tiny damage pellets - pepper spray only
-          if (!isLighter) {
-            for (let i = 0; i < pelletCount; i++) {
-              const spread = (Math.random() - 0.5) * spreadAmount;
-              const angle = baseAngle + spread;
-              const speed = 6 + Math.random() * 2;
-
-              const proj = new Projectile(
-                p.x,
-                p.y,
-                Math.cos(angle) * speed,
-                Math.sin(angle) * speed,
-                1, // Tiny radius
-                '#33ff33',
-                dmg,
-                12,
-                1,
-                isCrit
-              );
-              this.projectiles.push(proj);
+            // Fire particles (lighter only)
+            if (isLighter) {
+              const fireCount = w.speedMult ? Math.floor(5 * w.speedMult) : 5;
+              const flowMult = w.speedMult || 1;
+              for (let i = 0; i < fireCount; i++) {
+                const dist = 15 + Math.random() * 30 * flowMult;
+                const spreadAngle = baseAngle + (Math.random() - 0.5) * 0.2;
+                const flowSpeed = (1 + Math.random() * 1.5) * flowMult;
+                const flowAngle = spreadAngle + (Math.random() - 0.5) * 0.3;
+                this.spawnParticles({
+                  type: 'fire' as ParticleType,
+                  x: p.x + Math.cos(spreadAngle) * dist + (Math.random() - 0.5) * 8,
+                  y: p.y + Math.sin(spreadAngle) * dist + (Math.random() - 0.5) * 8,
+                  size: 2 + Math.random() * 2,
+                  vx: Math.cos(flowAngle) * flowSpeed,
+                  vy: Math.sin(flowAngle) * flowSpeed
+                }, 1);
+              }
             }
-          }
 
-          // Lighter direct cone damage (no visible pellets)
-          if (isLighter) {
-            for (const e of this.enemies) {
-              const dist = Utils.getDist(p.x, p.y, e.x, e.y);
-              if (dist < coneLength) {
-                // Check if enemy is within the cone angle
-                let edx = e.x - p.x;
-                let edy = e.y - p.y;
+            // Damage pellets (pepper spray only)
+            if (!isLighter) {
+              for (let i = 0; i < pelletCount; i++) {
+                const spread = (Math.random() - 0.5) * spreadAmount;
+                const angle = baseAngle + spread;
+                const speed = 6 + Math.random() * 2;
+                const proj = new Projectile(
+                  p.x,
+                  p.y,
+                  Math.cos(angle) * speed,
+                  Math.sin(angle) * speed,
+                  1,
+                  '#33ff33',
+                  dmg,
+                  12,
+                  1,
+                  isCrit
+                );
+                this.projectiles.push(proj);
+              }
+            }
 
-                // Handle world wrap
-                if (edx > CONFIG.worldSize / 2) edx -= CONFIG.worldSize;
-                if (edx < -CONFIG.worldSize / 2) edx += CONFIG.worldSize;
-                if (edy > CONFIG.worldSize / 2) edy -= CONFIG.worldSize;
-                if (edy < -CONFIG.worldSize / 2) edy += CONFIG.worldSize;
-
-                const enemyAngle = Math.atan2(edy, edx);
-                let angleDiff = Math.abs(enemyAngle - baseAngle);
-                if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
-
-                // If within cone, deal damage
-                if (angleDiff < spreadAmount / 2) {
-                  this.hitEnemy(e, dmg * 2, isCrit); // Multiplied since it hits every 3 frames
+            // Direct cone damage (lighter only)
+            if (isLighter) {
+              for (const e of this.enemies) {
+                const dist = Utils.getDist(p.x, p.y, e.x, e.y);
+                if (dist < coneLength) {
+                  let edx = e.x - p.x;
+                  let edy = e.y - p.y;
+                  if (edx > CONFIG.worldSize / 2) edx -= CONFIG.worldSize;
+                  if (edx < -CONFIG.worldSize / 2) edx += CONFIG.worldSize;
+                  if (edy > CONFIG.worldSize / 2) edy -= CONFIG.worldSize;
+                  if (edy < -CONFIG.worldSize / 2) edy += CONFIG.worldSize;
+                  const enemyAngle = Math.atan2(edy, edx);
+                  let angleDiff = Math.abs(enemyAngle - baseAngle);
+                  if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
+                  if (angleDiff < spreadAmount / 2) {
+                    this.hitEnemy(e, dmg * 2, isCrit);
+                  }
                 }
               }
             }
           }
 
-          fired = true;
+          w.curCd = w.cd;
         }
-
-        if (fired) w.curCd = w.cd;
       }
     });
 
@@ -888,7 +665,7 @@ class GameCore {
     });
 
     // Update enemies
-    this.enemies.forEach(e => e.update(p, this.timeFreeze, this.obstacles, this.frames));
+    this.enemies.forEach(e => e.update(p, this.timeFreeze, this.obstacles));
 
     // Player-enemy collision
     this.enemies.forEach(e => {
@@ -1046,31 +823,27 @@ class GameCore {
 
     // Loot collection
     this.loot.forEach(l => {
-      const d = Utils.getDist(p.x, p.y, l.x, l.y);
+      if (isLootInRange(l.x, l.y, p.x, p.y, p.pickupRange)) {
+        // Magnet loot toward player
+        const newPos = calculateLootMagnetPosition(l.x, l.y, p.x, p.y, 0.15);
+        l.x = newPos.x;
+        l.y = newPos.y;
 
-      if (d < p.pickupRange) {
-        let ldx = p.x - l.x;
-        let ldy = p.y - l.y;
-
-        if (ldx > CONFIG.worldSize / 2) ldx -= CONFIG.worldSize;
-        if (ldx < -CONFIG.worldSize / 2) ldx += CONFIG.worldSize;
-        if (ldy > CONFIG.worldSize / 2) ldy -= CONFIG.worldSize;
-        if (ldy < -CONFIG.worldSize / 2) ldy += CONFIG.worldSize;
-
-        l.x = (l.x + ldx * 0.15 + CONFIG.worldSize) % CONFIG.worldSize;
-        l.y = (l.y + ldy * 0.15 + CONFIG.worldSize) % CONFIG.worldSize;
-
-        if (d < 20) {
+        // Check for collection
+        if (canCollectLoot(l.x, l.y, p.x, p.y, 20)) {
           l.marked = true;
 
-          if (l.type === 'gem') {
-            p.gainXp(l.val, () => this.triggerLevelUp());
-            this.spawnDamageText(p.x, p.y, '+XP', '#0f0');
+          const effect = calculateLootEffect(l.type, l.val, p.hp, p.maxHp);
+          if (effect.message) {
+            this.spawnDamageText(p.x, p.y, effect.message, effect.color || '#fff');
           }
-          if (l.type === 'chest') this.openChest();
-          if (l.type === 'heart') {
-            p.hp = Math.min(p.maxHp, p.hp + 30);
-            this.spawnDamageText(p.x, p.y, '+HP', '#0f0');
+
+          if (effect.type === 'xp') {
+            p.gainXp(effect.xp || 0, () => this.triggerLevelUp());
+          } else if (effect.type === 'chest') {
+            this.openChest();
+          } else if (effect.type === 'heart') {
+            applyLootEffectToPlayer(p, effect);
           }
         }
       }
@@ -1111,7 +884,7 @@ class GameCore {
     UI.updateItemSlots(p.items, p.inventory);
 
     // Update HUD
-    if (this.frames % 30 === 0) {
+    if (shouldUpdateHud(this.frames)) {
       UI.updateHud(this.goldRun, this.time, p.level, this.kills, SaveData.data.selectedChar, this.particles.length, this.enemies.length);
     }
 

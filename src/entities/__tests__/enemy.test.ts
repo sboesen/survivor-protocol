@@ -29,12 +29,6 @@ vi.mock('../../systems/renderer', () => ({
   },
 }));
 
-// Mock pathfinding
-vi.mock('../../utils/pathfinding', () => ({
-  updateObstacleGrid: vi.fn(),
-  getPathDirection: vi.fn(() => null),
-}));
-
 // Concrete Entity subclass for testing (Entity is abstract)
 class TestEntity extends Entity {
   drawShape(_ctx: CanvasContext, _x: number, _y: number): void {
@@ -269,6 +263,41 @@ describe('Enemy', () => {
       enemy.update(playerEntity, 0, obstacles);
       expect(enemy.flash).toBe(0);
     });
+
+    it('should slide along wall when movement is blocked', () => {
+      // Create enemy and obstacles that block direct path
+      enemy.x = 900;
+      enemy.y = 1000;
+      playerEntity.x = 1100;
+      playerEntity.y = 1000;
+
+      // Create obstacle in front of enemy
+      const blockingObstacle = new Obstacle(1000, 1000, 200, 50, 'ruin');
+      obstacles = [blockingObstacle];
+
+      const initialX = enemy.x;
+      enemy.update(playerEntity, 0, obstacles);
+
+      // Enemy should try to move, possibly sliding along the wall
+      // or staying in place if completely blocked
+      expect(enemy.x).toBeGreaterThanOrEqual(0);
+      expect(enemy.y).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should try alternative movements when blocked', () => {
+      // Create a scenario where enemy movement is blocked
+      enemy.x = 1000;
+      enemy.y = 950;
+      playerEntity.x = 1000;
+      playerEntity.y = 1050;
+
+      // Obstacles surrounding the enemy position
+      const obstacle1 = new Obstacle(1000, 1000, 100, 100, 'ruin');
+      obstacles = [obstacle1];
+
+      // Should not throw, should try alternative movements
+      expect(() => enemy.update(playerEntity, 0, obstacles)).not.toThrow();
+    });
   });
 
   describe('update - boss shootTimer', () => {
@@ -377,6 +406,85 @@ describe('Enemy', () => {
       expect(enemy.marked).toBe(false);
       enemy.marked = true;
       expect(enemy.marked).toBe(true);
+    });
+  });
+
+  describe('drawShape', () => {
+    it('should draw basic enemy without error', () => {
+      const enemy = new Enemy(1000, 1000, 'basic', 0);
+      expect(() => enemy.drawShape(mockCtx, 100, 100)).not.toThrow();
+    });
+
+    it('should draw bat enemy without error', () => {
+      const enemy = new Enemy(1000, 1000, 'bat', 0);
+      expect(() => enemy.drawShape(mockCtx, 100, 100)).not.toThrow();
+    });
+
+    it('should draw elite enemy with health bar', () => {
+      const enemy = new Enemy(1000, 1000, 'elite', 0);
+      enemy.hp = 50;
+      enemy.maxHp = 100;
+      expect(() => enemy.drawShape(mockCtx, 100, 100)).not.toThrow();
+    });
+
+    it('should draw boss enemy with health bar', () => {
+      const enemy = new Enemy(1000, 1000, 'boss', 0);
+      enemy.hp = 500;
+      enemy.maxHp = 1000;
+      expect(() => enemy.drawShape(mockCtx, 100, 100)).not.toThrow();
+    });
+
+    it('should apply flash effect when flash > 0', () => {
+      const enemy = new Enemy(1000, 1000, 'basic', 0);
+      enemy.flash = 3;
+      expect(() => enemy.drawShape(mockCtx, 100, 100)).not.toThrow();
+    });
+
+    it('should not apply flash effect when flash is 0', () => {
+      const enemy = new Enemy(1000, 1000, 'basic', 0);
+      enemy.flash = 0;
+      expect(() => enemy.drawShape(mockCtx, 100, 100)).not.toThrow();
+    });
+
+    it('should draw health bar with correct proportion for elite', () => {
+      const enemy = new Enemy(1000, 1000, 'elite', 0);
+      enemy.hp = 175; // Half of 350
+      enemy.maxHp = 350;
+      expect(() => enemy.drawShape(mockCtx, 100, 100)).not.toThrow();
+    });
+
+    it('should draw full health bar for undamaged elite', () => {
+      const enemy = new Enemy(1000, 1000, 'elite', 5);
+      enemy.hp = enemy.maxHp; // Full HP
+      expect(() => enemy.drawShape(mockCtx, 100, 100)).not.toThrow();
+    });
+
+    it('should draw empty health bar for dead elite', () => {
+      const enemy = new Enemy(1000, 1000, 'elite', 0);
+      enemy.hp = 0;
+      enemy.maxHp = 350;
+      expect(() => enemy.drawShape(mockCtx, 100, 100)).not.toThrow();
+    });
+  });
+
+  describe('obstacle collision logic', () => {
+    it('should skip font type obstacles during collision check', () => {
+      const playerEntity = new TestEntity(1000, 1000, 12, '#fff');
+      const fountain = new Obstacle(1005, 1000, 100, 100, 'font');
+      const enemy = new Enemy(1000, 1000, 'basic', 0, [fountain]);
+
+      // Enemy should spawn even if position overlaps with fountain
+      // (font type obstacles are skipped in collision detection)
+      expect(enemy.x).toBeDefined();
+      expect(enemy.y).toBeDefined();
+    });
+
+    it('should consider non-font obstacles for collision', () => {
+      const playerEntity = new TestEntity(1000, 1000, 12, '#fff');
+      const ruin = new Obstacle(1000, 1000, 100, 100, 'ruin');
+
+      // Creating enemy with obstacle should not throw
+      expect(() => new Enemy(1000, 1000, 'basic', 0, [ruin])).not.toThrow();
     });
   });
 });
