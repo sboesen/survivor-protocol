@@ -1122,7 +1122,18 @@ class GameCore {
     const px = p.x;
     const py = p.y;
 
+    // Zoom out on mobile for better visibility
+    const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const zoomScale = isMobile ? 0.7 : 1;
+
     // Draw grid
+    ctx.save();
+    if (zoomScale < 1) {
+      // Center the zoom
+      ctx.translate(cw / 2, ch / 2);
+      ctx.scale(zoomScale, zoomScale);
+      ctx.translate(-cw / 2, -ch / 2);
+    }
     ctx.strokeStyle = '#1e293b';
     ctx.lineWidth = 1;
     const gridSize = 100;
@@ -1152,6 +1163,7 @@ class GameCore {
     this.projectiles.forEach(proj => proj.draw(ctx, px, py, cw, ch));
     this.fireballs.forEach(fb => fb.draw(ctx, px, py, cw, ch));
     p.draw(ctx, px, py, cw, ch);
+    ctx.restore();
 
     // Draw joysticks (mobile only)
     const joyOffsetY = 10;
