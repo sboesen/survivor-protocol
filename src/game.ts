@@ -1204,20 +1204,36 @@ class GameCore {
     }
 
     // Industrial floor tiles - matches metallic obstacle style
+    // Calculate world-space tile bounds based on player position
     const tileSize = 100;
-    const offsetX = px % tileSize;
-    const offsetY = py % tileSize;
+    const worldLeft = px - cw / 2;
+    const worldTop = py - ch / 2;
+    const worldRight = px + cw / 2;
+    const worldBottom = py + ch / 2;
 
-    // Calculate tile range to draw
-    const startTileX = Math.floor(-offsetX / tileSize) - 1;
-    const startTileY = Math.floor(-offsetY / tileSize) - 1;
-    const endTileX = Math.ceil((cw - offsetX) / tileSize) + 1;
-    const endTileY = Math.ceil((ch - offsetY) / tileSize) + 1;
+    const startTileX = Math.floor(worldLeft / tileSize);
+    const startTileY = Math.floor(worldTop / tileSize);
+    const endTileX = Math.ceil(worldRight / tileSize);
+    const endTileY = Math.ceil(worldBottom / tileSize);
 
     for (let ty = startTileY; ty < endTileY; ty++) {
       for (let tx = startTileX; tx < endTileX; tx++) {
-        const screenX = tx * tileSize + offsetX;
-        const screenY = ty * tileSize + offsetY;
+        // Calculate screen position (same logic as Entity.draw)
+        const worldX = tx * tileSize + tileSize / 2;
+        const worldY = ty * tileSize + tileSize / 2;
+
+        // Handle world wrapping
+        let wx = worldX;
+        let wy = worldY;
+
+        if (wx < -CONFIG.worldSize / 2) wx += CONFIG.worldSize;
+        if (wx > CONFIG.worldSize / 2) wx -= CONFIG.worldSize;
+        if (wy < -CONFIG.worldSize / 2) wy += CONFIG.worldSize;
+        if (wy > CONFIG.worldSize / 2) wy -= CONFIG.worldSize;
+
+        // Convert to screen coordinates
+        const screenX = wx - px + cw / 2 - tileSize / 2;
+        const screenY = wy - py + ch / 2 - tileSize / 2;
 
         // Base floor color (dark, matches obstacle style)
         ctx.fillStyle = '#1a1f2e';
