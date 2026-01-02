@@ -335,11 +335,19 @@ class GameCore {
   }
 
   spawnParticles(config: ParticleSpawnConfig, count = 1): void {
+    // Cap particles to prevent performance issues
+    const MAX_PARTICLES = 500;
+    if (this.particles.length >= MAX_PARTICLES) return;
+
     // Ensure particle type is valid
     const validTypes: ParticleType[] = ['water', 'explosion', 'smoke', 'blood', 'spark', 'foam', 'ripple', 'caustic', 'splash', 'fire', 'gas'];
     if (!validTypes.includes(config.type)) return;
 
-    for (let i = 0; i < count; i++) {
+    // Adjust count if we're near the cap
+    const available = MAX_PARTICLES - this.particles.length;
+    const actualCount = Math.min(count, available);
+
+    for (let i = 0; i < actualCount; i++) {
       this.particles.push(new Particle(config));
     }
   }
@@ -1018,16 +1026,34 @@ class GameCore {
       }
     });
 
-    // Cleanup
-    this.projectiles = this.projectiles.filter(x => !x.marked);
-    this.fireballs = this.fireballs.filter(x => !x.marked);
-    this.enemies = this.enemies.filter(x => !x.marked);
-    this.loot = this.loot.filter(x => !x.marked);
-    this.damageTexts = this.damageTexts.filter(t => t.life > 0);
+    // Cleanup - in-place filtering to avoid GC pressure
+    const filterMarked = <T extends { marked: boolean }>(arr: T[]): void => {
+      let writeIdx = 0;
+      for (let i = 0; i < arr.length; i++) {
+        if (!arr[i].marked) {
+          arr[writeIdx++] = arr[i];
+        }
+      }
+      arr.length = writeIdx;
+    };
+
+    filterMarked(this.projectiles);
+    filterMarked(this.fireballs);
+    filterMarked(this.enemies);
+    filterMarked(this.loot);
 
     // Update and cleanup particles
     this.particles.forEach(pt => pt.update());
-    this.particles = this.particles.filter(pt => !pt.marked);
+    filterMarked(this.particles);
+
+    // Filter damage texts by life
+    let dmgWriteIdx = 0;
+    for (let i = 0; i < this.damageTexts.length; i++) {
+      if (this.damageTexts[i].life > 0) {
+        this.damageTexts[dmgWriteIdx++] = this.damageTexts[i];
+      }
+    }
+    this.damageTexts.length = dmgWriteIdx;
 
     // Update damage text positions
     UI.updateDamageTexts(this.damageTexts, p.x, p.y, this.frames);

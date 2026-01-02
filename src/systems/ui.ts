@@ -3,6 +3,15 @@ import { UPGRADES } from '../data/upgrades';
 import { Utils } from '../utils';
 
 class UISystem {
+  private cache: Record<string, HTMLElement | null> = {};
+
+  private getEl(id: string): HTMLElement | null {
+    if (!(id in this.cache)) {
+      this.cache[id] = document.getElementById(id);
+    }
+    return this.cache[id];
+  }
+
   updateHud(
     gold: number,
     time: number,
@@ -12,13 +21,13 @@ class UISystem {
     particles: number = 0,
     enemies: number = 0
   ): void {
-    const goldEl = document.getElementById('hud-gold');
-    const timerEl = document.getElementById('hud-timer');
-    const levelEl = document.getElementById('hud-level');
-    const killsEl = document.getElementById('hud-kills');
-    const charEl = document.getElementById('hud-char');
-    const particlesEl = document.getElementById('hud-particles');
-    const enemiesEl = document.getElementById('hud-enemies');
+    const goldEl = this.getEl('hud-gold');
+    const timerEl = this.getEl('hud-timer');
+    const levelEl = this.getEl('hud-level');
+    const killsEl = this.getEl('hud-kills');
+    const charEl = this.getEl('hud-char');
+    const particlesEl = this.getEl('hud-particles');
+    const enemiesEl = this.getEl('hud-enemies');
 
     if (goldEl) goldEl.textContent = `💰 ${gold}`;
     if (timerEl) timerEl.textContent = Utils.fmtTime(time);
@@ -33,8 +42,8 @@ class UISystem {
   }
 
   updateXp(current: number, max: number, level: number): void {
-    const xpBar = document.getElementById('xp-bar-fill');
-    const levelEl = document.getElementById('hud-level');
+    const xpBar = this.getEl('xp-bar-fill');
+    const levelEl = this.getEl('hud-level');
 
     if (xpBar) xpBar.style.width = `${(current / max) * 100}%`;
     if (levelEl) levelEl.textContent = level.toString();
@@ -42,8 +51,8 @@ class UISystem {
 
   updateUlt(current: number, max: number): void {
     const pct = Math.min(1, current / max);
-    const btn = document.getElementById('ult-btn');
-    const overlay = document.getElementById('ult-cooldown-overlay');
+    const btn = this.getEl('ult-btn');
+    const overlay = this.getEl('ult-cooldown-overlay');
 
     if (overlay) overlay.style.height = `${100 - pct * 100}%`;
     if (btn) {
@@ -90,7 +99,7 @@ class UISystem {
     el.textContent = txt.toString() + (isCrit ? '!' : '');
     el.style.color = color;
 
-    const layer = document.getElementById('damage-layer');
+    const layer = this.getEl('damage-layer');
     if (layer) layer.appendChild(el);
 
     return el;
@@ -136,8 +145,8 @@ class UISystem {
     const title = success ? 'MISSION COMPLETE' : 'MIA - FAILED';
     const color = success ? '#22c55e' : '#ff3333';
 
-    const titleEl = document.getElementById('go-title');
-    const statsEl = document.getElementById('go-stats');
+    const titleEl = this.getEl('go-title');
+    const statsEl = this.getEl('go-stats');
 
     if (titleEl) {
       titleEl.textContent = title;
@@ -154,7 +163,7 @@ class UISystem {
       `;
     }
 
-    const screen = document.getElementById('gameover-screen');
+    const screen = this.getEl('gameover-screen');
     if (screen) screen.classList.add('active');
   }
 
@@ -168,7 +177,7 @@ class UISystem {
     },
     onSelect: (id: string) => void
   ): void {
-    const container = document.getElementById('card-container');
+    const container = this.getEl('card-container');
     if (!container) return;
 
     container.innerHTML = '';
@@ -250,13 +259,13 @@ class UISystem {
       `;
       el.onclick = () => {
         onSelect(id);
-        const screen = document.getElementById('levelup-screen');
+        const screen = this.getEl('levelup-screen');
         if (screen) screen.classList.remove('active');
       };
       container.appendChild(el);
     });
 
-    const screen = document.getElementById('levelup-screen');
+    const screen = this.getEl('levelup-screen');
     if (screen) screen.classList.add('active');
   }
 }
