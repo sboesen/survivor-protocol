@@ -3,7 +3,6 @@ import type { CanvasContext, EntityType } from '../types';
 import { Entity } from './entity';
 import { Obstacle } from './obstacle';
 import { Renderer } from '../systems/renderer';
-import { updateObstacleGrid, getPathDirection } from '../utils/pathfinding';
 
 export class Enemy extends Entity {
   type: EntityType;
@@ -13,6 +12,9 @@ export class Enemy extends Entity {
   xp: number;
   flash: number;
   shootTimer: number;
+
+  // Pathfinding state: commitment to a sliding direction
+  private slideDirection: -1 | 0 | 1 = 0; // -1 = left, 0 = none, 1 = right
 
   constructor(
     px: number,
@@ -107,7 +109,7 @@ export class Enemy extends Entity {
         // Check if position is inside obstacle bounds (with margin)
         const margin = 30;
         if (x > o.x - o.w / 2 - margin && x < o.x + o.w / 2 + margin &&
-            y > o.y - o.h / 2 - margin && y < o.y + o.h / 2 + margin) {
+          y > o.y - o.h / 2 - margin && y < o.y + o.h / 2 + margin) {
           return true;
         }
       }
@@ -115,12 +117,10 @@ export class Enemy extends Entity {
     return false;
   }
 
-  update(player: Entity, timeFreeze: number, obstacles: Obstacle[] = [], frame: number = 0): void {
+  update(player: Entity, timeFreeze: number, obstacles: Obstacle[] = []): void {
     if (timeFreeze > 0) return;
 
-    // Update obstacle grid periodically
-    updateObstacleGrid(obstacles, frame);
-
+    // Direction to player
     let dx = player.x - this.x;
     let dy = player.y - this.y;
 
@@ -131,43 +131,14 @@ export class Enemy extends Entity {
     if (dy < -CONFIG.worldSize / 2) dy += CONFIG.worldSize;
 
     const dist = Math.hypot(dx, dy);
+    if (dist === 0) return;
 
-    // Only use pathfinding when nearby (within 400px) to avoid wrapping issues
-    const usePathfinding = dist < 400 && obstacles.length > 0;
+    // Normalize direction
+    const dirX = dx / dist;
+    const dirY = dy / dist;
 
-    if (usePathfinding) {
-      const pathDir = getPathDirection(this.x, this.y, player.x, player.y, this.speed);
-      if (pathDir) {
-        this.x = (this.x + pathDir.dx + CONFIG.worldSize) % CONFIG.worldSize;
-        this.y = (this.y + pathDir.dy + CONFIG.worldSize) % CONFIG.worldSize;
-        if (this.flash > 0) this.flash--;
-        return;
-      }
-    }
-
-    // Direct movement (either no pathfinding or it failed)
-    const ang = Math.atan2(dy, dx);
-    const newX = (this.x + Math.cos(ang) * this.speed + CONFIG.worldSize) % CONFIG.worldSize;
-    const newY = (this.y + Math.sin(ang) * this.speed + CONFIG.worldSize) % CONFIG.worldSize;
-
-    // Check obstacle collision
-    let blocked = false;
-    for (const o of obstacles) {
-      if (o.type === 'font') continue;
-      const dist = Math.hypot(newX - o.x, newY - o.y);
-      if (dist < 80) {
-        if (newX > o.x - o.w / 2 - this.radius && newX < o.x + o.w / 2 + this.radius &&
-            newY > o.y - o.h / 2 - this.radius && newY < o.y + o.h / 2 + this.radius) {
-          blocked = true;
-          break;
-        }
-      }
-    }
-
-    if (!blocked) {
-      this.x = newX;
-      this.y = newY;
-    }
+    // Try moving toward player with wall sliding
+    this.moveWithSliding(dirX, dirY, obstacles, player);
 
     if (this.flash > 0) this.flash--;
 
@@ -178,6 +149,110 @@ export class Enemy extends Entity {
         this.shootTimer = 0;
       }
     }
+  }
+
+  private moveWithSliding(dirX: number, dirY: number, obstacles: Obstacle[], player: Entity): void {
+    // Calculate perpendicular directions (90° left and right of intended direction)
+    const leftX = -dirY;
+    const leftY = dirX;
+    const rightX = dirY;
+    const rightY = -dirX;
+
+    // Try direct movement first
+    const directX = (this.x + dirX * this.speed + CONFIG.worldSize) % CONFIG.worldSize;
+    const directY = (this.y + dirY * this.speed + CONFIG.worldSize) % CONFIG.worldSize;
+
+    if (!this.collidesWithObstacle(directX, directY, obstacles)) {
+      // Direct path is clear - move and reset commitment
+      this.x = directX;
+      this.y = directY;
+      this.slideDirection = 0;
+      return;
+    }
+
+    // Direct path blocked - use sliding
+    // If we're already committed to a direction, keep using it
+    if (this.slideDirection !== 0) {
+      const slideX = this.slideDirection === -1 ? leftX : rightX;
+      const slideY = this.slideDirection === -1 ? leftY : rightY;
+
+      const tryX = (this.x + slideX * this.speed + CONFIG.worldSize) % CONFIG.worldSize;
+      const tryY = (this.y + slideY * this.speed + CONFIG.worldSize) % CONFIG.worldSize;
+
+      if (!this.collidesWithObstacle(tryX, tryY, obstacles)) {
+        this.x = tryX;
+        this.y = tryY;
+        return;
+      }
+      // Committed direction is blocked too - try the opposite direction
+      const oppX = this.slideDirection === -1 ? rightX : leftX;
+      const oppY = this.slideDirection === -1 ? rightY : leftY;
+      const oppTryX = (this.x + oppX * this.speed + CONFIG.worldSize) % CONFIG.worldSize;
+      const oppTryY = (this.y + oppY * this.speed + CONFIG.worldSize) % CONFIG.worldSize;
+
+      if (!this.collidesWithObstacle(oppTryX, oppTryY, obstacles)) {
+        this.x = oppTryX;
+        this.y = oppTryY;
+        this.slideDirection = this.slideDirection === -1 ? 1 : -1; // Switch commitment
+        return;
+      }
+      // Both blocked - we're stuck, don't move
+      return;
+    }
+
+    // No commitment yet - evaluate both perpendicular directions
+    const leftTryX = (this.x + leftX * this.speed + CONFIG.worldSize) % CONFIG.worldSize;
+    const leftTryY = (this.y + leftY * this.speed + CONFIG.worldSize) % CONFIG.worldSize;
+    const rightTryX = (this.x + rightX * this.speed + CONFIG.worldSize) % CONFIG.worldSize;
+    const rightTryY = (this.y + rightY * this.speed + CONFIG.worldSize) % CONFIG.worldSize;
+
+    const leftValid = !this.collidesWithObstacle(leftTryX, leftTryY, obstacles);
+    const rightValid = !this.collidesWithObstacle(rightTryX, rightTryY, obstacles);
+
+    if (!leftValid && !rightValid) {
+      // Completely stuck - don't move this frame
+      return;
+    }
+
+    // Calculate distance to actual player from each slide position
+    const distToPlayer = (x: number, y: number): number => {
+      let dx = player.x - x;
+      let dy = player.y - y;
+      // Handle world wrapping
+      if (dx > CONFIG.worldSize / 2) dx -= CONFIG.worldSize;
+      if (dx < -CONFIG.worldSize / 2) dx += CONFIG.worldSize;
+      if (dy > CONFIG.worldSize / 2) dy -= CONFIG.worldSize;
+      if (dy < -CONFIG.worldSize / 2) dy += CONFIG.worldSize;
+      return dx * dx + dy * dy;
+    };
+
+    const leftDist = leftValid ? distToPlayer(leftTryX, leftTryY) : Infinity;
+    const rightDist = rightValid ? distToPlayer(rightTryX, rightTryY) : Infinity;
+
+    // Pick the direction that gets us closer to the player and COMMIT to it
+    if (leftDist <= rightDist && leftValid) {
+      this.x = leftTryX;
+      this.y = leftTryY;
+      this.slideDirection = -1;
+    } else if (rightValid) {
+      this.x = rightTryX;
+      this.y = rightTryY;
+      this.slideDirection = 1;
+    }
+  }
+
+  private collidesWithObstacle(x: number, y: number, obstacles: Obstacle[]): boolean {
+    for (const o of obstacles) {
+      if (o.type === 'font') continue; // Skip healing fountains
+      const dist = Math.hypot(x - o.x, y - o.y);
+      if (dist < 80) {
+        if (x > o.x - o.w / 2 - this.radius && x < o.x + o.w / 2 + this.radius &&
+          y > o.y - o.h / 2 - this.radius && y < o.y + o.h / 2 + this.radius) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   drawShape(ctx: CanvasContext, x: number, y: number): void {
