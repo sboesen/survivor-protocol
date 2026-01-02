@@ -423,4 +423,63 @@ export class Particle {
 
     ctx.restore();
   }
+
+  /**
+   * Draw ground illumination for fire particles.
+   * This should be called before drawing other entities to create a lighting effect.
+   */
+  drawIllumination(
+    ctx: CanvasRenderingContext2D,
+    px: number,
+    py: number,
+    cw: number,
+    ch: number
+  ): void {
+    // Only fire particles cast light
+    if (this.type !== 'fire') return;
+
+    // Guard against invalid values
+    if (!isFinite(this.x) || !isFinite(this.y) || !isFinite(this.size) || !isFinite(this.life)) {
+      return;
+    }
+
+    let rx = this.x - px;
+    let ry = this.y - py;
+
+    // Fire particles don't wrap, cull if too far
+    if (Math.abs(rx) > CONFIG.worldSize / 2 || Math.abs(ry) > CONFIG.worldSize / 2) return;
+
+    const sx = rx + cw / 2;
+    const sy = ry + ch / 2;
+
+    // Culling
+    if (sx < -100 || sx > cw + 100 || sy < -100 || sy > ch + 100) return;
+
+    if (!isFinite(sx) || !isFinite(sy)) return;
+
+    ctx.save();
+
+    const progress = 1 - (this.life / this.maxLife);
+    const alpha = Math.max(0, 1 - progress);
+
+    // Illumination radius - larger than the particle itself
+    const illumRadius = this.size * 8 * alpha;
+
+    // Create radial gradient for ground illumination
+    // Warm orange glow that fades out
+    const gradient = ctx.createRadialGradient(sx, sy, 0, sx, sy, illumRadius);
+    gradient.addColorStop(0, 'rgba(255, 150, 50, 0.15)'); // Bright center
+    gradient.addColorStop(0.3, 'rgba(255, 120, 30, 0.08)'); // Mid glow
+    gradient.addColorStop(0.7, 'rgba(255, 80, 20, 0.03)'); // Outer glow
+    gradient.addColorStop(1, 'rgba(255, 50, 0, 0)'); // Fade to nothing
+
+    // Use lighter composite to add brightness to the scene
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(sx, sy, illumRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
 }

@@ -1131,6 +1131,10 @@ class GameCore {
     }
     ctx.stroke();
 
+    // Draw fire particle illuminations (before entities so lights appear on ground)
+    this.particles.forEach(pt => pt.drawIllumination(ctx, px, py, cw, ch));
+    this.fireballs.forEach(fb => fb.drawIllumination(ctx, px, py, cw, ch));
+
     // Draw entities
     this.obstacles.forEach(o => o.draw(ctx, px, py, cw, ch));
     this.loot.forEach(l => l.draw(ctx, px, py, cw, ch));

@@ -149,4 +149,50 @@ export class FireballProjectile extends Entity {
 
     ctx.restore();
   }
+
+  drawIllumination(
+    ctx: CanvasContext,
+    px: number,
+    py: number,
+    cw: number,
+    ch: number
+  ): void {
+    // Calculate screen position (same logic as Entity.draw)
+    let rx = this.x - px;
+    let ry = this.y - py;
+
+    // Handle world wrapping for rendering
+    if (rx < -CONFIG.worldSize / 2) rx += CONFIG.worldSize;
+    if (rx > CONFIG.worldSize / 2) rx -= CONFIG.worldSize;
+    if (ry < -CONFIG.worldSize / 2) ry += CONFIG.worldSize;
+    if (ry > CONFIG.worldSize / 2) ry -= CONFIG.worldSize;
+
+    const sx = rx + cw / 2;
+    const sy = ry + ch / 2;
+
+    // Culling (generous bounds for illumination)
+    if (sx < -100 || sx > cw + 100 || sy < -100 || sy > ch + 100) return;
+
+    ctx.save();
+
+    // Larger illumination radius than the fireball itself
+    const pulseScale = 1 + Math.sin(this.pulsePhase) * 0.2;
+    const illumRadius = this.radius * 6 * pulseScale;
+
+    // Create radial gradient for ground illumination
+    const gradient = ctx.createRadialGradient(sx, sy, 0, sx, sy, illumRadius);
+    gradient.addColorStop(0, 'rgba(255, 180, 80, 0.25)'); // Bright warm center
+    gradient.addColorStop(0.3, 'rgba(255, 120, 40, 0.12)'); // Mid glow
+    gradient.addColorStop(0.7, 'rgba(255, 80, 20, 0.04)'); // Outer glow
+    gradient.addColorStop(1, 'rgba(255, 50, 0, 0)'); // Fade to nothing
+
+    // Use lighter composite to add brightness to the scene
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(sx, sy, illumRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
 }

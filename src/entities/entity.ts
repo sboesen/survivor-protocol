@@ -36,5 +36,19 @@ export abstract class Entity {
     this.drawShape(ctx, sx, sy);
   }
 
+  /**
+   * Draw ground illumination for light-emitting entities.
+   * Default implementation does nothing. Override in subclasses.
+   */
+  drawIllumination(
+    _ctx: CanvasContext,
+    _px: number,
+    _py: number,
+    _cw: number,
+    _ch: number
+  ): void {
+    // Default: no illumination
+  }
+
   abstract drawShape(ctx: CanvasContext, x: number, y: number): void;
 }
