@@ -52,6 +52,13 @@ import {
   canSpawnParticles,
   MAX_PARTICLES,
 } from './systems/particleSpawning';
+import {
+  calculateZoomScale,
+  calculateJoystickParams,
+  calculateGridParams,
+  FLOOR_COLOR,
+  JOYSTICK_COLORS,
+} from './systems/rendering';
 import { Player } from './entities/player';
 import { Enemy } from './entities/enemy';
 import { Projectile } from './entities/projectile';
@@ -972,8 +979,7 @@ class GameCore {
     const py = p.y;
 
     // Zoom out on mobile for better visibility
-    const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    const zoomScale = isMobile ? 0.7 : 1;
+    const zoomScale = calculateZoomScale('ontouchstart' in window, navigator.maxTouchPoints);
 
     // Draw grid/floor - simple performant grid with dark floor
     ctx.save();
@@ -984,16 +990,17 @@ class GameCore {
     }
 
     // Dark floor background
-    ctx.fillStyle = '#1a1f2e';
+    ctx.fillStyle = FLOOR_COLOR;
     ctx.fillRect(0, 0, cw, ch);
 
     // Simple grid lines (much cheaper than tiles)
-    const tileSize = 100;
-    const offsetX = px % tileSize;
-    const offsetY = py % tileSize;
+    const grid = calculateGridParams(px, py);
+    const tileSize = grid.tileSize;
+    const offsetX = grid.offsetX;
+    const offsetY = grid.offsetY;
 
-    ctx.strokeStyle = '#252b3d';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = grid.color;
+    ctx.lineWidth = grid.lineWidth;
     ctx.beginPath();
     for (let x = -offsetX; x <= cw; x += tileSize) {
       ctx.moveTo(x, 0);
@@ -1020,42 +1027,36 @@ class GameCore {
     ctx.restore();
 
     // Draw joysticks (mobile only)
-    const joyOffsetY = 10;
-    const joyRadius = 50;
-    const knobRadius = 20;
-
     // Movement joystick (left)
     if (this.input.joy.active) {
+      const joy = calculateJoystickParams(this.input.joy.ox, this.input.joy.oy, this.input.joy.x, this.input.joy.y);
       ctx.save();
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.strokeStyle = JOYSTICK_COLORS.movement.base;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(this.input.joy.ox, this.input.joy.oy + joyOffsetY, joyRadius, 0, Math.PI * 2);
+      ctx.arc(joy.centerX, joy.centerY, joy.baseRadius, 0, Math.PI * 2);
       ctx.stroke();
 
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.fillStyle = JOYSTICK_COLORS.movement.knob;
       ctx.beginPath();
-      const joyKnobX = this.input.joy.ox + this.input.joy.x * joyRadius;
-      const joyKnobY = this.input.joy.oy + joyOffsetY + this.input.joy.y * joyRadius;
-      ctx.arc(joyKnobX, joyKnobY, knobRadius, 0, Math.PI * 2);
+      ctx.arc(joy.knobX, joy.knobY, joy.knobRadius, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }
 
     // Aim joystick (right)
     if (this.input.aimJoy.active) {
+      const aimJoy = calculateJoystickParams(this.input.aimJoy.ox, this.input.aimJoy.oy, this.input.aimJoy.x, this.input.aimJoy.y);
       ctx.save();
-      ctx.strokeStyle = 'rgba(255, 200, 100, 0.3)';
+      ctx.strokeStyle = JOYSTICK_COLORS.aim.base;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(this.input.aimJoy.ox, this.input.aimJoy.oy + joyOffsetY, joyRadius, 0, Math.PI * 2);
+      ctx.arc(aimJoy.centerX, aimJoy.centerY, aimJoy.baseRadius, 0, Math.PI * 2);
       ctx.stroke();
 
-      ctx.fillStyle = 'rgba(255, 200, 100, 0.5)';
+      ctx.fillStyle = JOYSTICK_COLORS.aim.knob;
       ctx.beginPath();
-      const aimKnobX = this.input.aimJoy.ox + this.input.aimJoy.x * joyRadius;
-      const aimKnobY = this.input.aimJoy.oy + joyOffsetY + this.input.aimJoy.y * joyRadius;
-      ctx.arc(aimKnobX, aimKnobY, knobRadius, 0, Math.PI * 2);
+      ctx.arc(aimJoy.knobX, aimJoy.knobY, aimJoy.knobRadius, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }
