@@ -1154,6 +1154,7 @@ class GameCore {
     p.draw(ctx, px, py, cw, ch);
 
     // Draw joysticks (mobile only)
+    const joyOffsetY = 10;
     const joyRadius = 50;
     const knobRadius = 20;
 
@@ -1163,13 +1164,13 @@ class GameCore {
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(this.input.joy.ox, this.input.joy.oy, joyRadius, 0, Math.PI * 2);
+      ctx.arc(this.input.joy.ox, this.input.joy.oy + joyOffsetY, joyRadius, 0, Math.PI * 2);
       ctx.stroke();
 
       ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
       ctx.beginPath();
       const joyKnobX = this.input.joy.ox + this.input.joy.x * joyRadius;
-      const joyKnobY = this.input.joy.oy + this.input.joy.y * joyRadius;
+      const joyKnobY = this.input.joy.oy + joyOffsetY + this.input.joy.y * joyRadius;
       ctx.arc(joyKnobX, joyKnobY, knobRadius, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
@@ -1181,13 +1182,13 @@ class GameCore {
       ctx.strokeStyle = 'rgba(255, 200, 100, 0.3)';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(this.input.aimJoy.ox, this.input.aimJoy.oy, joyRadius, 0, Math.PI * 2);
+      ctx.arc(this.input.aimJoy.ox, this.input.aimJoy.oy + joyOffsetY, joyRadius, 0, Math.PI * 2);
       ctx.stroke();
 
       ctx.fillStyle = 'rgba(255, 200, 100, 0.5)';
       ctx.beginPath();
       const aimKnobX = this.input.aimJoy.ox + this.input.aimJoy.x * joyRadius;
-      const aimKnobY = this.input.aimJoy.oy + this.input.aimJoy.y * joyRadius;
+      const aimKnobY = this.input.aimJoy.oy + joyOffsetY + this.input.aimJoy.y * joyRadius;
       ctx.arc(aimKnobX, aimKnobY, knobRadius, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
