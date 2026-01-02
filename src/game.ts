@@ -1194,67 +1194,35 @@ class GameCore {
     const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
     const zoomScale = isMobile ? 0.7 : 1;
 
-    // Draw grid/floor
+    // Draw grid/floor - simple performant grid with dark floor
     ctx.save();
     if (zoomScale < 1) {
-      // Center the zoom
       ctx.translate(cw / 2, ch / 2);
       ctx.scale(zoomScale, zoomScale);
       ctx.translate(-cw / 2, -ch / 2);
     }
 
-    // Industrial floor tiles - matches metallic obstacle style
-    // Calculate world-space tile bounds based on player position
+    // Dark floor background
+    ctx.fillStyle = '#1a1f2e';
+    ctx.fillRect(0, 0, cw, ch);
+
+    // Simple grid lines (much cheaper than tiles)
     const tileSize = 100;
-    const worldLeft = px - cw / 2;
-    const worldTop = py - ch / 2;
-    const worldRight = px + cw / 2;
-    const worldBottom = py + ch / 2;
+    const offsetX = px % tileSize;
+    const offsetY = py % tileSize;
 
-    const startTileX = Math.floor(worldLeft / tileSize);
-    const startTileY = Math.floor(worldTop / tileSize);
-    const endTileX = Math.ceil(worldRight / tileSize);
-    const endTileY = Math.ceil(worldBottom / tileSize);
-
-    for (let ty = startTileY; ty < endTileY; ty++) {
-      for (let tx = startTileX; tx < endTileX; tx++) {
-        // Calculate screen position (same logic as Entity.draw)
-        const worldX = tx * tileSize + tileSize / 2;
-        const worldY = ty * tileSize + tileSize / 2;
-
-        // Handle world wrapping
-        let wx = worldX;
-        let wy = worldY;
-
-        if (wx < -CONFIG.worldSize / 2) wx += CONFIG.worldSize;
-        if (wx > CONFIG.worldSize / 2) wx -= CONFIG.worldSize;
-        if (wy < -CONFIG.worldSize / 2) wy += CONFIG.worldSize;
-        if (wy > CONFIG.worldSize / 2) wy -= CONFIG.worldSize;
-
-        // Convert to screen coordinates
-        const screenX = wx - px + cw / 2 - tileSize / 2;
-        const screenY = wy - py + ch / 2 - tileSize / 2;
-
-        // Base floor color (dark, matches obstacle style)
-        ctx.fillStyle = '#1a1f2e';
-        ctx.fillRect(screenX, screenY, tileSize, tileSize);
-
-        // Subtle panel border
-        ctx.strokeStyle = '#252b3d';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(screenX + 1, screenY + 1, tileSize - 2, tileSize - 2);
-
-        // Small floor rivet in corner (subtle detail)
-        ctx.fillStyle = '#2d3548';
-        ctx.beginPath();
-        ctx.arc(screenX + tileSize - 8, screenY + tileSize - 8, 2, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Very subtle center panel line
-        ctx.fillStyle = '#1e2535';
-        ctx.fillRect(screenX + tileSize / 2 - 1, screenY + 10, 2, tileSize - 20);
-      }
+    ctx.strokeStyle = '#252b3d';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = -offsetX; x <= cw; x += tileSize) {
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, ch);
     }
+    for (let y = -offsetY; y <= ch; y += tileSize) {
+      ctx.moveTo(0, y);
+      ctx.lineTo(cw, y);
+    }
+    ctx.stroke();
 
     // Draw fire particle illuminations (before entities so lights appear on ground)
     this.particles.forEach(pt => pt.drawIllumination(ctx, px, py, cw, ch));
