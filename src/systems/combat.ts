@@ -259,3 +259,63 @@ export function calculateBubbleSplit(
 
   return splits;
 }
+
+/**
+ * Loot type that can be dropped.
+ */
+export type LootType = 'gem' | 'heart' | 'chest';
+
+/**
+ * Calculate what loot an enemy drops.
+ *
+ * @param enemyType - The type of enemy (basic, bat, elite, boss)
+ * @param randomValue - Random value [0,1) for loot selection (allows testing)
+ * @returns The type of loot to drop
+ */
+export function calculateLootDrop(enemyType: string, randomValue: number = Math.random()): LootType {
+  // Boss and elite always drop chests
+  if (enemyType === 'boss' || enemyType === 'elite') {
+    return 'chest';
+  }
+
+  // 5% chance for heart, otherwise gem
+  if (randomValue < 0.05) {
+    return 'heart';
+  }
+
+  return 'gem';
+}
+
+/**
+ * Calculate gold from opening a chest.
+ *
+ * @param randomValue - Random value [0,1) for gold calculation (allows testing)
+ * @returns Gold amount (10-29)
+ */
+export function calculateChestGold(randomValue: number = Math.random()): number {
+  return 10 + Math.floor(randomValue * 20);
+}
+
+/**
+ * Calculate particle counts for an explosion effect.
+ *
+ * @param size - Explosion size multiplier (1=basic, 2=elite, 5=boss)
+ * @returns Object with particle counts for explosion and smoke
+ */
+export function calculateExplosionParticles(size: number): { explosion: number; smoke: number } {
+  const explosion = Math.floor(15 * size);
+  const smoke = Math.floor(explosion / 3);
+  return { explosion, smoke };
+}
+
+/**
+ * Calculate death explosion size based on enemy type.
+ *
+ * @param enemyType - The type of enemy
+ * @returns Explosion size multiplier
+ */
+export function calculateDeathExplosionSize(enemyType: string): number {
+  if (enemyType === 'boss') return 5;
+  if (enemyType === 'elite') return 2;
+  return 1;
+}

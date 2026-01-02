@@ -28,6 +28,12 @@ import {
   calculateWrappedAngle,
 } from './systems/targeting';
 import { fireWeapon } from './systems/weapons';
+import {
+  calculateLootDrop,
+  calculateChestGold,
+  calculateExplosionParticles,
+  calculateDeathExplosionSize,
+} from './systems/combat';
 import { Player } from './entities/player';
 import { Enemy } from './entities/enemy';
 import { Projectile } from './entities/projectile';
@@ -419,9 +425,9 @@ class GameCore {
   }
 
   spawnExplosion(x: number, y: number, size = 1): void {
-    const count = Math.floor(15 * size);
-    this.spawnParticles({ type: 'explosion' as ParticleType, x, y }, count);
-    this.spawnParticles({ type: 'smoke', x, y }, Math.floor(count / 3));
+    const particles = calculateExplosionParticles(size);
+    this.spawnParticles({ type: 'explosion' as ParticleType, x, y }, particles.explosion);
+    this.spawnParticles({ type: 'smoke', x, y }, particles.smoke);
   }
 
   update(): void {
@@ -908,25 +914,20 @@ class GameCore {
       UI.updateHud(this.goldRun, this.time, this.player?.level || 1, this.kills, SaveData.data.selectedChar, this.particles.length, this.enemies.length);
 
       // Death explosion effect
-      const explosionSize = e.type === 'boss' ? 5 : (e.type === 'elite' ? 2 : 1);
+      const explosionSize = calculateDeathExplosionSize(e.type);
       this.spawnExplosion(e.x, e.y, explosionSize);
 
       // Blood particles
       this.spawnParticles({ type: 'blood', x: e.x, y: e.y }, 8 * explosionSize);
 
       // Drop loot
-      if (e.type === 'boss' || e.type === 'elite') {
-        this.loot.push(new Loot(e.x, e.y, 'chest'));
-      } else if (Math.random() < 0.05) {
-        this.loot.push(new Loot(e.x, e.y, 'heart'));
-      } else {
-        this.loot.push(new Loot(e.x, e.y, 'gem'));
-      }
+      const lootType = calculateLootDrop(e.type);
+      this.loot.push(new Loot(e.x, e.y, lootType));
     }
   }
 
   openChest(): void {
-    const gold = 10 + Math.floor(Math.random() * 20);
+    const gold = calculateChestGold();
     this.goldRun += gold;
     this.spawnDamageText(this.player?.x || 0, this.player?.y || 0, `+${gold}G`, '#fbbf24');
   }

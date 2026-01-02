@@ -7,6 +7,11 @@ import {
   checkProjectilePlayerCollision,
   findEnemiesNearPoint,
   calculateBubbleSplit,
+  calculateLootDrop,
+  calculateChestGold,
+  calculateExplosionParticles,
+  calculateDeathExplosionSize,
+  type LootType,
 } from '../combat';
 
 // Mock Projectile
@@ -371,6 +376,144 @@ describe('collisions', () => {
       const result = applyKnockback(enemy, 0, 10);
 
       expect(result.x).toBe(0); // Wraps to positive
+    });
+  });
+
+  describe('calculateLootDrop', () => {
+    it('should return chest for boss enemies', () => {
+      const result = calculateLootDrop('boss', 0.5);
+      expect(result).toBe('chest');
+    });
+
+    it('should return chest for elite enemies', () => {
+      const result = calculateLootDrop('elite', 0.5);
+      expect(result).toBe('chest');
+    });
+
+    it('should return heart when random value < 0.05', () => {
+      const result = calculateLootDrop('basic', 0.04);
+      expect(result).toBe('heart');
+    });
+
+    it('should return gem when random value >= 0.05', () => {
+      const result = calculateLootDrop('basic', 0.05);
+      expect(result).toBe('gem');
+    });
+
+    it('should return gem for most cases (95% chance)', () => {
+      const result = calculateLootDrop('basic', 0.5);
+      expect(result).toBe('gem');
+    });
+
+    it('should return gem when random value is 0.99', () => {
+      const result = calculateLootDrop('basic', 0.99);
+      expect(result).toBe('gem');
+    });
+
+    it('should return chest for bat enemies (same as basic)', () => {
+      const result = calculateLootDrop('bat', 0.5);
+      expect(result).toBe('gem');
+    });
+
+    it('should return heart for bat at low random value', () => {
+      const result = calculateLootDrop('bat', 0.01);
+      expect(result).toBe('heart');
+    });
+  });
+
+  describe('calculateChestGold', () => {
+    it('should return minimum gold (10) when random is 0', () => {
+      const result = calculateChestGold(0);
+      expect(result).toBe(10);
+    });
+
+    it('should return maximum gold (29) when random is close to 1', () => {
+      const result = calculateChestGold(0.999);
+      expect(result).toBe(29);
+    });
+
+    it('should return middle gold (20) when random is 0.5', () => {
+      const result = calculateChestGold(0.5);
+      expect(result).toBe(20);
+    });
+
+    it('should return 19 when random is just below 0.5', () => {
+      const result = calculateChestGold(0.49);
+      expect(result).toBe(19);
+    });
+
+    it('should always return integer between 10 and 29', () => {
+      for (let i = 0; i < 100; i++) {
+        const result = calculateChestGold(Math.random());
+        expect(result).toBeGreaterThanOrEqual(10);
+        expect(result).toBeLessThanOrEqual(29);
+        expect(Number.isInteger(result)).toBe(true);
+      }
+    });
+  });
+
+  describe('calculateExplosionParticles', () => {
+    it('should return basic explosion for size 1', () => {
+      const result = calculateExplosionParticles(1);
+      expect(result.explosion).toBe(15);
+      expect(result.smoke).toBe(5);
+    });
+
+    it('should return elite explosion for size 2', () => {
+      const result = calculateExplosionParticles(2);
+      expect(result.explosion).toBe(30);
+      expect(result.smoke).toBe(10);
+    });
+
+    it('should return boss explosion for size 5', () => {
+      const result = calculateExplosionParticles(5);
+      expect(result.explosion).toBe(75);
+      expect(result.smoke).toBe(25);
+    });
+
+    it('should handle fractional sizes by flooring', () => {
+      const result = calculateExplosionParticles(2.7);
+      expect(result.explosion).toBe(Math.floor(15 * 2.7)); // 40
+      expect(result.smoke).toBe(Math.floor(40 / 3)); // 13
+    });
+
+    it('should return zero for size 0', () => {
+      const result = calculateExplosionParticles(0);
+      expect(result.explosion).toBe(0);
+      expect(result.smoke).toBe(0);
+    });
+
+    it('should calculate smoke as 1/3 of explosion', () => {
+      const result = calculateExplosionParticles(3);
+      expect(result.explosion).toBe(45);
+      expect(result.smoke).toBe(15);
+    });
+  });
+
+  describe('calculateDeathExplosionSize', () => {
+    it('should return 5 for boss', () => {
+      const result = calculateDeathExplosionSize('boss');
+      expect(result).toBe(5);
+    });
+
+    it('should return 2 for elite', () => {
+      const result = calculateDeathExplosionSize('elite');
+      expect(result).toBe(2);
+    });
+
+    it('should return 1 for basic enemies', () => {
+      const result = calculateDeathExplosionSize('basic');
+      expect(result).toBe(1);
+    });
+
+    it('should return 1 for bat enemies', () => {
+      const result = calculateDeathExplosionSize('bat');
+      expect(result).toBe(1);
+    });
+
+    it('should return 1 for unknown enemy types', () => {
+      const result = calculateDeathExplosionSize('unknown');
+      expect(result).toBe(1);
     });
   });
 });
