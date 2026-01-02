@@ -41,6 +41,7 @@ import {
   calculateGreaseFireProjectiles,
   getTimeFreezeDuration,
 } from './systems/ultimates';
+import { selectUpgradeChoices } from './systems/levelUp';
 import { Player } from './entities/player';
 import { Enemy } from './entities/enemy';
 import { Projectile } from './entities/projectile';
@@ -946,12 +947,7 @@ class GameCore {
     this.paused = true;
 
     const pool = Object.keys(UPGRADES);
-    const choices: string[] = [];
-
-    while (choices.length < 3) {
-      const c = pool[Math.floor(Math.random() * pool.length)];
-      if (!choices.includes(c)) choices.push(c);
-    }
+    const choices = selectUpgradeChoices(pool, 3);
 
     UI.showLevelUpScreen(choices, this.player.inventory, {
       items: this.player.items,
