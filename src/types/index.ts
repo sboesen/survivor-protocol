@@ -37,12 +37,12 @@ export interface Character {
 }
 
 export type WeaponType = 'pepper_spray' | 'bubble_stream' | 'frying_pan' | 'thrown_cds' | 'fireball' | 'lighter';
-export type PassiveType = 'pierce' | 'scope' | 'damage' | 'cooldown';
-export type UpgradeType = WeaponType | PassiveType;
+export type ItemType = 'pierce' | 'scope' | 'damage' | 'cooldown' | 'projectile';
+export type UpgradeType = WeaponType | ItemType;
 
 export interface Upgrade {
   name: string;
-  type: 'Weapon' | 'Passive';
+  type: 'Weapon' | 'Item';
   desc: string;
   dmg?: number;
   cd?: number;
@@ -54,6 +54,7 @@ export interface Upgrade {
   crit?: number;
   damageMult?: number;
   cooldownMult?: number;
+  projectileCount?: number;
 }
 
 export type Upgrades = Record<string, Upgrade>;
@@ -71,6 +72,17 @@ export interface Weapon {
   level: number;
   baseDmg: number;
   manual?: boolean; // Requires button press to fire
+  // Upgrade-specific properties
+  projectileCount?: number; // Number of projectiles per shot
+  speedMult?: number; // Projectile speed multiplier
+  spread?: number; // Spray cone width (for spray type)
+  pelletCount?: number; // Number of pellets (for pepper spray)
+  explodeRadius?: number; // Explosion radius on impact
+  knockback?: number; // Knockback force
+  size?: number; // Projectile size
+  splits?: boolean; // Bubbles split into smaller bubbles on hit
+  trailDamage?: number; // Fireball trail deals damage
+  coneLength?: number; // Lighter cone length
 }
 
 export interface ShopItem {

@@ -1,12 +1,13 @@
 import { CONFIG } from '../config';
 import type { CanvasContext } from '../types';
-import type { Weapon, WeaponType, PassiveType, UpgradeType } from '../types';
+import type { Weapon, WeaponType, ItemType, UpgradeType } from '../types';
 import { Entity } from './entity';
 import { Renderer } from '../systems/renderer';
 
-export interface PlayerPassives {
+export interface PlayerItems {
   pierce: number;
   cooldown: number;
+  projectile: number;
 }
 
 export interface PlayerInventory {
@@ -20,7 +21,7 @@ export class Player extends Entity {
   pickupRange: number;
   dmgMult: number;
   critChance: number;
-  passives: PlayerPassives;
+  items: PlayerItems;
   xp: number;
   level: number;
   nextXp: number;
@@ -49,7 +50,7 @@ export class Player extends Entity {
     this.pickupRange = 60 * (1 + (shopUpgrades.magnet * 0.2));
     this.dmgMult = 1 + (shopUpgrades.damage * 0.1);
     this.critChance = 0;
-    this.passives = { pierce: 0, cooldown: 0 };
+    this.items = { pierce: 0, cooldown: 0, projectile: 0 };
     this.xp = 0;
     this.level = 1;
     this.nextXp = 5;
@@ -80,14 +81,15 @@ export class Player extends Entity {
   }
 
   addUpgrade(id: UpgradeType): void {
-    const passives: PassiveType[] = ['pierce', 'damage', 'cooldown', 'scope'];
+    const items: ItemType[] = ['pierce', 'damage', 'cooldown', 'scope', 'projectile'];
 
-    if (passives.includes(id as PassiveType)) {
+    if (items.includes(id as ItemType)) {
       switch (id) {
-        case 'pierce': this.passives.pierce++; break;
+        case 'pierce': this.items.pierce++; break;
         case 'damage': this.dmgMult += 0.2; break;
-        case 'cooldown': this.passives.cooldown += 0.1; break;
+        case 'cooldown': this.items.cooldown += 0.1; break;
         case 'scope': this.critChance += 0.15; break;
+        case 'projectile': this.items.projectile++; break;
       }
       this.inventory[id] = (this.inventory[id] || 0) + 1;
     } else {
@@ -109,7 +111,7 @@ export class Player extends Entity {
             weapon = { id: 'thrown_cds', cd: 25, dmg: 9, type: 'facing', curCd: 0, level: 1, baseDmg: 9 };
             break;
           case 'fireball':
-            weapon = { id: 'fireball', cd: 200, dmg: 25, type: 'fireball', curCd: 0, level: 1, baseDmg: 25 };
+            weapon = { id: 'fireball', cd: 133, dmg: 25, type: 'fireball', curCd: 0, level: 1, baseDmg: 25, projectileCount: 2 };
             break;
           case 'lighter':
             weapon = { id: 'lighter', cd: 3, dmg: 1, type: 'spray', curCd: 0, level: 1, baseDmg: 1 };
@@ -126,6 +128,51 @@ export class Player extends Entity {
           w.baseDmg *= 1.3;
           w.cd *= 0.9;
           if (w.type === 'aura' && w.area) w.area += 15;
+
+          // Per-weapon upgrade effects
+          switch (weaponType) {
+            case 'bubble_stream':
+              // Level 2: +1 projectile, Level 3: +speed, Level 4: splits, Level 5: +2 projectiles
+              if (w.level === 2) w.projectileCount = 2;
+              if (w.level === 3) w.speedMult = 1.5;
+              if (w.level === 4) w.splits = true;
+              if (w.level === 5) w.projectileCount = 3;
+              break;
+            case 'pepper_spray':
+              // Level 2: +2 pellets, Level 3: wider spread, Level 4: longer duration, Level 5: +3 pellets
+              if (w.level === 2) w.pelletCount = 7;
+              if (w.level === 3) w.spread = 0.6;
+              if (w.level === 4) w.spread = 0.8; // Also implies longer effect visually
+              if (w.level === 5) w.pelletCount = 10;
+              break;
+            case 'frying_pan':
+              // Level 2: explosion, Level 3: knockback, Level 4: +1 projectile, Level 5: +size
+              if (w.level === 2) w.explodeRadius = 40;
+              if (w.level === 3) w.knockback = 5;
+              if (w.level === 4) w.projectileCount = 2;
+              if (w.level === 5) w.size = 14;
+              break;
+            case 'thrown_cds':
+              // Level 2: +1 CD, Level 3: +speed, Level 4: pierce (handled by passive), Level 5: +2 CDs
+              if (w.level === 2) w.projectileCount = 2;
+              if (w.level === 3) w.speedMult = 1.4;
+              if (w.level === 5) w.projectileCount = 3;
+              break;
+            case 'fireball':
+              // Level 2: +explosion radius, Level 3: +duration, Level 4: trail damage, Level 5: +1 fireball
+              if (w.level === 2) w.explodeRadius = 50;
+              if (w.level === 3) w.speedMult = 1.3; // Also affects duration via longer travel
+              if (w.level === 4) w.trailDamage = 5;
+              if (w.level === 5) w.projectileCount = 2;
+              break;
+            case 'lighter':
+              // Level 2: +cone length, Level 3: +cone width, Level 4: fire particles travel farther, Level 5: +burn damage
+              if (w.level === 2) w.coneLength = 80;
+              if (w.level === 3) w.spread = 0.35;
+              if (w.level === 4) w.coneLength = 100;
+              if (w.level === 5) w.speedMult = 1.5; // Makes fire particles travel farther
+              break;
+          }
           this.inventory[weaponType]++;
         }
       }

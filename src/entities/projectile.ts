@@ -18,6 +18,9 @@ export class Projectile extends Entity {
   rot: number;
   wobble: number;
   age: number;
+  explodeRadius?: number;
+  knockback?: number;
+  splits?: boolean;
 
   constructor(
     x: number,

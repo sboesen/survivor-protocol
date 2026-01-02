@@ -123,6 +123,56 @@ canvas {
   border-radius: 50%;
 }
 
+/* Item Slots */
+.item-slots {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  display: flex;
+  gap: 8px;
+}
+
+.item-slot {
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 2px solid #444;
+  border-radius: 4px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  transition: 0.2s;
+}
+
+.item-slot.active {
+  border-color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+}
+
+.item-icon {
+  font-size: 16px;
+  opacity: 0.3;
+}
+
+.item-slot.active .item-icon {
+  opacity: 1;
+}
+
+.item-count {
+  position: absolute;
+  bottom: 0;
+  right: 2px;
+  font-size: 8px;
+  color: #fbbf24;
+  font-weight: bold;
+  display: none;
+}
+
+.item-slot.active .item-count {
+  display: block;
+}
 
 /* Hotkey labels on buttons */
 .btn-hotkey {

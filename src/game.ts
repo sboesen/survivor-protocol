@@ -383,7 +383,7 @@ class GameCore {
     // Weapons
     p.weapons.forEach(w => {
       if (w.curCd > 0) {
-        w.curCd -= (1 + p.passives.cooldown) * (
+        w.curCd -= (1 + p.items.cooldown) * (
           p.ultName === 'Ollie' && p.ultActiveTime > 0 ? 2 : 1
         );
       }
@@ -438,7 +438,7 @@ class GameCore {
               '#0ff',
               dmg,
               60,
-              1 + p.passives.pierce,
+              1 + p.items.pierce,
               isCrit
             ));
             fired = true;
@@ -466,55 +466,75 @@ class GameCore {
             if (edy < -CONFIG.worldSize / 2) edy += CONFIG.worldSize;
 
             const ang = Math.atan2(edy, edx);
-            const speed = 3.5;
-            const proj = new Projectile(
-              p.x,
-              p.y,
-              Math.cos(ang) * speed,
-              Math.sin(ang) * speed,
-              5,
-              '#aaddff',
-              dmg,
-              70,
-              1 + p.passives.pierce,
-              isCrit
-            );
-            proj.isBubble = true;
-            this.projectiles.push(proj);
+            const speed = 3.5 * (w.speedMult || 1);
+            const count = (w.projectileCount || 1) + p.items.projectile;
+
+            for (let i = 0; i < count; i++) {
+              const spread = (i - (count - 1) / 2) * 0.15;
+              const proj = new Projectile(
+                p.x,
+                p.y,
+                Math.cos(ang + spread) * speed,
+                Math.sin(ang + spread) * speed,
+                5,
+                '#aaddff',
+                dmg,
+                70,
+                1 + p.items.pierce,
+                isCrit
+              );
+              proj.isBubble = true;
+              if (w.splits) proj.splits = true;
+              this.projectiles.push(proj);
+            }
             fired = true;
           }
         } else if (w.type === 'facing') {
           const vx = this.input.lastDx || 1;
           const vy = this.input.lastDy || 0;
-          this.projectiles.push(new Projectile(
-            p.x,
-            p.y,
-            vx * 10,
-            vy * 10,
-            4,
-            '#f00',
-            dmg,
-            40,
-            2 + p.passives.pierce,
-            isCrit
-          ));
+          const speed = 10 * (w.speedMult || 1);
+          const count = (w.projectileCount || 1) + p.items.projectile;
+
+          for (let i = 0; i < count; i++) {
+            const spread = (Math.random() - 0.5) * 0.2;
+            const angle = Math.atan2(vy, vx) + spread;
+            this.projectiles.push(new Projectile(
+              p.x,
+              p.y,
+              Math.cos(angle) * speed,
+              Math.sin(angle) * speed,
+              4,
+              '#f00',
+              dmg,
+              40,
+              2 + p.items.pierce,
+              isCrit
+            ));
+          }
           fired = true;
         } else if (w.type === 'arc') {
-          const vx = (Math.random() - 0.5) * 4;
-          const proj = new Projectile(
-            p.x,
-            p.y,
-            vx,
-            -10,
-            10,
-            '#aaa',
-            dmg * 2,
-            60,
-            3 + p.passives.pierce,
-            isCrit
-          );
-          proj.isArc = true;
-          this.projectiles.push(proj);
+          const count = (w.projectileCount || 1) + p.items.projectile;
+          const size = w.size || 10;
+
+          for (let i = 0; i < count; i++) {
+            const vx = (Math.random() - 0.5) * 4;
+            const proj = new Projectile(
+              p.x,
+              p.y,
+              vx,
+              -10,
+              size,
+              '#aaa',
+              dmg * 2,
+              60,
+              3 + p.items.pierce,
+              isCrit
+            );
+            proj.isArc = true;
+            if (w.explodeRadius) proj.explodeRadius = w.explodeRadius;
+            if (w.knockback) proj.knockback = w.knockback;
+            this.projectiles.push(proj);
+          }
           fired = true;
         } else if (w.type === 'fireball') {
           // Fireball: homing projectile to nearest enemy with particle trail
@@ -530,18 +550,63 @@ class GameCore {
           }
 
           if (near) {
-            const fireball = new FireballProjectile(
-              p.x,
-              p.y,
-              near.x,
-              near.y,
-              6, // speed
-              dmg,
-              90, // duration (frames)
-              1 + p.passives.pierce, // pierce
-              isCrit
-            );
-            this.fireballs.push(fireball);
+            const speed = 6 * (w.speedMult || 1);
+            const duration = 90 * (w.speedMult || 1);
+            const count = (w.projectileCount || 1) + p.items.projectile;
+
+            // Calculate base angle to target
+            let edx = near.x - p.x;
+            let edy = near.y - p.y;
+            if (edx > CONFIG.worldSize / 2) edx -= CONFIG.worldSize;
+            if (edx < -CONFIG.worldSize / 2) edx += CONFIG.worldSize;
+            if (edy > CONFIG.worldSize / 2) edy -= CONFIG.worldSize;
+            if (edy < -CONFIG.worldSize / 2) edy += CONFIG.worldSize;
+            const baseAngle = Math.atan2(edy, edx);
+
+            for (let i = 0; i < count; i++) {
+              // Spread fireballs in a fan pattern - reduced spread, keep one straight for even counts
+              let spreadAngle = 0;
+              if (count > 1) {
+                const spread = 0.08; // Much smaller spread
+                if (count % 2 === 0) {
+                  // Even count: keep middle two going straight, spread others
+                  const half = count / 2;
+                  if (i < half - 1) {
+                    spreadAngle = -(half - 1 - i) * spread;
+                  } else if (i >= half) {
+                    spreadAngle = (i - half + 1) * spread;
+                  }
+                  // i === half - 1 and i === half both go straight (spreadAngle = 0)
+                } else {
+                  // Odd count: center one goes straight
+                  spreadAngle = (i - (count - 1) / 2) * spread;
+                }
+              }
+              const targetAngle = baseAngle + spreadAngle;
+              const targetX = p.x + Math.cos(targetAngle) * 400;
+              const targetY = p.y + Math.sin(targetAngle) * 400;
+
+              // Offset starting position so fireballs don't overlap at spawn
+              const perpAngle = baseAngle + Math.PI / 2;
+              const startOffset = 15 * Math.sin(spreadAngle); // Spread starts perpendicular to aim
+              const startX = p.x + Math.cos(perpAngle) * startOffset;
+              const startY = p.y + Math.sin(perpAngle) * startOffset;
+
+              const fireball = new FireballProjectile(
+                startX,
+                startY,
+                targetX,
+                targetY,
+                speed,
+                dmg,
+                duration,
+                1 + p.items.pierce,
+                isCrit
+              );
+              if (w.explodeRadius) fireball.explodeRadius = w.explodeRadius;
+              if (w.trailDamage) fireball.trailDamage = w.trailDamage;
+              this.fireballs.push(fireball);
+            }
             fired = true;
           }
         } else if (w.type === 'spray') {
@@ -552,8 +617,10 @@ class GameCore {
 
           const isLighter = w.id === 'lighter';
           const gasColor = isLighter ? '#ffcccc' : '#33ff33';
-          const pelletCount = isLighter ? 3 : 5;
-          const spreadAmount = isLighter ? 0.25 : 0.4;
+          // Use weapon properties for upgrades
+          const pelletCount = isLighter ? 3 : (w.pelletCount || 5);
+          const spreadAmount = w.spread || (isLighter ? 0.25 : 0.4);
+          const coneLength = w.coneLength || 60;
 
           // Spawn gas cloud particles along the stream
           for (let i = 0; i < (isLighter ? 10 : 6); i++) {
@@ -579,11 +646,13 @@ class GameCore {
 
           // Fire particles along the stream (lighter only) - flow outward from player
           if (isLighter) {
-            for (let i = 0; i < 5; i++) {
-              const dist = 15 + Math.random() * 30;
+            const fireCount = w.speedMult ? Math.floor(5 * w.speedMult) : 5;
+            const flowMult = w.speedMult || 1;
+            for (let i = 0; i < fireCount; i++) {
+              const dist = 15 + Math.random() * 30 * flowMult;
               const spreadAngle = baseAngle + (Math.random() - 0.5) * 0.2;
               // Velocity flows outward with small variance
-              const flowSpeed = 1 + Math.random() * 1.5;
+              const flowSpeed = (1 + Math.random() * 1.5) * flowMult;
               const flowAngle = spreadAngle + (Math.random() - 0.5) * 0.3;
               this.spawnParticles({
                 type: 'fire' as ParticleType,
@@ -623,7 +692,7 @@ class GameCore {
           if (isLighter) {
             for (const e of this.enemies) {
               const dist = Utils.getDist(p.x, p.y, e.x, e.y);
-              if (dist < 60) {
+              if (dist < coneLength) {
                 // Check if enemy is within the cone angle
                 let edx = e.x - p.x;
                 let edy = e.y - p.y;
@@ -718,9 +787,51 @@ class GameCore {
             proj.hitList.push(e);
 
             // Splash effect for bubbles
-            if ((proj as any).isBubble) {
+            if (proj.isBubble) {
               this.spawnParticles({ type: 'splash' as ParticleType, x: proj.x, y: proj.y }, 5);
               this.spawnParticles({ type: 'foam' as ParticleType, x: proj.x, y: proj.y, vy: -1 }, 3);
+
+              // Bubble split on hit (level 4 upgrade)
+              if (proj.splits && this.projectiles.length < 200) {
+                for (let i = 0; i < 3; i++) {
+                  const angle = (Math.PI * 2 / 3) * i;
+                  const splitProj = new Projectile(
+                    proj.x,
+                    proj.y,
+                    Math.cos(angle) * 3,
+                    Math.sin(angle) * 3,
+                    3,
+                    '#aaddff',
+                    proj.dmg * 0.5,
+                    30,
+                    1,
+                    proj.isCrit
+                  );
+                  splitProj.isBubble = true;
+                  this.projectiles.push(splitProj);
+                }
+              }
+            }
+
+            // Explosion effect (frying pan level 2+)
+            if (proj.explodeRadius) {
+              for (const other of this.enemies) {
+                if (other !== e && !proj.hitList.includes(other)) {
+                  const dist = Utils.getDist(proj.x, proj.y, other.x, other.y);
+                  if (dist < proj.explodeRadius) {
+                    this.hitEnemy(other, proj.dmg * 0.5, proj.isCrit);
+                  }
+                }
+              }
+              this.spawnParticles({ type: 'splash' as ParticleType, x: proj.x, y: proj.y }, 10);
+            }
+
+            // Knockback effect (frying pan level 3+)
+            if (proj.knockback) {
+              const kbAngle = Math.atan2(e.y - proj.y, e.x - proj.x);
+              const kbForce = proj.knockback;
+              e.x = (e.x + Math.cos(kbAngle) * kbForce + CONFIG.worldSize) % CONFIG.worldSize;
+              e.y = (e.y + Math.sin(kbAngle) * kbForce + CONFIG.worldSize) % CONFIG.worldSize;
             }
 
             proj.pierce--;
@@ -744,6 +855,18 @@ class GameCore {
           // Explosion particles on hit
           this.spawnParticles({ type: 'fire' as ParticleType, x: fb.x, y: fb.y }, fb.getExplosionParticleCount());
 
+          // Explosion radius (level 2+)
+          if (fb.explodeRadius) {
+            for (const other of this.enemies) {
+              if (other !== e && !fb.hitList.includes(other)) {
+                const dist = Utils.getDist(fb.x, fb.y, other.x, other.y);
+                if (dist < fb.explodeRadius) {
+                  this.hitEnemy(other, fb.dmg * 0.5, fb.isCrit);
+                }
+              }
+            }
+          }
+
           fb.pierce--;
           if (fb.pierce <= 0) {
             fb.marked = true;
@@ -752,9 +875,33 @@ class GameCore {
         }
       }
 
+      // Trail damage (level 4+) - damage enemies near the fireball
+      if (fb.trailDamage && this.frames % 10 === 0) {
+        for (const e of this.enemies) {
+          if (!fb.hitList.includes(e)) {
+            const dist = Utils.getDist(fb.x, fb.y, e.x, e.y);
+            if (dist < 30) {
+              this.hitEnemy(e, fb.trailDamage, false);
+            }
+          }
+        }
+      }
+
       // Fireball expires - spawn explosion
       if (fb.marked && fb.dur <= 0) {
         this.spawnParticles({ type: 'fire' as ParticleType, x: fb.x, y: fb.y }, fb.getExplosionParticleCount());
+
+        // Explosion on expire (level 2+)
+        if (fb.explodeRadius) {
+          for (const e of this.enemies) {
+            if (!fb.hitList.includes(e)) {
+              const dist = Utils.getDist(fb.x, fb.y, e.x, e.y);
+              if (dist < fb.explodeRadius) {
+                this.hitEnemy(e, fb.dmg * 0.5, fb.isCrit);
+              }
+            }
+          }
+        }
       }
     });
 
@@ -804,6 +951,7 @@ class GameCore {
     // Update damage text positions
     UI.updateDamageTexts(this.damageTexts, p.x, p.y, this.frames);
     UI.updateUlt(p.ultCharge, p.ultMax);
+    UI.updateItemSlots(p.items, p.inventory);
 
     // Update HUD
     if (this.frames % 30 === 0) {
@@ -867,7 +1015,7 @@ class GameCore {
     }
 
     UI.showLevelUpScreen(choices, this.player.inventory, {
-      passives: this.player.passives,
+      items: this.player.items,
       critChance: this.player.critChance,
       dmgMult: this.player.dmgMult
     }, (id) => {

@@ -46,6 +46,31 @@ class UISystem {
     }
   }
 
+  updateItemSlots(_items: { pierce: number; cooldown: number; projectile: number }, inventory: Record<string, number>): void {
+    const itemConfig = [
+      { id: 'pierce', key: 'pierce' },
+      { id: 'projectile', key: 'projectile' },
+      { id: 'cooldown', key: 'cooldown' },
+      { id: 'scope', key: 'scope' },
+      { id: 'damage', key: 'damage' }
+    ];
+
+    itemConfig.forEach(config => {
+      const slot = document.querySelector(`.item-slot[data-item="${config.id}"]`);
+      if (slot) {
+        const count = inventory[config.id] || 0;
+        const countEl = slot.querySelector('.item-count');
+        if (countEl) countEl.textContent = count.toString();
+
+        if (count > 0) {
+          slot.classList.add('active');
+        } else {
+          slot.classList.remove('active');
+        }
+      }
+    });
+  }
+
   spawnDamageText(
     _wx: number,
     _wy: number,
@@ -131,7 +156,7 @@ class UISystem {
     choices: string[],
     inventory: Record<string, number>,
     currentStats: {
-      passives: { pierce: number; cooldown: number };
+      items: { pierce: number; cooldown: number; projectile: number };
       critChance: number;
       dmgMult: number;
     },
@@ -166,10 +191,14 @@ class UISystem {
           statsHtml += `<div style="color:#f472b6">◎ ${baseArea} Area</div>`;
         }
       } else {
-        // Passives
+        // Items
         if (def.pierce !== undefined) {
-          const current = currentStats.passives.pierce;
+          const current = currentStats.items.pierce;
           statsHtml = `<div style="color:#4ade80">Pierce: ${current} → ${current + def.pierce}</div>`;
+        }
+        if (def.projectileCount !== undefined) {
+          const current = currentStats.items.projectile;
+          statsHtml = `<div style="color:#f472b6">Projectile: +${current} → +${current + def.projectileCount}</div>`;
         }
         if (def.crit !== undefined) {
           const current = Math.round(currentStats.critChance * 100);
@@ -181,7 +210,7 @@ class UISystem {
           statsHtml = `<div style="color:#ef4444">Damage: +${current}% → +${next}%</div>`;
         }
         if (def.cooldownMult !== undefined) {
-          const current = Math.round(currentStats.passives.cooldown * 100);
+          const current = Math.round(currentStats.items.cooldown * 100);
           const next = current + Math.round(def.cooldownMult * 100);
           statsHtml = `<div style="color:#60a5fa">Atk Spd: +${current}% → +${next}%</div>`;
         }

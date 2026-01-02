@@ -19,6 +19,8 @@ export class FireballProjectile extends Entity {
   pierce: number;
   isCrit: boolean;
   hitList: Entity[];
+  explodeRadius?: number;
+  trailDamage?: number;
 
   // Visual state
   private pulsePhase: number;

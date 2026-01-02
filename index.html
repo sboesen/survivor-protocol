@@ -31,6 +31,30 @@
             <span class="btn-hotkey">Z</span>
             <div id="ult-cooldown-overlay" class="ult-cooldown" style="height:100%"></div>
         </div>
+
+        <!-- Item Slots (bottom left) -->
+        <div id="item-slots" class="item-slots">
+            <div class="item-slot" data-item="pierce">
+                <span class="item-icon">🗡</span>
+                <span class="item-count">0</span>
+            </div>
+            <div class="item-slot" data-item="projectile">
+                <span class="item-icon">🔮</span>
+                <span class="item-count">0</span>
+            </div>
+            <div class="item-slot" data-item="cooldown">
+                <span class="item-icon">⚡</span>
+                <span class="item-count">0</span>
+            </div>
+            <div class="item-slot" data-item="scope">
+                <span class="item-icon">🎯</span>
+                <span class="item-count">0</span>
+            </div>
+            <div class="item-slot" data-item="damage">
+                <span class="item-icon">💪</span>
+                <span class="item-count">0</span>
+            </div>
+        </div>
     </div>
 
     <!-- Main Menu -->
@@ -43,7 +67,7 @@
         </div>
         <div style="margin-top:10px;">
             <button onclick="Menu.openGacha()">SUMMON HERO (500G)</button>
-            <button onclick="Menu.openShop()">PASSIVE UPGRADES</button>
+            <button onclick="Menu.openShop()">ITEM UPGRADES</button>
         </div>
         <button class="debug-btn-toggle" onclick="Menu.openDebug()">[ DEBUG MENU ]</button>
     </div>
