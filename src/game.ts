@@ -336,7 +336,7 @@ class GameCore {
 
   spawnParticles(config: ParticleSpawnConfig, count = 1): void {
     // Cap particles to prevent performance issues
-    const MAX_PARTICLES = 500;
+    const MAX_PARTICLES = 2500;
     if (this.particles.length >= MAX_PARTICLES) return;
 
     // Ensure particle type is valid
