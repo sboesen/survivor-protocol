@@ -151,23 +151,40 @@ class GameCore {
     const spawnY = CONFIG.worldSize / 2;
     const safeZone = 200; // Keep area around spawn clear
 
-    // Generate obstacles (away from spawn point)
+    // Generate obstacles (away from spawn point and each other)
     for (let i = 0; i < 40; i++) {
-      let ox, oy;
+      let ox = 0, oy = 0, ow = 80, od = 80;
       let attempts = 0;
-      do {
+      let valid = false;
+      const maxAttempts = 50;
+
+      while (!valid && attempts < maxAttempts) {
         ox = Utils.rand(0, CONFIG.worldSize);
         oy = Utils.rand(0, CONFIG.worldSize);
+        ow = Utils.rand(60, 150);
+        od = Utils.rand(60, 150);
         attempts++;
-      } while (attempts < 10 && Utils.getDist(ox, oy, spawnX, spawnY) < safeZone);
 
-      this.obstacles.push(new Obstacle(
-        ox, oy,
-        Utils.rand(60, 150),
-        Utils.rand(60, 150),
-        // TODO: Refactor healing fountains - add depleted stage, limited charges, respawn mechanic
-        'ruin' // Temporarily disabled 'font' spawning (was: Math.random() > 0.9 ? 'font' : 'ruin')
-      ));
+        // Check safe zone around spawn
+        if (Utils.getDist(ox, oy, spawnX, spawnY) < safeZone + 80) continue;
+
+        // Check collision with existing obstacles
+        let overlaps = false;
+        for (const existing of this.obstacles) {
+          const dist = Utils.getDist(ox, oy, existing.x, existing.y);
+          const minDist = (ow + existing.w) / 2 + 80; // Buffer zone
+          if (dist < minDist) {
+            overlaps = true;
+            break;
+          }
+        }
+
+        if (!overlaps) valid = true;
+      }
+
+      if (valid) {
+        this.obstacles.push(new Obstacle(ox, oy, ow, od, 'ruin'));
+      }
     }
 
     UI.updateHud(0, 0, 1, 0, char.id);
