@@ -18,6 +18,11 @@ import type { InputState, DamageText, EntityType } from './types';
 class GameCore {
   canvas: HTMLCanvasElement | null = null;
   ctx: CanvasRenderingContext2D | null = null;
+
+  // Debug stats
+  private fps: number = 60;
+  private fpsFrames: number = 0;
+  private fpsLastTime: number = 0;
   active = false;
   paused = false;
   frames = 0;
@@ -1279,8 +1284,22 @@ class GameCore {
 
   loop(currentTime = 0): void {
     if (!this.lastTime) this.lastTime = currentTime;
+    if (!this.fpsLastTime) this.fpsLastTime = currentTime;
     const deltaTime = currentTime - this.lastTime;
     this.lastTime = currentTime;
+
+    // FPS tracking
+    this.fpsFrames++;
+    if (currentTime - this.fpsLastTime >= 1000) {
+      this.fps = this.fpsFrames;
+      this.fpsFrames = 0;
+      this.fpsLastTime = currentTime;
+
+      // Log debug info every second
+      if (this.active) {
+        console.log(`FPS: ${this.fps} | Particles: ${this.particles.length} | Enemies: ${this.enemies.length} | Projectiles: ${this.projectiles.length} | Fireballs: ${this.fireballs.length}`);
+      }
+    }
 
     this.accumulator += deltaTime;
 
