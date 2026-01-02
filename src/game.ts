@@ -33,6 +33,10 @@ import {
   calculateChestGold,
   calculateExplosionParticles,
   calculateDeathExplosionSize,
+  calculateBubbleSplit,
+  findEnemiesInExplosion,
+  findEnemiesNearPoint,
+  applyKnockback,
 } from './systems/combat';
 import {
   hasDamageImmunity,
@@ -724,19 +728,19 @@ class GameCore {
 
               // Bubble split on hit (level 4 upgrade)
               if (proj.splits && this.projectiles.length < 200) {
-                for (let i = 0; i < 3; i++) {
-                  const angle = (Math.PI * 2 / 3) * i;
+                const splits = calculateBubbleSplit(proj.x, proj.y, proj.dmg, proj.isCrit);
+                for (const s of splits) {
                   const splitProj = new Projectile(
                     proj.x,
                     proj.y,
-                    Math.cos(angle) * 3,
-                    Math.sin(angle) * 3,
+                    s.vx,
+                    s.vy,
                     3,
                     '#aaddff',
-                    proj.dmg * 0.5,
+                    s.dmg,
                     30,
                     1,
-                    proj.isCrit
+                    s.isCrit
                   );
                   splitProj.isBubble = true;
                   this.projectiles.push(splitProj);
@@ -746,12 +750,10 @@ class GameCore {
 
             // Explosion effect (frying pan level 2+)
             if (proj.explodeRadius) {
-              for (const other of this.enemies) {
-                if (other !== e && !proj.hitList.includes(other)) {
-                  const dist = Utils.getDist(proj.x, proj.y, other.x, other.y);
-                  if (dist < proj.explodeRadius) {
-                    this.hitEnemy(other, proj.dmg * 0.5, proj.isCrit);
-                  }
+              const explosionResult = findEnemiesInExplosion(proj.x, proj.y, proj.explodeRadius, this.enemies, [e]);
+              for (const other of explosionResult.enemies) {
+                if (!proj.hitList.includes(other)) {
+                  this.hitEnemy(other, proj.dmg * explosionResult.damageMultiplier, proj.isCrit);
                 }
               }
               this.spawnParticles({ type: 'splash' as ParticleType, x: proj.x, y: proj.y }, 10);
@@ -760,9 +762,9 @@ class GameCore {
             // Knockback effect (frying pan level 3+)
             if (proj.knockback) {
               const kbAngle = Math.atan2(e.y - proj.y, e.x - proj.x);
-              const kbForce = proj.knockback;
-              e.x = (e.x + Math.cos(kbAngle) * kbForce + CONFIG.worldSize) % CONFIG.worldSize;
-              e.y = (e.y + Math.sin(kbAngle) * kbForce + CONFIG.worldSize) % CONFIG.worldSize;
+              const newPos = applyKnockback(e, kbAngle, proj.knockback);
+              e.x = newPos.x;
+              e.y = newPos.y;
             }
 
             proj.pierce--;
@@ -788,12 +790,10 @@ class GameCore {
 
           // Explosion radius (level 2+)
           if (fb.explodeRadius) {
-            for (const other of this.enemies) {
-              if (other !== e && !fb.hitList.includes(other)) {
-                const dist = Utils.getDist(fb.x, fb.y, other.x, other.y);
-                if (dist < fb.explodeRadius) {
-                  this.hitEnemy(other, fb.dmg * 0.5, fb.isCrit);
-                }
+            const explosionResult = findEnemiesInExplosion(fb.x, fb.y, fb.explodeRadius, this.enemies, [e]);
+            for (const other of explosionResult.enemies) {
+              if (!fb.hitList.includes(other)) {
+                this.hitEnemy(other, fb.dmg * explosionResult.damageMultiplier, fb.isCrit);
               }
             }
           }
@@ -808,13 +808,9 @@ class GameCore {
 
       // Trail damage (level 4+) - damage enemies near the fireball
       if (fb.trailDamage && this.frames % 10 === 0) {
-        for (const e of this.enemies) {
-          if (!fb.hitList.includes(e)) {
-            const dist = Utils.getDist(fb.x, fb.y, e.x, e.y);
-            if (dist < 30) {
-              this.hitEnemy(e, fb.trailDamage, false);
-            }
-          }
+        const nearEnemies = findEnemiesNearPoint(fb.x, fb.y, 30, this.enemies, fb.hitList);
+        for (const e of nearEnemies) {
+          this.hitEnemy(e, fb.trailDamage, false);
         }
       }
 
@@ -824,13 +820,9 @@ class GameCore {
 
         // Explosion on expire (level 2+)
         if (fb.explodeRadius) {
-          for (const e of this.enemies) {
-            if (!fb.hitList.includes(e)) {
-              const dist = Utils.getDist(fb.x, fb.y, e.x, e.y);
-              if (dist < fb.explodeRadius) {
-                this.hitEnemy(e, fb.dmg * 0.5, fb.isCrit);
-              }
-            }
+          const explosionResult = findEnemiesInExplosion(fb.x, fb.y, fb.explodeRadius, this.enemies, fb.hitList);
+          for (const e of explosionResult.enemies) {
+            this.hitEnemy(e, fb.dmg * explosionResult.damageMultiplier, fb.isCrit);
           }
         }
       }
