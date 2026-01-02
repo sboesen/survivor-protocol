@@ -1303,6 +1303,11 @@ class GameCore {
 
     this.accumulator += deltaTime;
 
+    // Cap accumulator to prevent spiral death on alt-tab (max 100ms catchup)
+    if (this.accumulator > 100) {
+      this.accumulator = 100;
+    }
+
     // Fixed timestep update - run update() exactly 60 times per second
     while (this.accumulator >= this.timestep) {
       this.update();
