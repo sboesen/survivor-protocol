@@ -250,8 +250,8 @@ class GameCore {
 
     UI.updateHud(0, 0, 1, 0, char.id, 0, 0);
 
-    // Warm up JIT by running fireball code once
-    this.warmupFireball();
+    // Warm up JIT by running common code paths
+    this.warmupAll();
   }
 
   private warmupFireball(): void {
@@ -261,6 +261,31 @@ class GameCore {
     fb.shouldEmitTrail();
     fb.getTrailParticleCount();
     fb.getExplosionParticleCount();
+  }
+
+  private warmupAll(): void {
+    // Warm up all commonly-used code paths to prevent JIT stutters
+    this.warmupFireball();
+
+    // Warm up regular projectiles
+    const proj = new Projectile(0, 0, 1, 1, 5, '#fff', 10, 10, 1, false);
+    proj.update();
+
+    // Warm up particles (all types)
+    const particleTypes: ParticleType[] = ['water', 'explosion', 'smoke', 'blood', 'spark', 'foam', 'ripple', 'caustic', 'splash', 'fire', 'gas'];
+    for (const type of particleTypes) {
+      const p = new Particle({ type, x: 0, y: 0 });
+      p.update();
+    }
+
+    // Warm up enemy
+    const dummyPlayer = new Player('janitor', 1, 1, 'bubble_stream', 'ClosingTime', { health: 0, speed: 0, magnet: 0, damage: 0 });
+    const enemy = new Enemy(1000, 1000, 'basic', 0);
+    enemy.update(dummyPlayer, 0, []);
+
+    // Warm up loot (draw to compile that path)
+    const loot = new Loot(0, 0, 'gem');
+    loot.draw(this.ctx!, 0, 0, 800, 600);
   }
 
   quitRun(): void {
