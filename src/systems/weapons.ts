@@ -290,7 +290,7 @@ export function fireFireball(
  * Fire a weapon of type 'spray' (pepper_spray or lighter).
  */
 export function fireSpray(
-  p: { x: number; y: number },
+  _p: { x: number; y: number },
   lastDx: number | undefined,
   lastDy: number | undefined,
   aimAngle: number | undefined,

@@ -84,8 +84,8 @@ export interface GreaseFireProjectile {
  * @returns Array of 12 projectile data objects
  */
 export function calculateGreaseFireProjectiles(
-  x: number,
-  y: number
+  _x: number,
+  _y: number
 ): GreaseFireProjectile[] {
   const projectiles: GreaseFireProjectile[] = [];
 

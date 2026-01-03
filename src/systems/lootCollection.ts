@@ -5,7 +5,6 @@
  */
 
 import { CONFIG } from '../config';
-import type { Loot } from '../entities/loot';
 import type { Player } from '../entities/player';
 
 /**

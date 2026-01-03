@@ -23,10 +23,6 @@ import {
   shouldUpdateHud,
 } from './systems/timeManager';
 import { processPlayerMovement } from './systems/movement';
-import {
-  findNearestEnemy,
-  calculateWrappedAngle,
-} from './systems/targeting';
 import { fireWeapon, calculateWeaponDamage, decrementCooldown } from './systems/weapons';
 import {
   calculateLootDrop,
@@ -50,15 +46,12 @@ import {
   isValidParticleType,
   calculateParticleSpawnCount,
   canSpawnParticles,
-  MAX_PARTICLES,
 } from './systems/particleSpawning';
 import {
-  calculateZoomScale,
   calculateJoystickParams,
-  calculateGridParams,
-  FLOOR_COLOR,
   JOYSTICK_COLORS,
 } from './systems/rendering';
+import { threeRenderer } from './renderer/three';
 import { Player } from './entities/player';
 import { Enemy } from './entities/enemy';
 import { Projectile } from './entities/projectile';
@@ -66,7 +59,7 @@ import { FireballProjectile } from './entities/fireballProjectile';
 import { Loot } from './entities/loot';
 import { Obstacle } from './entities/obstacle';
 import { Particle, type ParticleSpawnConfig, type ParticleType } from './entities/particle';
-import type { InputState, DamageText, EntityType } from './types';
+import type { InputState, DamageText } from './types';
 
 class GameCore {
   canvas: HTMLCanvasElement | null = null;
@@ -114,6 +107,9 @@ class GameCore {
 
     this.ctx = this.canvas.getContext('2d');
     if (!this.ctx) return;
+
+    // Initialize Three.js renderer
+    threeRenderer.init(this.canvas);
 
     this.resize();
     window.onresize = () => this.resize();
@@ -223,6 +219,7 @@ class GameCore {
     if (this.canvas) {
       this.canvas.width = window.innerWidth;
       this.canvas.height = window.innerHeight;
+      threeRenderer.resize(window.innerWidth, window.innerHeight);
     }
   }
 
@@ -818,7 +815,7 @@ class GameCore {
 
       // Trail damage (level 4+) - damage enemies near the fireball
       if (fb.trailDamage && this.frames % 10 === 0) {
-        const nearEnemies = findEnemiesNearPoint(fb.x, fb.y, 30, this.enemies, fb.hitList);
+        const nearEnemies = findEnemiesNearPoint(fb.x, fb.y, 30, this.enemies, fb.hitList as Enemy[]);
         for (const e of nearEnemies) {
           this.hitEnemy(e, fb.trailDamage, false);
         }
@@ -830,7 +827,7 @@ class GameCore {
 
         // Explosion on expire (level 2+)
         if (fb.explodeRadius) {
-          const explosionResult = findEnemiesInExplosion(fb.x, fb.y, fb.explodeRadius, this.enemies, fb.hitList);
+          const explosionResult = findEnemiesInExplosion(fb.x, fb.y, fb.explodeRadius, this.enemies, fb.hitList as Enemy[]);
           for (const e of explosionResult.enemies) {
             this.hitEnemy(e, fb.dmg * explosionResult.damageMultiplier, fb.isCrit);
           }
@@ -966,65 +963,32 @@ class GameCore {
   render(): void {
     if (!this.ctx) return;
 
-    const ctx = this.ctx; // Non-null assertion after check
+    const ctx = this.ctx;
+    const cw = ctx.canvas.width;
+    const ch = ctx.canvas.height;
+
+    // Clear canvas for Three.js
     ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.fillRect(0, 0, cw, ch);
 
     if (!this.active || !this.player) return;
 
     const p = this.player;
-    const cw = ctx.canvas.width;
-    const ch = ctx.canvas.height;
-    const px = p.x;
-    const py = p.y;
 
-    // Zoom out on mobile for better visibility
-    const zoomScale = calculateZoomScale('ontouchstart' in window, navigator.maxTouchPoints);
+    // Render main scene with Three.js - passing actual entity objects
+    threeRenderer.render(
+      p,
+      this.enemies,
+      this.projectiles,
+      this.loot,
+      this.fireballs,
+      this.particles,
+      cw,
+      ch
+    );
 
-    // Draw grid/floor - simple performant grid with dark floor
-    ctx.save();
-    if (zoomScale < 1) {
-      ctx.translate(cw / 2, ch / 2);
-      ctx.scale(zoomScale, zoomScale);
-      ctx.translate(-cw / 2, -ch / 2);
-    }
-
-    // Dark floor background
-    ctx.fillStyle = FLOOR_COLOR;
-    ctx.fillRect(0, 0, cw, ch);
-
-    // Simple grid lines (much cheaper than tiles)
-    const grid = calculateGridParams(px, py);
-    const tileSize = grid.tileSize;
-    const offsetX = grid.offsetX;
-    const offsetY = grid.offsetY;
-
-    ctx.strokeStyle = grid.color;
-    ctx.lineWidth = grid.lineWidth;
-    ctx.beginPath();
-    for (let x = -offsetX; x <= cw; x += tileSize) {
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, ch);
-    }
-    for (let y = -offsetY; y <= ch; y += tileSize) {
-      ctx.moveTo(0, y);
-      ctx.lineTo(cw, y);
-    }
-    ctx.stroke();
-
-    // Draw entities
-    this.obstacles.forEach(o => o.draw(ctx, px, py, cw, ch));
-    this.loot.forEach(l => l.draw(ctx, px, py, cw, ch));
-    this.particles.forEach(pt => pt.draw(ctx, px, py, cw, ch));
-    this.enemies.forEach(e => e.draw(ctx, px, py, cw, ch));
-    this.projectiles.forEach(proj => proj.draw(ctx, px, py, cw, ch));
-    this.fireballs.forEach(fb => fb.draw(ctx, px, py, cw, ch));
-    p.draw(ctx, px, py, cw, ch);
-
-    // Draw illuminations AFTER entities so the light effect appears on top using 'lighter' composite
-    this.particles.forEach(pt => pt.drawIllumination(ctx, px, py, cw, ch));
-    this.fireballs.forEach(fb => fb.drawIllumination(ctx, px, py, cw, ch));
-    ctx.restore();
+    // Render obstacles using Canvas 2D overlay
+    threeRenderer.renderObstaclesCanvas(ctx, this.obstacles);
 
     // Draw joysticks (mobile only)
     // Movement joystick (left)
