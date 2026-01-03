@@ -88,14 +88,14 @@ export const SPRITES: Sprites = {
     "   1   1  "
   ],
   bat: [
+    " d  d  d  ",
+    "ddddd ddd ",
+    "ddddrdddd ",
+    " ddddddd  ",
+    "  ddddd   ",
+    "   ddd    ",
+    "    d     ",
     "          ",
-    " d      d ",
-    " ddd  ddd ",
-    "  dddddd  ",
-    "   drrd   ",
-    "  dddddd  ",
-    "   dddd   ",
-    "    dd    ",
     "          ",
     "          "
   ],
@@ -137,14 +137,14 @@ export const SPRITES: Sprites = {
     "   1   1  "
   ],
   sprinter: [
+    " d  d  d  ",
+    "ddddd ddd ",
+    "ddddrdddd ",
+    " ddddddd  ",
+    "  ddddd   ",
+    "   ddd    ",
+    "    d     ",
     "          ",
-    " d      d ",
-    " ddd  ddd ",
-    "  dddddd  ",
-    "   drrd   ",
-    "  dddddd  ",
-    "   dddd   ",
-    "    dd    ",
     "          ",
     "          "
   ],
@@ -198,15 +198,15 @@ export const SPRITES: Sprites = {
     "  33333333 "
   ],
   heart: [
-    "   r   r  ",
-    "  rr r rr ",
-    " rrr rrrr ",
+    "   rr rr  ",
+    "  rrrrrr  ",
+    " rrrrrrrr ",
     " rrrrrrrr ",
     "  rrrrrr  ",
     "   rrrr   ",
     "    rr    ",
-    "    11    ",
-    "   1111   ",
-    "  11  11  "
+    "    rr    ",
+    "          ",
+    "          "
   ]
 };

@@ -3,12 +3,14 @@ import { Game } from './game';
 import { Menu } from './systems/menu';
 import { GachaAnim } from './systems/gacha';
 import { Debug } from './systems/debug';
+import { SpriteViewer } from './systems/spriteViewer';
 
 // Expose to window for HTML onclick handlers
 (window as any).Game = Game;
 (window as any).Menu = Menu;
 (window as any).GachaAnim = GachaAnim;
 (window as any).Debug = Debug;
+(window as any).SpriteViewer = SpriteViewer;
 
 // Start the game when DOM is ready
 if (document.readyState === 'loading') {

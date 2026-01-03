@@ -2,6 +2,7 @@ import { CHARACTERS } from '../data/characters';
 import { SaveData } from './saveData';
 import { GachaAnim } from './gacha';
 import { SHOP_ITEMS } from '../data/shop';
+import { SpriteViewer } from './spriteViewer';
 
 class MenuSystem {
   renderCharSelect(): void {
@@ -129,6 +130,26 @@ class MenuSystem {
     if (menuScreen) menuScreen.classList.add('active');
 
     this.renderCharSelect();
+  }
+
+  openSpriteViewer(): void {
+    const debugScreen = document.getElementById('debug-screen');
+    const viewerScreen = document.getElementById('sprite-viewer-screen');
+
+    if (debugScreen) debugScreen.classList.remove('active');
+    if (viewerScreen) viewerScreen.classList.add('active');
+
+    SpriteViewer.open();
+  }
+
+  closeSpriteViewer(): void {
+    const debugScreen = document.getElementById('debug-screen');
+    const viewerScreen = document.getElementById('sprite-viewer-screen');
+
+    if (viewerScreen) viewerScreen.classList.remove('active');
+    if (debugScreen) debugScreen.classList.add('active');
+
+    SpriteViewer.close();
   }
 }
 
