@@ -981,6 +981,9 @@ class GameCore {
 
     const p = this.player;
 
+    // Render ground illumination effects (fire glow, etc.)
+    threeRenderer.renderIllumination(ctx, this.particles, this.fireballs, p.x, p.y, cw, ch);
+
     // Render main scene with Three.js - passing actual entity objects
     threeRenderer.render(
       p,

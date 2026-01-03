@@ -91,6 +91,120 @@ export class ThreeRenderer {
     this.sceneManager.render();
   }
 
+  /**
+   * Render ground illumination effects (fire glow, etc.)
+   * Call this after renderBackgroundCanvas but before Three.js sprites
+   */
+  renderIllumination(
+    ctx: CanvasContext,
+    particles: Particle[],
+    fireballs: FireballProjectile[],
+    _playerX: number,
+    _playerY: number,
+    cw: number,
+    ch: number
+  ): void {
+    if (!ctx) return;
+
+    const camera = this.sceneManager.camera;
+    const camX = camera.position.x;
+    const camY = camera.position.y;
+    const halfWidth = (camera.right - camera.left) / 2;
+    const halfHeight = (camera.top - camera.bottom) / 2;
+
+    const pixelsPerUnitX = cw / (halfWidth * 2);
+    const pixelsPerUnitY = ch / (halfHeight * 2);
+
+    // Get time for pulsing effects
+    const time = Date.now() / 1000;
+
+    // Enable additive blending for glow effect
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+
+    // Render fireball ground illumination
+    for (const fb of fireballs) {
+      if (fb.marked) continue;
+
+      let rx = fb.x - camX;
+      let ry = fb.y - camY;
+
+      // Handle wrapping
+      const worldSize = 2000;
+      if (rx < -worldSize / 2) rx += worldSize;
+      if (rx > worldSize / 2) rx -= worldSize;
+      if (ry < -worldSize / 2) ry += worldSize;
+      if (ry > worldSize / 2) ry -= worldSize;
+
+      const sx = rx * pixelsPerUnitX + cw / 2;
+      const sy = ch / 2 + ry * pixelsPerUnitY;
+
+      // Culling
+      if (sx < -150 || sx > cw + 150 || sy < -150 || sy > ch + 150) continue;
+
+      // Pulsing glow
+      const pulseScale = 1 + Math.sin(time * 5 + fb.x) * 0.3;
+      const illumRadius = fb.radius * 12 * pulseScale * pixelsPerUnitX;
+
+      // Outer glow gradient
+      const gradient = ctx.createRadialGradient(sx, sy, 0, sx, sy, illumRadius);
+      gradient.addColorStop(0, 'rgba(255, 200, 100, 0.5)');
+      gradient.addColorStop(0.2, 'rgba(255, 150, 50, 0.3)');
+      gradient.addColorStop(0.5, 'rgba(255, 100, 30, 0.15)');
+      gradient.addColorStop(0.8, 'rgba(255, 60, 10, 0.05)');
+      gradient.addColorStop(1, 'rgba(255, 30, 0, 0)');
+
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(sx, sy, illumRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Bright core
+      const coreRadius = fb.radius * 4 * pixelsPerUnitX;
+      const coreGradient = ctx.createRadialGradient(sx, sy, 0, sx, sy, coreRadius);
+      coreGradient.addColorStop(0, 'rgba(255, 255, 200, 0.4)');
+      coreGradient.addColorStop(0.5, 'rgba(255, 200, 100, 0.2)');
+      coreGradient.addColorStop(1, 'rgba(255, 100, 50, 0)');
+
+      ctx.fillStyle = coreGradient;
+      ctx.beginPath();
+      ctx.arc(sx, sy, coreRadius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Render fire particle illumination
+    for (const pt of particles) {
+      if (pt.marked || pt.type !== 'fire') continue;
+
+      let rx = pt.x - camX;
+      let ry = pt.y - camY;
+
+      // Fire particles don't wrap
+      if (Math.abs(rx) > halfWidth * 1.5 || Math.abs(ry) > halfHeight * 1.5) continue;
+
+      const sx = rx * pixelsPerUnitX + cw / 2;
+      const sy = ch / 2 + ry * pixelsPerUnitY;
+
+      // Culling
+      if (sx < -100 || sx > cw + 100 || sy < -100 || sy > ch + 100) continue;
+
+      const alpha = Math.max(0, pt.life / pt.maxLife);
+      const illumRadius = pt.size * 8 * pixelsPerUnitX;
+
+      const gradient = ctx.createRadialGradient(sx, sy, 0, sx, sy, illumRadius);
+      gradient.addColorStop(0, `rgba(255, 150, 50, ${alpha * 0.4})`);
+      gradient.addColorStop(0.5, `rgba(255, 80, 20, ${alpha * 0.15})`);
+      gradient.addColorStop(1, 'rgba(255, 30, 0, 0)');
+
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(sx, sy, illumRadius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
   private renderPlayer(player: Player | null): void {
     if (!player) return;
 
@@ -273,39 +387,47 @@ export class ThreeRenderer {
       let view = this.fireballViews.get(fb);
 
       if (!view) {
-        // Fireball is orange with a glow effect
+        // Fireball with circular glow textures
         view = new THREE.Group();
 
-        // Outer orange glow (larger)
+        // Create circular glow texture
+        const glowTexture = this.createGlowTexture(0xff6600, 128);
         const glowMaterial = new THREE.SpriteMaterial({
-          color: 0xff6600,
+          map: glowTexture,
           transparent: true,
-          opacity: 0.4,
+          opacity: 0.5,
           depthTest: false,
+          blending: THREE.AdditiveBlending,
         });
         const glow = new THREE.Sprite(glowMaterial);
-        glow.scale.set(fb.radius * 4, fb.radius * 4, 1);
+        glow.scale.set(fb.radius * 6, fb.radius * 6, 1);
         glow.position.z = -0.1;
         view.add(glow);
 
-        // Middle layer
+        // Middle layer - orange
+        const midTexture = this.createGlowTexture(0xff8800, 64);
         const midMaterial = new THREE.SpriteMaterial({
-          color: 0xff8800,
+          map: midTexture,
           transparent: true,
-          opacity: 0.6,
+          opacity: 0.7,
           depthTest: false,
+          blending: THREE.AdditiveBlending,
         });
         const mid = new THREE.Sprite(midMaterial);
-        mid.scale.set(fb.radius * 2.5, fb.radius * 2.5, 1);
+        mid.scale.set(fb.radius * 3, fb.radius * 3, 1);
         view.add(mid);
 
-        // Inner bright core
+        // Inner bright core - yellow-white
+        const coreTexture = this.createGlowTexture(0xffffcc, 32);
         const coreMaterial = new THREE.SpriteMaterial({
-          color: 0xffffaa,
+          map: coreTexture,
+          transparent: true,
+          opacity: 0.9,
           depthTest: false,
+          blending: THREE.AdditiveBlending,
         });
         const core = new THREE.Sprite(coreMaterial);
-        core.scale.set(fb.radius * 1.2, fb.radius * 1.2, 1);
+        core.scale.set(fb.radius * 1.5, fb.radius * 1.5, 1);
         core.position.z = 0.1;
         view.add(core);
 
@@ -330,42 +452,238 @@ export class ThreeRenderer {
 
     if (particles.length === 0) return;
 
-    // Create buffer geometry for all particles
-    const positions = new Float32Array(particles.length * 3);
-    const colors = new Float32Array(particles.length * 3);
-    const sizes = new Float32Array(particles.length);
+    // Separate particles by type for different rendering
+    const waterParticles: Particle[] = [];
+    const fireParticles: Particle[] = [];
+    const otherParticles: Particle[] = [];
 
-    for (let i = 0; i < particles.length; i++) {
-      const pt = particles[i];
-      positions[i * 3] = pt.x;
-      positions[i * 3 + 1] = pt.y;
-      positions[i * 3 + 2] = 12; // Z position for particles
-
-      const color = new THREE.Color(pt.color);
-      colors[i * 3] = color.r;
-      colors[i * 3 + 1] = color.g;
-      colors[i * 3 + 2] = color.b;
-
-      sizes[i] = pt.size;
+    for (const pt of particles) {
+      if (pt.marked) continue;
+      if (pt.type === 'water' || pt.type === 'foam' || pt.type === 'ripple' || pt.type === 'caustic' || pt.type === 'splash') {
+        waterParticles.push(pt);
+      } else if (pt.type === 'fire') {
+        fireParticles.push(pt);
+      } else {
+        otherParticles.push(pt);
+      }
     }
 
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+    // Render water particles with sprite textures (circles with highlights)
+    if (waterParticles.length > 0) {
+      const positions = new Float32Array(waterParticles.length * 3);
+      const colors = new Float32Array(waterParticles.length * 3);
+      const alphas = new Float32Array(waterParticles.length);
 
-    const material = new THREE.PointsMaterial({
-      size: 4,
-      vertexColors: true,
-      transparent: true,
-      opacity: 0.8,
-      sizeAttenuation: false,
-      depthTest: false,
-    });
+      for (let i = 0; i < waterParticles.length; i++) {
+        const pt = waterParticles[i];
+        positions[i * 3] = pt.x;
+        positions[i * 3 + 1] = pt.y;
+        positions[i * 3 + 2] = 13; // Z position
 
-    const points = new THREE.Points(geometry, material);
-    this.sceneManager.addToScene(points);
-    this.particleViews.push(points);
+        const color = new THREE.Color(pt.color);
+        colors[i * 3] = color.r;
+        colors[i * 3 + 1] = color.g;
+        colors[i * 3 + 2] = color.b;
+
+        alphas[i] = Math.max(0, pt.life / pt.maxLife) * 0.8;
+      }
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+      // Create shader material for circular water particles with highlight
+      const material = new THREE.ShaderMaterial({
+        uniforms: {
+          pointSize: { value: 8.0 }
+        },
+        vertexShader: `
+          attribute vec3 color;
+          varying vec3 vColor;
+          varying float vAlpha;
+          uniform float pointSize;
+          void main() {
+            vColor = color;
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            gl_PointSize = pointSize * (300.0 / -mvPosition.z);
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        `,
+        fragmentShader: `
+          varying vec3 vColor;
+          uniform float pointSize;
+          void main() {
+            vec2 coord = gl_PointCoord - vec2(0.5);
+            float dist = length(coord);
+            if (dist > 0.5) discard;
+
+            // Create water droplet effect with highlight
+            float alpha = 1.0 - smoothstep(0.3, 0.5, dist);
+            float highlight = smoothstep(0.35, 0.0, dist) * 0.5;
+
+            vec3 finalColor = vColor + vec3(highlight);
+            gl_FragColor = vec4(finalColor, alpha * 0.8);
+          }
+        `,
+        transparent: true,
+        depthTest: false,
+      });
+
+      const points = new THREE.Points(geometry, material);
+      this.sceneManager.addToScene(points);
+      this.particleViews.push(points);
+    }
+
+    // Render fire particles with life-based color transition
+    if (fireParticles.length > 0) {
+      const positions = new Float32Array(fireParticles.length * 3);
+      const lives = new Float32Array(fireParticles.length);
+
+      for (let i = 0; i < fireParticles.length; i++) {
+        const pt = fireParticles[i];
+        positions[i * 3] = pt.x;
+        positions[i * 3 + 1] = pt.y;
+        positions[i * 3 + 2] = 12; // Z position
+        // Life progress (0 = dead, 1 = full life)
+        lives[i] = Math.max(0, pt.life / pt.maxLife);
+      }
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('life', new THREE.BufferAttribute(lives, 1));
+
+      // Fire particle shader with dramatic color transition
+      const material = new THREE.ShaderMaterial({
+        uniforms: {
+          pointSize: { value: 5.0 }  // Smaller particles
+        },
+        vertexShader: `
+          attribute float life;
+          varying float vLife;
+          uniform float pointSize;
+          void main() {
+            vLife = life;
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            gl_PointSize = pointSize * (300.0 / -mvPosition.z);
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        `,
+        fragmentShader: `
+          varying float vLife;
+          uniform float pointSize;
+          void main() {
+            vec2 coord = gl_PointCoord - vec2(0.5);
+            float dist = length(coord);
+
+            // Circular particle with soft edge
+            float alpha = 1.0 - smoothstep(0.0, 0.5, dist);
+            if (alpha < 0.01) discard;
+
+            // Dramatic 4-stage color transition
+            // Stage 1 (1.0 - 0.7): Bright yellow-white - NEW/HOT
+            // Stage 2 (0.7 - 0.4): Orange - COOLING
+            // Stage 3 (0.4 - 0.2): Dark red - DYING
+            // Stage 4 (0.2 - 0.0): Grey ash - SMOKE
+
+            vec3 brightHot = vec3(1.0, 1.0, 0.7);   // Bright yellow-white
+            vec3 hotColor = vec3(1.0, 0.5, 0.0);    // Orange
+            vec3 coolColor = vec3(0.5, 0.0, 0.0);   // Dark red
+            vec3 smokeColor = vec3(0.25, 0.25, 0.3); // Blue-ish grey (visible!)
+
+            vec3 finalColor;
+            if (vLife > 0.7) {
+              // Bright yellow to orange
+              float t = (vLife - 0.7) / 0.3;
+              finalColor = mix(hotColor, brightHot, t);
+              // Add bright core for new particles
+              float core = smoothstep(0.5, 0.0, dist) * 0.5 * vLife;
+              finalColor += vec3(core);
+            } else if (vLife > 0.4) {
+              // Orange to red
+              float t = (vLife - 0.4) / 0.3;
+              finalColor = mix(coolColor, hotColor, t);
+            } else if (vLife > 0.2) {
+              // Red to dark red
+              float t = (vLife - 0.2) / 0.2;
+              finalColor = mix(vec3(0.2, 0.0, 0.0), coolColor, t);
+            } else {
+              // Dark red to grey smoke - THIS IS THE KEY TRANSITION
+              float t = vLife / 0.2;
+              finalColor = mix(smokeColor, vec3(0.2, 0.0, 0.0), t);
+              // NO bright core for smoke - makes it look dull/grey
+            }
+
+            // Fade overall alpha with life
+            alpha *= smoothstep(0.0, 0.2, vLife);
+
+            gl_FragColor = vec4(finalColor, alpha);
+          }
+        `,
+        transparent: true,
+        depthTest: false,
+        // Use normal blending so grey smoke is visible
+        blending: THREE.NormalBlending,
+      });
+
+      const points = new THREE.Points(geometry, material);
+      this.sceneManager.addToScene(points);
+      this.particleViews.push(points);
+    }
+
+    // Render other particles (simple circles)
+    if (otherParticles.length > 0) {
+      const positions = new Float32Array(otherParticles.length * 3);
+      const colors = new Float32Array(otherParticles.length * 3);
+
+      for (let i = 0; i < otherParticles.length; i++) {
+        const pt = otherParticles[i];
+        positions[i * 3] = pt.x;
+        positions[i * 3 + 1] = pt.y;
+        positions[i * 3 + 2] = 12;
+
+        const color = new THREE.Color(pt.color);
+        colors[i * 3] = color.r;
+        colors[i * 3 + 1] = color.g;
+        colors[i * 3 + 2] = color.b;
+      }
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+      const material = new THREE.ShaderMaterial({
+        uniforms: {
+          pointSize: { value: 6.0 }
+        },
+        vertexShader: `
+          attribute vec3 color;
+          varying vec3 vColor;
+          uniform float pointSize;
+          void main() {
+            vColor = color;
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            gl_PointSize = pointSize * (300.0 / -mvPosition.z);
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        `,
+        fragmentShader: `
+          varying vec3 vColor;
+          void main() {
+            vec2 coord = gl_PointCoord - vec2(0.5);
+            float dist = length(coord);
+            if (dist > 0.5) discard;
+            float alpha = 1.0 - smoothstep(0.3, 0.5, dist);
+            gl_FragColor = vec4(vColor, alpha * 0.8);
+          }
+        `,
+        transparent: true,
+        depthTest: false,
+      });
+
+      const points = new THREE.Points(geometry, material);
+      this.sceneManager.addToScene(points);
+      this.particleViews.push(points);
+    }
   }
 
   /**
@@ -544,6 +862,46 @@ export class ThreeRenderer {
         ctx.stroke();
       }
     }
+  }
+
+  /**
+   * Create a circular glow texture for fireballs and effects
+   */
+  private createGlowTexture(colorHex: number, size: number): THREE.CanvasTexture {
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+      // Fallback
+      return new THREE.CanvasTexture(document.createElement('canvas'));
+    }
+
+    const centerX = size / 2;
+    const centerY = size / 2;
+
+    // Create radial gradient for soft glow
+    const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, size / 2);
+
+    const color = new THREE.Color(colorHex);
+    const r = Math.floor(color.r * 255);
+    const g = Math.floor(color.g * 255);
+    const b = Math.floor(color.b * 255);
+
+    // Center is bright, edges fade to transparent
+    gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 1)`);
+    gradient.addColorStop(0.3, `rgba(${r}, ${g}, ${b}, 0.6)`);
+    gradient.addColorStop(0.6, `rgba(${r}, ${g}, ${b}, 0.2)`);
+    gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, size, size);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.magFilter = THREE.LinearFilter;
+    texture.minFilter = THREE.LinearFilter;
+    return texture;
   }
 
   dispose(): void {
