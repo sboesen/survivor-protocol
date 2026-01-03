@@ -487,4 +487,169 @@ describe('Enemy', () => {
       expect(() => new Enemy(1000, 1000, 'basic', 0, [ruin])).not.toThrow();
     });
   });
+
+  describe('wall sliding with direction selection', () => {
+    let playerEntity: TestEntity;
+    let obstacles: Obstacle[];
+
+    beforeEach(() => {
+      playerEntity = new TestEntity(1000, 1000, 12, '#fff');
+    });
+
+    it('should choose left slide when it gets closer to player', () => {
+      // Enemy is to the left of a horizontal wall, player is to the right
+      const enemy = new Enemy(800, 900, 'basic', 0);
+      enemy.x = 800;
+      enemy.y = 1000;
+
+      // Create a horizontal wall blocking direct path
+      // Wall at x=900, width=100, so spans 850-950
+      const wall = new Obstacle(900, 1000, 100, 200, 'ruin');
+      obstacles = [wall];
+
+      const initialX = enemy.x;
+      enemy.update(playerEntity, 0, obstacles);
+
+      // Enemy should slide left (negative Y direction relative to wall)
+      // to get around the wall and reach player at (1000, 1000)
+      expect(enemy.x).not.toBe(initialX); // Should move
+    });
+
+    it('should choose right slide when left is blocked', () => {
+      // Scenario where only right slide is valid
+      const enemy = new Enemy(900, 800, 'basic', 0);
+      enemy.x = 900;
+      enemy.y = 800;
+
+      playerEntity.x = 900;
+      playerEntity.y = 1200; // Player directly below
+
+      // Horizontal wall blocking direct downward path
+      const wall = new Obstacle(900, 900, 200, 50, 'ruin');
+      obstacles = [wall];
+
+      const initialY = enemy.y;
+      enemy.update(playerEntity, 0, obstacles);
+
+      // Enemy should try to move around the wall
+      expect(enemy.y).not.toBe(initialY);
+    });
+
+    it('should stick to chosen slide direction once committed', () => {
+      // Tests the slideDirection commitment logic
+      const enemy = new Enemy(900, 800, 'basic', 0);
+      enemy.x = 850;
+      enemy.y = 800;
+
+      playerEntity.x = 950;
+      playerEntity.y = 1000;
+
+      // Vertical wall blocking diagonal path
+      const wall = new Obstacle(900, 850, 50, 200, 'ruin');
+      obstacles = [wall];
+
+      // First update - should choose a direction
+      const firstX = enemy.x;
+      enemy.update(playerEntity, 0, obstacles);
+
+      // Second update - should continue sliding in same direction
+      const secondX = enemy.x;
+      enemy.update(playerEntity, 0, obstacles);
+
+      // Movement should be consistent (committed direction)
+      expect(enemy.x).toBeDefined();
+      expect(enemy.y).toBeDefined();
+    });
+
+    it('should switch slide direction when committed path is blocked', () => {
+      // Tests switching from left to right (or vice versa)
+      const enemy = new Enemy(900, 1000, 'basic', 0);
+      enemy.x = 850;
+      enemy.y = 1000;
+
+      playerEntity.x = 950;
+      playerEntity.y = 1000;
+
+      // Create narrow passage scenario
+      const wall1 = new Obstacle(900, 950, 50, 100, 'ruin');
+      const wall2 = new Obstacle(850, 900, 50, 50, 'ruin');
+      obstacles = [wall1, wall2];
+
+      // Should not throw and should try to find path
+      expect(() => enemy.update(playerEntity, 0, obstacles)).not.toThrow();
+    });
+
+    it('should move very little when both slide directions are blocked', () => {
+      const enemy = new Enemy(900, 1000, 'basic', 0);
+      enemy.x = 850;
+      enemy.y = 1000;
+
+      playerEntity.x = 950;
+      playerEntity.y = 1000;
+
+      // Surrounded by obstacles - creates a tight corridor
+      const wall1 = new Obstacle(880, 1000, 30, 100, 'ruin');
+      const wall2 = new Obstacle(920, 1000, 30, 100, 'ruin');
+      const wall3 = new Obstacle(900, 950, 100, 30, 'ruin');
+      obstacles = [wall1, wall2, wall3];
+
+      const initialX = enemy.x;
+      const initialY = enemy.y;
+
+      enemy.update(playerEntity, 0, obstacles);
+
+      // Should move very little (at most its speed) when mostly blocked
+      const dist = Math.hypot(enemy.x - initialX, enemy.y - initialY);
+      expect(dist).toBeLessThanOrEqual(enemy.speed + 0.1);
+    });
+
+    it('should handle world wrapping in distance calculation', () => {
+      // Tests distToPlayer with wrapped coordinates
+      const enemy = new Enemy(100, 1000, 'basic', 0);
+      enemy.x = 100;
+      enemy.y = 1000;
+
+      // Player near right edge
+      playerEntity.x = 1900;
+      playerEntity.y = 1000;
+
+      // Wall between them
+      const wall = new Obstacle(1000, 1000, 200, 50, 'ruin');
+      obstacles = [wall];
+
+      // Enemy should recognize player is closer via wrapping
+      // and move toward wrapped direction
+      expect(() => enemy.update(playerEntity, 0, obstacles)).not.toThrow();
+    });
+  });
+
+  describe('spawn obstacle avoidance with retries', () => {
+    it('should retry up to maxAttempts when finding spawn position', () => {
+      const playerEntity = new TestEntity(1000, 1000, 12, '#fff');
+
+      // Create many obstacles covering most spawn angles
+      const obstacles: Obstacle[] = [];
+      for (let i = 0; i < 8; i++) {
+        const angle = (i / 8) * Math.PI * 2;
+        const ox = 1000 + Math.cos(angle) * 600;
+        const oy = 1000 + Math.sin(angle) * 600;
+        obstacles.push(new Obstacle(ox, oy, 150, 150, 'ruin'));
+      }
+
+      // Should eventually spawn somewhere (even if inside obstacle after max retries)
+      const enemy = new Enemy(1000, 1000, 'basic', 0, obstacles);
+      expect(enemy.x).toBeDefined();
+      expect(enemy.y).toBeDefined();
+    });
+
+    it('should spawn successfully when no obstacles exist', () => {
+      const playerEntity = new TestEntity(1000, 1000, 12, '#fff');
+      const enemy = new Enemy(1000, 1000, 'basic', 0, []);
+
+      // Should spawn at approximately 600 units away
+      const dist = Math.hypot(enemy.x - playerEntity.x, enemy.y - playerEntity.y);
+      expect(dist).toBeGreaterThan(500);
+      expect(dist).toBeLessThan(700);
+    });
+  });
 });

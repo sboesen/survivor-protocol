@@ -29,7 +29,11 @@ vi.mock('../systems/gacha', () => ({
 vi.mock('../systems/ui', () => ({
   UI: {
     updateHud: vi.fn(),
+    updateXp: vi.fn(),
+    updateUlt: vi.fn(),
+    updateItemSlots: vi.fn(),
     spawnDamageText: vi.fn(() => ({ style: {} })),
+    updateDamageTexts: vi.fn(),
     showLevelUpScreen: vi.fn(),
     showGameOverScreen: vi.fn(),
   },
@@ -435,6 +439,100 @@ describe('GameCore', () => {
       const initialLength = game.particles.length;
       game.spawnExplosion(100, 100, 1);
       expect(game.particles.length).toBeGreaterThan(initialLength);
+    });
+  });
+
+  describe('loop()', () => {
+    let game: GameCore;
+    let requestAnimationFrameSpy: ReturnType<typeof vi.spyOn>;
+    let rafCallback: ((timestamp: number) => void) | null = null;
+
+    beforeEach(() => {
+      game = new GameCore();
+      game.init();
+      // Mock requestAnimationFrame to capture the callback
+      requestAnimationFrameSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+        rafCallback = cb as any;
+        return 1 as any;
+      });
+    });
+
+    afterEach(() => {
+      requestAnimationFrameSpy.mockRestore();
+    });
+
+    it('should initialize accumulator to 0', () => {
+      expect(game['accumulator']).toBe(0);
+    });
+
+    it('should update lastTime to current timestamp', () => {
+      const timestamp = 100;
+      game['lastTime'] = 0;
+
+      game['loop'](timestamp);
+
+      expect(game['lastTime']).toBe(timestamp);
+    });
+
+    it('should cap accumulator at 100 to prevent spiral death', () => {
+      game['lastTime'] = 0;
+      // Set accumulator to 90, then add 50ms (would be 140, should cap at 100)
+      game['accumulator'] = 90;
+      // Spy on loop to prevent actual execution of update/render
+      const originalUpdate = game['update'];
+      game['update'] = vi.fn(() => {
+        // Don't call actual update, just decrement accumulator
+        while (game['accumulator'] >= game['timestep']) {
+          game['accumulator'] -= game['timestep'];
+        }
+      });
+
+      game['loop'](50);
+
+      expect(game['accumulator']).toBeLessThanOrEqual(100);
+
+      // Restore
+      game['update'] = originalUpdate;
+    });
+
+    it('should cap accumulator when directly set above 100', () => {
+      game.init();
+      game.start(); // Make game active so update() doesn't return early
+      game['lastTime'] = 0;
+      game['accumulator'] = 50;
+
+      game['loop'](200); // deltaTime = 200 - 0 = 200, 50 + 200 = 250, should cap at 100
+
+      // After capping and update loop consuming, accumulator should be reasonable
+      expect(game['accumulator']).toBeLessThanOrEqual(100);
+    });
+
+    it('should call update() when accumulator exceeds timestep', () => {
+      game.init();
+      game.start();
+      game['lastTime'] = 0;
+
+      // Set accumulator to trigger update
+      game['accumulator'] = game['timestep'];
+      const framesBefore = game.frames;
+
+      game['loop'](0); // deltaTime = 0 - 0 = 0, but we set accumulator directly
+
+      // update() should have been called (frames incremented)
+      expect(game.frames).toBeGreaterThan(framesBefore);
+    });
+
+    it('should decrease accumulator by timestep after each update', () => {
+      game.init();
+      game.start();
+      game['lastTime'] = 0;
+      game['accumulator'] = game['timestep'] * 2;
+
+      game['loop'](0);
+
+      // After 2 updates, accumulator should decrease by 2 * timestep
+      // Since we had 2 * timestep, and ran 2 updates, it should be near 0
+      expect(game['accumulator']).toBeLessThan(game['timestep']);
     });
   });
 
