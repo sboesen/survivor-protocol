@@ -46,7 +46,8 @@ export class SceneManager {
   init(canvas: HTMLCanvasElement): void {
     this.canvas = canvas;
     this.renderer.domElement.id = 'three-canvas';
-    this.canvas.parentNode?.insertBefore(this.renderer.domElement, this.canvas);
+    // Insert AFTER the canvas so Three.js sprites appear on top
+    this.canvas.parentNode?.insertBefore(this.renderer.domElement, this.canvas.nextSibling);
     this.renderer.domElement.style.position = 'absolute';
     this.renderer.domElement.style.top = '0';
     this.renderer.domElement.style.left = '0';
