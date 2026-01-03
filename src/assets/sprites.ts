@@ -74,7 +74,56 @@ export const SPRITES: Sprites = {
     "  11  11  ",
     "  11  11  "
   ],
-  // Enemies
+  // Enemies - these match the EntityType values
+  basic: [
+    "   wwwww  ",
+    "  wggwwgg ",
+    "  wwwwwww ",
+    "   wwwww  ",
+    "    111   ",
+    "  1111111 ",
+    "  1 111 1 ",
+    "    1 1   ",
+    "   1   1  ",
+    "   1   1  "
+  ],
+  bat: [
+    "          ",
+    " d      d ",
+    " ddd  ddd ",
+    "  dddddd  ",
+    "   drrd   ",
+    "  dddddd  ",
+    "   dddd   ",
+    "    dd    ",
+    "          ",
+    "          "
+  ],
+  elite: [
+    "  111111  ",
+    " 11r11r11 ",
+    " 11111111 ",
+    " 11111111 ",
+    " 11111111 ",
+    " 33333333 ",
+    " 33333333 ",
+    "  33  33  ",
+    "  33  33  ",
+    "  33  33  "
+  ],
+  boss: [
+    "   wwwww  ",
+    "  wrwwrw  ",
+    "  wwwwww  ",
+    "  wwwwww  ",
+    " wwwwwwww ",
+    " ww11ww11 ",
+    " ww11ww11 ",
+    "   2  2   ",
+    "  22  22  ",
+    "  22  22  "
+  ],
+  // Legacy names (kept for compatibility)
   shopper: [
     "   wwwww  ",
     "  wggwwgg ",

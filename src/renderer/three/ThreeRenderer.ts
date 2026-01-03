@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import { SceneManager } from './SceneManager';
 import { SpriteManager } from './SpriteManager';
 import { CameraController } from './CameraController';
-import { FLOOR_COLOR } from '../../systems/rendering';
 import type { CanvasContext } from '../../types';
 import type { Player } from '../../entities/player';
 import type { Enemy } from '../../entities/enemy';
@@ -13,8 +12,8 @@ import type { Obstacle } from '../../entities/obstacle';
 import type { Particle } from '../../entities/particle';
 
 /**
- * Main Three.js renderer that replaces Canvas 2D rendering.
- * Manages the scene, sprites, camera, and all visual elements.
+ * Main Three.js renderer for game entities.
+ * Floor, grid, and UI are handled by Canvas 2D overlay.
  */
 export class ThreeRenderer {
   sceneManager: SceneManager;
@@ -39,12 +38,6 @@ export class ThreeRenderer {
   // Particles are recreated each frame
   private particleViews: THREE.Points[] = [];
 
-  // Floor plane
-  private floor: THREE.Mesh;
-
-  // Grid lines
-  private gridLines: THREE.LineSegments | null = null;
-
   // Feature flag to enable/disable Three.js
   static enabled = true;
 
@@ -52,44 +45,12 @@ export class ThreeRenderer {
     this.sceneManager = new SceneManager();
     this.spriteManager = new SpriteManager();
     this.cameraController = new CameraController(this.sceneManager.camera);
-
-    // Create floor plane
-    const floorGeometry = new THREE.PlaneGeometry(2000, 2000);
-    const floorMaterial = new THREE.MeshBasicMaterial({ color: FLOOR_COLOR });
-    this.floor = new THREE.Mesh(floorGeometry, floorMaterial);
-    this.floor.position.z = -10;
-    this.sceneManager.addToScene(this.floor);
-
     this.spriteManager.init();
   }
 
   init(canvas: HTMLCanvasElement): void {
     if (!ThreeRenderer.enabled) return;
     this.sceneManager.init(canvas);
-    this.createGrid();
-  }
-
-  private createGrid(): void {
-    const gridSize = 2000;
-    const tileSize = 100;
-    const lines: THREE.Vector3[] = [];
-
-    // Vertical lines
-    for (let x = 0; x <= gridSize; x += tileSize) {
-      lines.push(new THREE.Vector3(x, 0, -5));
-      lines.push(new THREE.Vector3(x, gridSize, -5));
-    }
-
-    // Horizontal lines
-    for (let y = 0; y <= gridSize; y += tileSize) {
-      lines.push(new THREE.Vector3(0, y, -5));
-      lines.push(new THREE.Vector3(gridSize, y, -5));
-    }
-
-    const geometry = new THREE.BufferGeometry().setFromPoints(lines);
-    const material = new THREE.LineBasicMaterial({ color: 0x252b3d, transparent: true, opacity: 0.5 });
-    this.gridLines = new THREE.LineSegments(geometry, material);
-    this.sceneManager.addToScene(this.gridLines);
   }
 
   resize(width: number, height: number): void {
@@ -139,7 +100,7 @@ export class ThreeRenderer {
       this.sceneManager.addToScene(this.playerView);
     }
 
-    this.playerView.position.set(player.x, player.y, 0);
+    this.playerView.position.set(player.x, player.y, 10);
   }
 
   private renderEnemies(enemies: Enemy[]): void {
@@ -168,7 +129,7 @@ export class ThreeRenderer {
         this.activeEnemies.add(enemy);
       }
 
-      view.position.set(enemy.x, enemy.y, 0);
+      view.position.set(enemy.x, enemy.y, 9);
       view.visible = !enemy.marked;
     }
   }
@@ -205,7 +166,7 @@ export class ThreeRenderer {
         this.activeProjectiles.add(proj);
       }
 
-      view.position.set(proj.x, proj.y, 0);
+      view.position.set(proj.x, proj.y, 11);
       view.visible = !proj.marked;
     }
   }
@@ -249,7 +210,7 @@ export class ThreeRenderer {
         this.activeLoot.add(item);
       }
 
-      view.position.set(item.x, item.y, 0);
+      view.position.set(item.x, item.y, 8);
       view.visible = !item.marked;
     }
   }
@@ -277,33 +238,45 @@ export class ThreeRenderer {
         // Fireball is orange with a glow effect
         view = new THREE.Group();
 
-        // Inner bright core
-        const coreMaterial = new THREE.SpriteMaterial({
-          color: 0xffffff,
-          depthTest: false,
-        });
-        const core = new THREE.Sprite(coreMaterial);
-        core.scale.set(fb.radius * 1.5, fb.radius * 1.5, 1);
-        view.add(core);
-
-        // Outer orange glow
+        // Outer orange glow (larger)
         const glowMaterial = new THREE.SpriteMaterial({
           color: 0xff6600,
+          transparent: true,
+          opacity: 0.4,
+          depthTest: false,
+        });
+        const glow = new THREE.Sprite(glowMaterial);
+        glow.scale.set(fb.radius * 4, fb.radius * 4, 1);
+        glow.position.z = -0.1;
+        view.add(glow);
+
+        // Middle layer
+        const midMaterial = new THREE.SpriteMaterial({
+          color: 0xff8800,
           transparent: true,
           opacity: 0.6,
           depthTest: false,
         });
-        const glow = new THREE.Sprite(glowMaterial);
-        glow.scale.set(fb.radius * 3, fb.radius * 3, 1);
-        glow.position.z = -0.1;
-        view.add(glow);
+        const mid = new THREE.Sprite(midMaterial);
+        mid.scale.set(fb.radius * 2.5, fb.radius * 2.5, 1);
+        view.add(mid);
+
+        // Inner bright core
+        const coreMaterial = new THREE.SpriteMaterial({
+          color: 0xffffaa,
+          depthTest: false,
+        });
+        const core = new THREE.Sprite(coreMaterial);
+        core.scale.set(fb.radius * 1.2, fb.radius * 1.2, 1);
+        core.position.z = 0.1;
+        view.add(core);
 
         this.sceneManager.addToScene(view);
         this.fireballViews.set(fb, view);
         this.activeFireballs.add(fb);
       }
 
-      view.position.set(fb.x, fb.y, 0);
+      view.position.set(fb.x, fb.y, 11);
       view.visible = !fb.marked;
     }
   }
@@ -328,7 +301,7 @@ export class ThreeRenderer {
       const pt = particles[i];
       positions[i * 3] = pt.x;
       positions[i * 3 + 1] = pt.y;
-      positions[i * 3 + 2] = 1;
+      positions[i * 3 + 2] = 12; // Z position for particles
 
       const color = new THREE.Color(pt.color);
       colors[i * 3] = color.r;
@@ -358,8 +331,47 @@ export class ThreeRenderer {
   }
 
   /**
+   * Draw floor and grid using Canvas 2D (background layer)
+   * This is drawn before Three.js sprites
+   */
+  renderBackgroundCanvas(
+    ctx: CanvasContext,
+    player: { x: number; y: number } | null,
+    width: number,
+    height: number
+  ): void {
+    if (!ctx) return;
+
+    // Clear with black
+    ctx.fillStyle = '#0a0a0f';
+    ctx.fillRect(0, 0, width, height);
+
+    if (!player) return;
+
+    // Draw grid/floor
+    const tileSize = 100;
+    const offsetX = player.x % tileSize;
+    const offsetY = player.y % tileSize;
+
+    ctx.strokeStyle = '#1a2030';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+
+    // Vertical lines
+    for (let x = -offsetX; x <= width; x += tileSize) {
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, height);
+    }
+    // Horizontal lines
+    for (let y = -offsetY; y <= height; y += tileSize) {
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y);
+    }
+    ctx.stroke();
+  }
+
+  /**
    * Draw obstacles using Canvas 2D (overlay approach)
-   * This keeps complex obstacle rendering simple while using Three.js for everything else
    */
   renderObstaclesCanvas(ctx: CanvasContext, obstacles: Obstacle[]): void {
     if (!ctx) return;
@@ -417,7 +429,7 @@ export class ThreeRenderer {
     // Player health bar (above player)
     if (playerMaxHp > 0) {
       const hpPct = Math.max(0, playerHp / playerMaxHp);
-      ctx.fillStyle = '#f00';
+      ctx.fillStyle = 'red';
       ctx.fillRect(cw / 2 - 15, ch / 2 + 18, 30, 4);
       ctx.fillStyle = '#0f0';
       ctx.fillRect(cw / 2 - 15, ch / 2 + 18, 30 * hpPct, 4);

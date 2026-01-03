@@ -330,7 +330,67 @@ Relics are **legendary-tier** drops with unique affixes not available on random 
 
 ---
 
-## Full Roadmap: Phase 1-6
+## Full Roadmap: Phase 0-7
+
+### Phase 0: First Run Experience & Onboarding
+
+**Goal**: Ensure players understand the core loop and feel rewarded in their first session.
+
+**Files Created:**
+- `src/data/starterGear.ts` - Basic items for new characters
+- `src/systems/tutorial.ts` - First-run guidance
+
+**Features:**
+
+#### Starter Gear
+Each character starts with **3 basic items** (Common/Magic tier):
+- 1 WEAPON - Modifies starting weapon slightly
+- 1 ARMOR - Small HP boost
+- 1 ACCESSORY - Small quality of life (magnet or speed)
+
+These are intentionally weak but functional. Players immediately understand how gear works.
+
+Example DM starter loadout:
+```
+[RELIC]  (empty)
+[HELM]   (empty)
+[WEAPON] Apprentice Wand (+10% Fire Damage)
+[ARMOR]  Tattered Robe (+20 Max HP)
+[ACC1]   Rusty Compass (+20 Magnet)
+[ACC2]   (empty)
+[ACC3]   (empty)
+```
+
+#### Guaranteed First Relic
+On first successful extraction:
+- Guaranteed 1 relic drop (always for your character)
+- **Poor roll** - minimum or near-minimum on all implicts
+- Teaches players what relics are AND that rolls vary
+
+Example: "Got 20-Sided Die with 42% Fire Damage (40-60)" - player sees the range, wants better.
+
+#### First-Run Guidance
+- Popup on first loot orb drop: "Collect loot orbs! Items reveal after extraction."
+- HUD indicator for secure slot: "Press [I] to secure one item (saved on death)"
+- First extraction: "Extraction successful! Your items have been revealed."
+- Loadout screen prompt: "Equip items to make your next run stronger."
+
+**Milestone**: New players complete first run, understand basics, have 1 relic to chase upgrades for.
+
+---
+
+## The Pitch
+
+> **Survivor Protocol is a vampire survivor-style game where you risk your loot to get better loot.** Each run is a heist - collect veiled items during chaotic horde survival, race to extraction, and reveal your haul between runs. Build permanent arsenals with class-specific relics, min-max rolled gear, and synergistic loadouts. Die and lose everything (except one secured item).
+
+**What Makes It Fun:**
+1. **In-run power growth** - Level up weapons, unlock new abilities, feel yourself becoming godlike
+2. **Loot chase** - Veiled items create extraction tension; reveals are slot-machine moments
+3. **Buildcrafting** - 7 equipment slots, 30 class-specific relics, endless combinations
+4. **Risk/reward** - Push deeper for better loot vs. extract early to secure gains
+5. **Endgame grind** - Farm bosses for relics, hunt god rolls, tackle modifier maps
+
+---
 
 ### Phase 1: Core Item System
 
@@ -633,6 +693,12 @@ Add an empty affix slot to an item (fills immediately with random affix):
 
 ## Success Criteria by Phase
 
+### Phase 0
+- ✅ Starter gear equipped on new characters
+- ✅ First-run guidance popups trigger correctly
+- ✅ Guaranteed relic drops on first successful extraction
+- ✅ New players understand loot, extraction, loadout basics
+
 ### Phase 1
 - ✅ Item generation with correct distribution
 - ✅ Unit tests passing
@@ -742,6 +808,7 @@ Before starting a run, select modifiers:
 2. **Death Penalty**: Full loot loss or partial?
    - Proposal: Lose all collected veiled items; equipped stash items always safe
    - **Secure Slot (Tarkov-style)**: One "secured" slot per run - player can choose ONE veiled item to secure during the run. Secured item is saved on death. Player chooses strategically (best-looking orb? risk management?). Add inventory button (pauses game) to manage this.
+   - No "first run forgiveness" - stakes are real from the start. Starter gear + guaranteed relic on first extraction give early progression.
 
 3. **Extraction Trigger**: Timer-based or location-based?
    - Proposal: Both - extraction zones appear at 5 min, final extraction at 10 min

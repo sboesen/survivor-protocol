@@ -6,6 +6,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Survivor Protocol is a vampire survivor-style browser game built with TypeScript and Vite. Players control a character, fight waves of enemies, collect loot, level up, and unlock permanent upgrades.
 
+### Core Game Loop: Risk Your Loot to Get Better Loot
+
+**During runs**: Survive escalating hordes while collecting "veiled" unidentified loot. Level up your weapons, unlock abilities, become godlike by minute 20.
+
+**Extraction**: Race to escape zones when they appear. Die and lose everything (except one secured item). Extract and keep your haul.
+
+**Between runs**: Reveal your loot (slot-machine moment!), equip items to 7 slots, build permanent power. Hunt class-specific relics with min-max rolls.
+
+### What Makes It Fun
+1. **In-run power growth** - Weapons level up, new abilities unlock, screen fills with projectiles
+2. **Loot chase** - Veiled items create extraction tension; reveals are exciting
+3. **Buildcrafting** - 7 equipment slots, 30 class-specific relics, synergistic loadouts
+4. **Risk/reward** - Push deeper for better loot vs. extract early to secure gains
+5. **Endgame grind** - Farm bosses for relics, hunt god rolls, tackle modifier maps
+
 ## Development Commands
 
 - `npm run dev` - Start development server on port 3000

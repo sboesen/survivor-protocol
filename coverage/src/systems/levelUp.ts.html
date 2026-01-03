@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for src/entities/loot.ts</title>
+    <title>Code coverage report for src/systems/levelUp.ts</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../../prettify.css" />
     <link rel="stylesheet" href="../../base.css" />
@@ -19,20 +19,20 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/entities</a> loot.ts</h1>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/systems</a> levelUp.ts</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>27/27</span>
+                <span class='fraction'>9/9</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>4/4</span>
+                <span class='fraction'>7/7</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>27/27</span>
+                <span class='fraction'>9/9</span>
             </div>
         
             
@@ -107,8 +107,7 @@
 <a name='L42'></a><a href='#L42'>42</a>
 <a name='L43'></a><a href='#L43'>43</a>
 <a name='L44'></a><a href='#L44'>44</a>
-<a name='L45'></a><a href='#L45'>45</a>
-<a name='L46'></a><a href='#L46'>46</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L45'></a><a href='#L45'>45</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -117,86 +116,84 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">65x</span>
-<span class="cline-any cline-yes">65x</span>
-<span class="cline-any cline-yes">65x</span>
-<span class="cline-any cline-yes">65x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">29x</span>
-<span class="cline-any cline-yes">29x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">29x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">27x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">25x</span>
-<span class="cline-any cline-yes">25x</span>
-<span class="cline-any cline-yes">25x</span>
-<span class="cline-any cline-yes">25x</span>
-<span class="cline-any cline-yes">25x</span>
-<span class="cline-any cline-yes">25x</span>
-<span class="cline-any cline-yes">25x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import type { CanvasContext } from '../types';
-import { Entity } from './entity';
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">24x</span>
+<span class="cline-any cline-yes">24x</span>
+<span class="cline-any cline-yes">24x</span>
+<span class="cline-any cline-yes">23x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/**
+ * Level-up and upgrade system.
+ *
+ * Extracted from game.ts for better testability.
+ */
 &nbsp;
-export class Loot extends Entity {
-  type: 'gem' | 'chest' | 'heart';
-  val: number;
-  bob: number;
+/**
+ * Select random upgrade choices from a pool.
+ *
+ * @param pool - Array of upgrade IDs to choose from
+ * @param count - Number of choices to select (default: 3)
+ * @param randomValue - Optional random value function for testing
+ * @returns Array of unique upgrade IDs
+ */
+export function selectUpgradeChoices(
+  pool: string[],
+  count: number = 3,
+  randomValue: () =&gt; number = Math.random
+): string[] {
+  const choices: string[] = [];
 &nbsp;
-  constructor(x: number, y: number, type: 'gem' | 'chest' | 'heart') {
-    super(x, y, 8, '#000');
-    this.type = type;
-    this.val = 1;
-    this.bob = Math.random() * 10;
-  }
-&nbsp;
-  drawShape(ctx: CanvasContext, x: number, y: number): void {
-    // Use a time-based animation that works independently
-    const time = Date.now() / 200;
-    const oy = Math.sin((time + this.bob) * 0.5) * 3;
-&nbsp;
-    if (this.type === 'chest') {
-      ctx.fillStyle = '#d97706';
-      ctx.fillRect(x - 10, y - 8 + oy, 20, 16);
-      ctx.strokeStyle = '#fcd34d';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(x - 10, y - 8 + oy, 20, 16);
-    } else if (this.type === 'heart') {
-      ctx.fillStyle = '#f43f5e';
-      ctx.beginPath();
-      ctx.arc(x, y + oy, 6, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#fff';
-      ctx.font = '8px Arial';
-      ctx.fillText('+', x - 3, y + 3 + oy);
-    } else {
-      ctx.beginPath();
-      ctx.moveTo(x, y - 5 + oy);
-      ctx.lineTo(x + 4, y + oy);
-      ctx.lineTo(x, y + 5 + oy);
-      ctx.lineTo(x - 4, y + oy);
-      ctx.fillStyle = '#10b981';
-      ctx.fill();
+  while (choices.length &lt; count &amp;&amp; choices.length &lt; pool.length) {
+    const randomIndex = Math.floor(randomValue() * pool.length);
+    const choice = pool[randomIndex];
+    if (!choices.includes(choice)) {
+      choices.push(choice);
     }
   }
+&nbsp;
+  return choices;
+}
+&nbsp;
+/**
+ * Calculate how many upgrade choices to show based on inventory size.
+ *
+ * @param inventorySize - Current number of weapons/items
+ * @param maxChoices - Maximum choices to show (default: 3)
+ * @returns Number of choices to show
+ */
+export function calculateChoiceCount(inventorySize: number, maxChoices: number = 3): number {
+  // Show fewer choices when inventory is nearly full to avoid wasted picks
+  const remainingSpace = 6 - inventorySize;
+  return Math.min(maxChoices, Math.max(1, remainingSpace));
 }
 &nbsp;</pre></td></tr></table></pre>
 

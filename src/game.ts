@@ -259,6 +259,10 @@ class GameCore {
     this.projectiles = [];
     this.fireballs = [];
     this.loot = [];
+    // Clear any existing damage text DOM elements
+    for (const dt of this.damageTexts) {
+      dt.el.remove();
+    }
     this.damageTexts = [];
     this.particles = [];
     this.obstacles = [];
@@ -888,6 +892,9 @@ class GameCore {
     for (let i = 0; i < this.damageTexts.length; i++) {
       if (this.damageTexts[i].life > 0) {
         this.damageTexts[dmgWriteIdx++] = this.damageTexts[i];
+      } else {
+        // Remove DOM element when life expires
+        this.damageTexts[i].el.remove();
       }
     }
     this.damageTexts.length = dmgWriteIdx;
@@ -967,9 +974,8 @@ class GameCore {
     const cw = ctx.canvas.width;
     const ch = ctx.canvas.height;
 
-    // Clear canvas for Three.js
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, cw, ch);
+    // Render background (floor, grid) with Canvas 2D
+    threeRenderer.renderBackgroundCanvas(ctx, this.player, cw, ch);
 
     if (!this.active || !this.player) return;
 

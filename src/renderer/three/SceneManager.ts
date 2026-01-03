@@ -15,18 +15,20 @@ export class SceneManager {
     this.scene = new THREE.Scene();
 
     // Orthographic camera for 2D rendering
-    // Coordinates: (0,0) at top-left, matches canvas 2D behavior
+    // Flip Y-axis to match Canvas 2D (positive Y is down)
     const aspect = window.innerWidth / window.innerHeight;
     const viewSize = 600; // Base view size
     this.camera = new THREE.OrthographicCamera(
       -viewSize * aspect,
       viewSize * aspect,
-      viewSize,
-      -viewSize,
+      -viewSize, // Flip top
+      viewSize,  // Flip bottom
       1,
       1000
     );
     this.camera.position.z = 100;
+    // Scale Y by -1 to flip the coordinate system
+    this.camera.scale.y = -1;
 
     // WebGL renderer
     this.renderer = new THREE.WebGLRenderer({
@@ -56,8 +58,9 @@ export class SceneManager {
     const viewSize = 600;
     this.camera.left = -viewSize * aspect;
     this.camera.right = viewSize * aspect;
-    this.camera.top = viewSize;
-    this.camera.bottom = -viewSize;
+    this.camera.top = -viewSize;
+    this.camera.bottom = viewSize;
+    this.camera.scale.y = -1; // Maintain Y flip
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height);
   }
