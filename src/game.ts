@@ -994,7 +994,7 @@ class GameCore {
     );
 
     // Render obstacles using Canvas 2D overlay
-    threeRenderer.renderObstaclesCanvas(ctx, this.obstacles);
+    threeRenderer.renderObstaclesCanvas(ctx, this.obstacles, p.x, p.y, cw, ch);
 
     // Draw joysticks (mobile only)
     // Movement joystick (left)

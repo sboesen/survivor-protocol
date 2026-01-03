@@ -372,35 +372,14 @@ export class ThreeRenderer {
 
   /**
    * Draw obstacles using Canvas 2D (overlay approach)
+   * Uses the obstacle's own drawShape method for proper rendering
    */
-  renderObstaclesCanvas(ctx: CanvasContext, obstacles: Obstacle[]): void {
+  renderObstaclesCanvas(ctx: CanvasContext, obstacles: Obstacle[], playerX: number, playerY: number, cw: number, ch: number): void {
     if (!ctx) return;
 
     for (const obs of obstacles) {
-      ctx.save();
-      ctx.translate(obs.x, obs.y);
-
-      if (obs.type === 'font') {
-        // Healing fountain
-        ctx.fillStyle = '#4ade80';
-        ctx.beginPath();
-        ctx.arc(0, 0, 20, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#fff';
-        ctx.font = '16px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('+', 0, 0);
-      } else {
-        // Ruin/obstacle
-        ctx.fillStyle = '#3a4a5a';
-        ctx.fillRect(-obs.w / 2, -obs.h / 2, obs.w, obs.h);
-        ctx.strokeStyle = '#5a6a7a';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(-obs.w / 2, -obs.h / 2, obs.w, obs.h);
-      }
-
-      ctx.restore();
+      // Call the obstacle's draw method which handles camera-relative positioning
+      obs.draw(ctx, playerX, playerY, cw, ch);
     }
   }
 

@@ -40,13 +40,14 @@ export class SpriteManager {
     }
 
     // Draw the sprite pixel by pixel
+    // Note: Camera is flipped on Y axis, so we don't flip texture here
     for (let py = 0; py < size; py++) {
       for (let px = 0; px < size; px++) {
         const char = art[py]?.[px] as keyof typeof PALETTE;
         const color = char !== undefined ? PALETTE[char] : undefined;
         if (color) {
           ctx.fillStyle = color;
-          ctx.fillRect(px, size - 1 - py, 1, 1); // Flip Y for Three.js
+          ctx.fillRect(px, py, 1, 1);
         }
       }
     }
