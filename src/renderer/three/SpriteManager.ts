@@ -1,7 +1,15 @@
 import * as THREE from 'three';
 import { SPRITES } from '../../assets/sprites';
 import { PALETTE } from '../../assets/palette';
-import type { Sprites } from '../../types';
+import type { Sprites, PaletteKey } from '../../types';
+
+/**
+ * Type guard to check if a character is a valid palette key.
+ * Run-time check for invalid colors.
+ */
+function isPaletteKey(char: string): char is PaletteKey {
+  return char in PALETTE;
+}
 
 /**
  * Manages sprite textures and creates sprite objects.
@@ -40,14 +48,18 @@ export class SpriteManager {
     }
 
     // Draw the sprite pixel by pixel
-    // Note: Camera is flipped on Y axis, so we don't flip texture here
     for (let py = 0; py < size; py++) {
       for (let px = 0; px < size; px++) {
-        const char = art[py]?.[px] as keyof typeof PALETTE;
-        const color = char !== undefined ? PALETTE[char] : undefined;
-        if (color) {
-          ctx.fillStyle = color;
-          ctx.fillRect(px, py, 1, 1);
+        const char = art[py]?.[px];
+        if (char && isPaletteKey(char)) {
+          const color = PALETTE[char];
+          if (color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(px, py, 1, 1);
+          }
+        } else if (char && char !== '.') {
+          // Log warning for undefined colors (helps catch missing palette entries)
+          console.warn(`[SpriteManager] Undefined palette color '${char}' in sprite '${spriteKey}' at (${px},${py})`);
         }
       }
     }

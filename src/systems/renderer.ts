@@ -1,6 +1,20 @@
 import { PALETTE } from '../assets/palette';
 import { SPRITES } from '../assets/sprites';
-import type { CanvasContext, Palette as PaletteType } from '../types';
+import type { CanvasContext, PaletteKey, SpriteKey } from '../types';
+
+/**
+ * Type guard to check if a character is a valid palette key.
+ */
+function isPaletteKey(char: string): char is PaletteKey {
+  return char in PALETTE;
+}
+
+/**
+ * Type guard to check if a key is a valid sprite key.
+ */
+function isSpriteKey(key: string): key is SpriteKey {
+  return key in SPRITES;
+}
 
 class RendererSystem {
   drawSprite(
@@ -12,6 +26,11 @@ class RendererSystem {
     opacity = 1,
     shadow = true
   ): void {
+    if (!isSpriteKey(spriteKey)) {
+      console.warn(`[Renderer] Invalid sprite key: '${spriteKey}'`);
+      return;
+    }
+
     const art = SPRITES[spriteKey];
     if (!art) return;
 
@@ -30,11 +49,15 @@ class RendererSystem {
 
     for (let py = 0; py < size; py++) {
       for (let px = 0; px < size; px++) {
-        const char = art[py]?.[px] as keyof PaletteType;
-        const color = char !== undefined ? PALETTE[char] : undefined;
-        if (color) {
-          ctx.fillStyle = color;
-          ctx.fillRect(startX + px * scale, startY + py * scale, scale, scale);
+        const char = art[py]?.[px];
+        if (char && isPaletteKey(char)) {
+          const color = PALETTE[char];
+          if (color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(startX + px * scale, startY + py * scale, scale, scale);
+          }
+        } else if (char && char !== '.') {
+          console.warn(`[Renderer] Undefined palette color '${char}' in sprite '${spriteKey}' at (${px},${py})`);
         }
       }
     }

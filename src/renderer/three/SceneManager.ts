@@ -15,19 +15,20 @@ export class SceneManager {
     this.scene = new THREE.Scene();
 
     // Orthographic camera for 2D rendering
-    // Flip Y-axis to match Canvas 2D (positive Y is down)
     const aspect = window.innerWidth / window.innerHeight;
-    const viewSize = 600; // Base view size
+    const viewSize = 300; // Base view size (reduced for larger sprites)
     this.camera = new THREE.OrthographicCamera(
       -viewSize * aspect,
       viewSize * aspect,
-      -viewSize, // Flip top
-      viewSize,  // Flip bottom
-      1,
-      1000
+      viewSize,
+      -viewSize,
+      0.1,
+      2000
     );
-    this.camera.position.z = 100;
-    // Scale Y by -1 to flip the coordinate system
+    // Position camera to look at scene from positive Z
+    this.camera.position.set(0, 0, 100);
+    this.camera.lookAt(0, 0, 0);
+    // Flip Y axis to match Canvas 2D coordinate system (positive Y is down)
     this.camera.scale.y = -1;
 
     // WebGL renderer
@@ -39,8 +40,8 @@ export class SceneManager {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-    // Disable clearing - we'll draw our own background
-    this.renderer.autoClear = false;
+    // Enable auto clear for proper Three.js rendering
+    this.renderer.autoClear = true;
   }
 
   init(canvas: HTMLCanvasElement): void {
@@ -52,22 +53,23 @@ export class SceneManager {
     this.renderer.domElement.style.top = '0';
     this.renderer.domElement.style.left = '0';
     this.renderer.domElement.style.pointerEvents = 'none'; // Let clicks pass through to canvas
+    this.renderer.domElement.style.zIndex = '10'; // Above floor, below UI
   }
 
   resize(width: number, height: number): void {
     const aspect = width / height;
-    const viewSize = 600;
+    const viewSize = 300;
     this.camera.left = -viewSize * aspect;
     this.camera.right = viewSize * aspect;
-    this.camera.top = -viewSize;
-    this.camera.bottom = viewSize;
-    this.camera.scale.y = -1; // Maintain Y flip
+    this.camera.top = viewSize;
+    this.camera.bottom = -viewSize;
+    this.camera.scale.y = -1; // Preserve Y-flip
     this.camera.updateProjectionMatrix();
+    this.camera.lookAt(0, 0, 0);
     this.renderer.setSize(width, height);
   }
 
   render(): void {
-    this.renderer.clear();
     this.renderer.render(this.scene, this.camera);
   }
 

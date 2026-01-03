@@ -7,6 +7,7 @@ import { CONFIG } from '../../config';
  */
 export class CameraController {
   private camera: THREE.OrthographicCamera;
+  private target = new THREE.Vector3();
 
   constructor(camera: THREE.OrthographicCamera) {
     this.camera = camera;
@@ -16,21 +17,11 @@ export class CameraController {
    * Update camera to follow the player
    */
   follow(playerX: number, playerY: number, _screenWidth: number, _screenHeight: number): void {
-
-    // Calculate camera position (centered on player)
-    this.camera.position.x = playerX;
-    this.camera.position.y = playerY;
-
-    // Handle world wrapping for camera position
-    // When player crosses edge, camera should smoothly adjust
-    const worldSize = CONFIG.worldSize;
-
-    // Wrap camera position if needed
-    if (this.camera.position.x < 0) this.camera.position.x += worldSize;
-    if (this.camera.position.x > worldSize) this.camera.position.x -= worldSize;
-    if (this.camera.position.y < 0) this.camera.position.y += worldSize;
-    if (this.camera.position.y > worldSize) this.camera.position.y -= worldSize;
-
+    // Move camera to follow player, keeping Z offset
+    this.camera.position.set(playerX, playerY, 100);
+    // Always look at the player's position (from slightly above in Z)
+    this.target.set(playerX, playerY, 0);
+    this.camera.lookAt(this.target);
     this.camera.updateMatrixWorld();
   }
 

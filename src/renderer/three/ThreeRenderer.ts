@@ -101,6 +101,7 @@ export class ThreeRenderer {
     }
 
     this.playerView.position.set(player.x, player.y, 10);
+    this.playerView.visible = true;
   }
 
   private renderEnemies(enemies: Enemy[]): void {
@@ -123,7 +124,7 @@ export class ThreeRenderer {
       let view = this.enemyViews.get(enemy);
 
       if (!view) {
-        view = this.spriteManager.getSpriteWithShadow(enemy.sprite, enemy.radius * 2);
+        view = this.spriteManager.getSpriteWithShadow(enemy.sprite, enemy.radius * 2.5);
         this.sceneManager.addToScene(view);
         this.enemyViews.set(enemy, view);
         this.activeEnemies.add(enemy);
@@ -184,6 +185,9 @@ export class ThreeRenderer {
       }
     }
 
+    // Animation time for effects
+    const time = Date.now() / 1000;
+
     // Update or create loot views
     for (const item of loot) {
       if (item.marked) continue;
@@ -191,26 +195,60 @@ export class ThreeRenderer {
       let view = this.lootViews.get(item);
 
       if (!view) {
-        // Determine color based on type
-        let color = 0xffff00; // Gold (default for gems)
-        if (item.type === 'chest') color = 0x9333ea; // Purple for chests
-        if (item.type === 'heart') color = 0xff4444; // Red for hearts
+        // For gems, create a 3D octahedron (diamond shape)
+        if (item.type === 'gem') {
+          const geometry = new THREE.OctahedronGeometry(8, 0);
+          // Scale to make it taller (stretch Y axis)
+          geometry.scale(1, 1.3, 1);
+          const material = new THREE.MeshStandardMaterial({
+            color: 0x10b981,
+            emissive: 0x059669,
+            emissiveIntensity: 0.3,
+            metalness: 0.3,
+            roughness: 0.2,
+          });
+          const mesh = new THREE.Mesh(geometry, material);
 
-        const material = new THREE.SpriteMaterial({
-          color,
-          depthTest: false,
-        });
-        const sprite = new THREE.Sprite(material);
-        sprite.scale.set(12, 12, 1);
+          // Add edge outline for better rotation visibility
+          const edges = new THREE.EdgesGeometry(geometry);
+          const lineMaterial = new THREE.LineBasicMaterial({ color: 0x6ee7b7, linewidth: 3 });
+          const wireframe = new THREE.LineSegments(edges, lineMaterial);
+          mesh.add(wireframe);
 
-        view = new THREE.Group();
-        view.add(sprite);
+          view = new THREE.Group();
+          view.add(mesh);
+        } else {
+          // For hearts and chests, use sprites
+          const spriteKey = item.type === 'chest' ? 'chest' : 'heart';
+          const sprite = this.spriteManager.getSprite(spriteKey, 20);
+          view = new THREE.Group();
+          view.add(sprite);
+        }
+
         this.sceneManager.addToScene(view);
         this.lootViews.set(item, view);
         this.activeLoot.add(item);
       }
 
-      view.position.set(item.x, item.y, 8);
+      // Animate gems with hover and 3D rotation
+      if (item.type === 'gem') {
+        const hoverOffset = Math.sin(time * 3 + item.x) * 2; // Hover up/down 2px
+        view.position.set(item.x, item.y + hoverOffset, 7);
+        // 3D rotation - spin on Y axis only
+        const mesh = view.children[0] as THREE.Mesh;
+        if (mesh) {
+          mesh.rotation.y = time * 2 + item.x; // Continuous spinning
+        }
+      } else {
+        view.position.set(item.x, item.y, 7);
+      }
+
+      // Animate hearts with gentle hover
+      if (item.type === 'heart') {
+        const hoverOffset = Math.sin(time * 2 + item.x) * 1.5;
+        view.position.y = item.y + hoverOffset;
+      }
+
       view.visible = !item.marked;
     }
   }
@@ -348,38 +386,89 @@ export class ThreeRenderer {
 
     if (!player) return;
 
-    // Draw grid/floor
+    // Get Three.js camera bounds to sync background with sprites
+    const camera = this.sceneManager.camera;
+    const halfWidth = (camera.right - camera.left) / 2;
+    const halfHeight = (camera.top - camera.bottom) / 2;
+
+    const camX = camera.position.x;
+    const camY = camera.position.y;
+
+    // Calculate screen-to-world ratio (pixels per world unit)
+    const pixelsPerUnitX = width / (halfWidth * 2);
+    const pixelsPerUnitY = height / (halfHeight * 2);
+
+    // Draw grid/floor aligned with Three.js world coordinates
     const tileSize = 100;
-    const offsetX = player.x % tileSize;
-    const offsetY = player.y % tileSize;
+
+    // Calculate starting world position for visible area
+    const startWorldX = camX - halfWidth;
+    const startWorldY = camY - halfHeight;
+
+    // Calculate first visible grid line positions
+    const firstGridX = Math.floor(startWorldX / tileSize) * tileSize;
+    const firstGridY = Math.floor(startWorldY / tileSize) * tileSize;
 
     ctx.strokeStyle = '#1a2030';
     ctx.lineWidth = 1;
     ctx.beginPath();
 
-    // Vertical lines
-    for (let x = -offsetX; x <= width; x += tileSize) {
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, height);
+    // Vertical grid lines - convert world X to screen X
+    for (let worldX = firstGridX; worldX < startWorldX + halfWidth * 2 + tileSize; worldX += tileSize) {
+      const screenX = (worldX - camX) * pixelsPerUnitX + width / 2;
+      ctx.moveTo(screenX, 0);
+      ctx.lineTo(screenX, height);
     }
-    // Horizontal lines
-    for (let y = -offsetY; y <= height; y += tileSize) {
-      ctx.moveTo(0, y);
-      ctx.lineTo(width, y);
+
+    // Horizontal grid lines - convert world Y to screen Y (flip Y for screen coords)
+    for (let worldY = firstGridY; worldY < startWorldY + halfHeight * 2 + tileSize; worldY += tileSize) {
+      const screenY = height / 2 + (worldY - camY) * pixelsPerUnitY;
+      ctx.moveTo(0, screenY);
+      ctx.lineTo(width, screenY);
     }
+
     ctx.stroke();
   }
 
   /**
    * Draw obstacles using Canvas 2D (overlay approach)
-   * Uses the obstacle's own drawShape method for proper rendering
+   * Aligned with Three.js camera to prevent parallax
    */
-  renderObstaclesCanvas(ctx: CanvasContext, obstacles: Obstacle[], playerX: number, playerY: number, cw: number, ch: number): void {
+  renderObstaclesCanvas(ctx: CanvasContext, obstacles: Obstacle[], _playerX: number, _playerY: number, cw: number, ch: number): void {
     if (!ctx) return;
 
+    // Get Three.js camera bounds for coordinate alignment
+    const camera = this.sceneManager.camera;
+    const camX = camera.position.x;
+    const camY = camera.position.y;
+    const halfWidth = (camera.right - camera.left) / 2;
+    const halfHeight = (camera.top - camera.bottom) / 2;
+
+    // Calculate screen-to-world ratio (pixels per world unit)
+    const pixelsPerUnitX = cw / (halfWidth * 2);
+    const pixelsPerUnitY = ch / (halfHeight * 2);
+
     for (const obs of obstacles) {
-      // Call the obstacle's draw method which handles camera-relative positioning
-      obs.draw(ctx, playerX, playerY, cw, ch);
+      // Calculate relative position from camera (using actual player position passed from game)
+      let rx = obs.x - camX;
+      let ry = obs.y - camY;
+
+      // Handle world wrapping
+      const worldSize = 2000; // CONFIG.worldSize
+      if (rx < -worldSize / 2) rx += worldSize;
+      if (rx > worldSize / 2) rx -= worldSize;
+      if (ry < -worldSize / 2) ry += worldSize;
+      if (ry > worldSize / 2) ry -= worldSize;
+
+      // Convert to screen coordinates
+      const sx = rx * pixelsPerUnitX + cw / 2;
+      const sy = ch / 2 + ry * pixelsPerUnitY;
+
+      // Culling
+      if (sx < -100 || sx > cw + 100 || sy < -100 || sy > ch + 100) continue;
+
+      // Draw obstacle shape
+      obs.drawShape(ctx, sx, sy);
     }
   }
 
@@ -409,9 +498,9 @@ export class ThreeRenderer {
     if (playerMaxHp > 0) {
       const hpPct = Math.max(0, playerHp / playerMaxHp);
       ctx.fillStyle = 'red';
-      ctx.fillRect(cw / 2 - 15, ch / 2 + 18, 30, 4);
+      ctx.fillRect(cw / 2 - 15, ch / 2 + 21, 30, 4);
       ctx.fillStyle = '#0f0';
-      ctx.fillRect(cw / 2 - 15, ch / 2 + 18, 30 * hpPct, 4);
+      ctx.fillRect(cw / 2 - 15, ch / 2 + 21, 30 * hpPct, 4);
     }
 
     // Touch joysticks

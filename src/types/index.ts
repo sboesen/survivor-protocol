@@ -13,17 +13,15 @@ export interface Colors {
   gem: string;
 }
 
-export type SpriteKey = 'janitor' | 'skater' | 'mallCop' | 'foodCourt' | 'dungeonMaster' | 'teenager' | 'shopper' | 'sprinter' | 'armored' | 'manager';
+export type SpriteKey = 'janitor' | 'skater' | 'mallCop' | 'foodCourt' | 'dungeonMaster' | 'teenager' | 'shopper' | 'sprinter' | 'armored' | 'manager' | 'basic' | 'bat' | 'elite' | 'boss' | 'gem' | 'chest' | 'heart';
 
-export type PaletteKey = '.' | 's' | 'b' | 'd' | 'g' | 'r' | 'p' | 'w' | '1' | '2' | '3' | 'k' | 'e';
+export type PaletteKey = '.' | 's' | 'b' | 'd' | 'g' | 'r' | 'p' | 'w' | '1' | '2' | '3' | 'k' | 'e' | 'y';
 
-export interface Palette {
-  [key: string]: string | null;
-}
+// Strict palette type - only allows defined keys (compile-time error for undefined colors)
+export type Palette = Record<PaletteKey, string | null>;
 
-export interface Sprites {
-  [key: string]: string[];
-}
+// Strict sprites type - only allows defined sprite keys
+export type Sprites = Record<SpriteKey, string[]>;
 
 export interface Character {
   id: string;
