@@ -81,24 +81,6 @@
             <button class="debug-action-btn" onclick="Debug.unlockAll()">UNLOCK ALL PILOTS</button>
             <button class="debug-action-btn" onclick="Debug.resetProgress()" style="border-color: #f00;">WIPE ALL DATA</button>
         </div>
-
-        <div style="margin-top:20px;">
-            <h3 style="color:#aaa;">PARTICLE TEST</h3>
-            <canvas id="particle-debug-canvas" width="300" height="200" style="background:#111; border:1px solid #444; margin:10px 0;"></canvas>
-            <div style="display:flex; gap:5px; flex-wrap:wrap; justify-content:center;">
-                <button onclick="ParticleDebug.spawn('water')" style="font-size:10px;">WATER</button>
-                <button onclick="ParticleDebug.spawn('splash')" style="font-size:10px;">SPLASH</button>
-                <button onclick="ParticleDebug.spawn('ripple')" style="font-size:10px;">RIPPLE</button>
-                <button onclick="ParticleDebug.spawn('caustic')" style="font-size:10px;">CAUSTIC</button>
-                <button onclick="ParticleDebug.spawn('foam')" style="font-size:10px;">FOAM</button>
-                <button onclick="ParticleDebug.spawn('explosion')" style="font-size:10px;">BOOM</button>
-                <button onclick="ParticleDebug.spawn('blood')" style="font-size:10px;">BLOOD</button>
-                <button onclick="ParticleDebug.spawn('smoke')" style="font-size:10px;">SMOKE</button>
-                <button onclick="ParticleDebug.clear()" style="font-size:10px; border-color:#f00;">CLEAR</button>
-            </div>
-            <p style="font-size:9px; color:#666; margin-top:10px;">Particles don't disappear - use to test visuals</p>
-        </div>
-
         <button onclick="Menu.closeDebug()" style="margin-top:20px;">EXIT DEBUG</button>
     </div>
 
