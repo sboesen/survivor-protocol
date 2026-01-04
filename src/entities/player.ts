@@ -117,6 +117,9 @@ export class Player extends Entity {
           case 'lighter':
             weapon = { id: 'lighter', cd: 3, dmg: 1, type: 'spray', curCd: 0, level: 1, baseDmg: 1 };
             break;
+          case 'shield_bash':
+            weapon = { id: 'shield_bash', cd: 25, dmg: 25, type: 'cleave', curCd: 0, level: 1, baseDmg: 25, coneLength: 60, coneWidth: 0.6, knockback: 8 };
+            break;
           default:
             weapon = { id: 'pepper_spray', cd: 50, dmg: 10, type: 'nearest', curCd: 0, level: 1, baseDmg: 10 };
         }
@@ -172,6 +175,13 @@ export class Player extends Entity {
               if (w.level === 3) w.spread = 0.35;
               if (w.level === 4) w.coneLength = 100;
               if (w.level === 5) w.speedMult = 1.5; // Makes fire particles travel farther
+              break;
+            case 'shield_bash':
+              // Level 2: +range, Level 3: wider cone, Level 4: +knockback, Level 5: +damage and knockback
+              if (w.level === 2) w.coneLength = 80;
+              if (w.level === 3) w.coneWidth = 0.9;
+              if (w.level === 4) w.knockback = 12;
+              if (w.level === 5) { w.coneLength = 100; w.knockback = 15; }
               break;
           }
           this.inventory[weaponType]++;

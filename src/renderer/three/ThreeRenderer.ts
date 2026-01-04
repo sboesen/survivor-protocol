@@ -10,7 +10,6 @@ import type { FireballProjectile } from '../../entities/fireballProjectile';
 import type { Loot } from '../../entities/loot';
 import type { Obstacle } from '../../entities/obstacle';
 import type { Particle } from '../../entities/particle';
-import type { ScreenPosition } from '../../entities/entity';
 
 /**
  * Main Three.js renderer for game entities.
@@ -29,12 +28,14 @@ export class ThreeRenderer {
   private projectileViews: WeakMap<Projectile, THREE.Sprite> = new WeakMap();
   private lootViews: WeakMap<Loot, THREE.Group> = new WeakMap();
   private fireballViews: WeakMap<FireballProjectile, THREE.Group> = new WeakMap();
+  private obstacleViews: WeakMap<Obstacle, THREE.Group> = new WeakMap();
 
   // Keep track of active entities for cleanup
   private activeEnemies = new Set<Enemy>();
   private activeProjectiles = new Set<Projectile>();
   private activeLoot = new Set<Loot>();
   private activeFireballs = new Set<FireballProjectile>();
+  private activeObstacles = new Set<Obstacle>();
 
   // Player view
   private playerView: THREE.Group | null = null;
@@ -73,6 +74,7 @@ export class ThreeRenderer {
     loot: Loot[],
     fireballs: FireballProjectile[],
     particles: Particle[],
+    obstacles: Obstacle[],
     width: number,
     height: number
   ): void {
@@ -90,6 +92,7 @@ export class ThreeRenderer {
     this.renderLoot(loot);
     this.renderFireballs(fireballs);
     this.renderParticles(particles);
+    this.renderObstacles(obstacles);
 
     // Finally render the scene
     this.sceneManager.render();
@@ -416,6 +419,288 @@ export class ThreeRenderer {
       view.position.set(pos.x, pos.y, 11);
       view.visible = !fb.marked;
     }
+  }
+
+  private renderObstacles(obstacles: Obstacle[]): void {
+    // Clean up removed obstacles
+    const currentSet = new Set(obstacles);
+    for (const obs of this.activeObstacles) {
+      if (!currentSet.has(obs)) {
+        const view = this.obstacleViews.get(obs);
+        if (view !== undefined) {
+          this.sceneManager.removeFromScene(view);
+        }
+        this.activeObstacles.delete(obs);
+      }
+    }
+
+    // Animation time
+    const time = Date.now() / 1000;
+
+    // Update or create obstacle views
+    for (const obs of obstacles) {
+      let view = this.obstacleViews.get(obs);
+
+      if (view === undefined) {
+        view = this.createObstacleView(obs);
+        if (view) {
+          this.sceneManager.addToScene(view);
+          this.obstacleViews.set(obs, view);
+          this.activeObstacles.add(obs);
+        }
+      }
+
+      if (view) {
+        // Get wrapped render position
+        const pos = this.cameraController.getWrappedRenderPosition(obs.x, obs.y);
+        view.position.set(pos.x, pos.y, 8);
+        view.visible = !obs.marked;
+
+        // Update fountain animation
+        if (obs.type === 'font') {
+          this.updateFountainAnimation(view, time);
+        }
+      }
+    }
+  }
+
+  private createObstacleView(obs: Obstacle): THREE.Group {
+    const group = new THREE.Group();
+
+    if (obs.type === 'font') {
+      this.createFountainGeometry(group);
+    } else {
+      this.createRuinGeometry(group, obs.w, obs.h);
+    }
+
+    return group;
+  }
+
+  private createFountainGeometry(group: THREE.Group): void {
+    // Base pool - ellipse using path
+    const poolShape = new THREE.Shape();
+    const xRadius = 25;
+    const yRadius = 8;
+    for (let i = 0; i <= 32; i++) {
+      const theta = (i / 32) * Math.PI * 2;
+      const x = Math.cos(theta) * xRadius;
+      const y = Math.sin(theta) * yRadius + 10;
+      if (i === 0) poolShape.moveTo(x, y);
+      else poolShape.lineTo(x, y);
+    }
+    poolShape.closePath();
+
+    const poolGeometry = new THREE.ShapeGeometry(poolShape);
+    const poolMaterial = new THREE.MeshBasicMaterial({ color: 0x475569, side: THREE.DoubleSide });
+    const pool = new THREE.Mesh(poolGeometry, poolMaterial);
+    pool.position.z = 0;
+    group.add(pool);
+
+    // Water in pool
+    const waterShape = new THREE.Shape();
+    const wxRadius = 20;
+    const wyRadius = 6;
+    for (let i = 0; i <= 32; i++) {
+      const theta = (i / 32) * Math.PI * 2;
+      const x = Math.cos(theta) * wxRadius;
+      const y = Math.sin(theta) * wyRadius + 10;
+      if (i === 0) waterShape.moveTo(x, y);
+      else waterShape.lineTo(x, y);
+    }
+    waterShape.closePath();
+
+    const waterGeometry = new THREE.ShapeGeometry(waterShape);
+    const waterMaterial = new THREE.MeshBasicMaterial({ color: 0x0ea5e9, side: THREE.DoubleSide });
+    const water = new THREE.Mesh(waterGeometry, waterMaterial);
+    water.position.z = 0.1;
+    group.add(water);
+
+    // Fountain pillar
+    const pillarGeometry = new THREE.PlaneGeometry(16, 25);
+    const pillarMaterial = new THREE.MeshBasicMaterial({ color: 0x64748b, side: THREE.DoubleSide });
+    const pillar = new THREE.Mesh(pillarGeometry, pillarMaterial);
+    pillar.position.set(0, -2.5, 0.2);
+    group.add(pillar);
+
+    // Top basin
+    const basinShape = new THREE.Shape();
+    const bxRadius = 12;
+    const byRadius = 4;
+    for (let i = 0; i <= 32; i++) {
+      const theta = (i / 32) * Math.PI * 2;
+      const x = Math.cos(theta) * bxRadius;
+      const y = Math.sin(theta) * byRadius - 15;
+      if (i === 0) basinShape.moveTo(x, y);
+      else basinShape.lineTo(x, y);
+    }
+    basinShape.closePath();
+
+    const basinGeometry = new THREE.ShapeGeometry(basinShape);
+    const basinMaterial = new THREE.MeshBasicMaterial({ color: 0x94a3b8, side: THREE.DoubleSide });
+    const basin = new THREE.Mesh(basinGeometry, basinMaterial);
+    basin.position.z = 0.3;
+    group.add(basin);
+
+    // Water in basin
+    const basinWaterShape = new THREE.Shape();
+    const bwxRadius = 9;
+    const bwyRadius = 3;
+    for (let i = 0; i <= 32; i++) {
+      const theta = (i / 32) * Math.PI * 2;
+      const x = Math.cos(theta) * bwxRadius;
+      const y = Math.sin(theta) * bwyRadius - 15;
+      if (i === 0) basinWaterShape.moveTo(x, y);
+      else basinWaterShape.lineTo(x, y);
+    }
+    basinWaterShape.closePath();
+
+    const basinWaterGeometry = new THREE.ShapeGeometry(basinWaterShape);
+    const basinWaterMaterial = new THREE.MeshBasicMaterial({ color: 0x0ea5e9, side: THREE.DoubleSide });
+    const basinWater = new THREE.Mesh(basinWaterGeometry, basinWaterMaterial);
+    basinWater.position.z = 0.4;
+    group.add(basinWater);
+
+    // Pulsing water spout
+    const spoutGeometry = new THREE.CircleGeometry(5, 16);
+    const spoutMaterial = new THREE.MeshBasicMaterial({
+      color: 0x0ea5e9,
+      transparent: true,
+      opacity: 0.6,
+    });
+    const spout = new THREE.Mesh(spoutGeometry, spoutMaterial);
+    spout.position.set(0, -25, 0.5);
+    spout.userData = { isSpout: true };
+    group.add(spout);
+
+    // Water droplets
+    for (let i = 0; i < 3; i++) {
+      const dropGeometry = new THREE.CircleGeometry(2, 8);
+      const dropMaterial = new THREE.MeshBasicMaterial({
+        color: 0x38bdf8,
+        transparent: true,
+      });
+      const drop = new THREE.Mesh(dropGeometry, dropMaterial);
+      drop.userData = { isDrop: true, dropIndex: i };
+      group.add(drop);
+    }
+  }
+
+  private createRuinGeometry(group: THREE.Group, w: number, h: number): void {
+    const hw = w / 2;
+    const hh = h / 2;
+
+    // Main structure - metal base
+    const mainGeometry = new THREE.PlaneGeometry(w, h);
+    const mainMaterial = new THREE.MeshBasicMaterial({ color: 0x334155, side: THREE.DoubleSide });
+    const main = new THREE.Mesh(mainGeometry, mainMaterial);
+    main.position.z = 0;
+    group.add(main);
+
+    // Top highlight (metal edge)
+    const topGeometry = new THREE.PlaneGeometry(w, 4);
+    const topMaterial = new THREE.MeshBasicMaterial({ color: 0x475569, side: THREE.DoubleSide });
+    const top = new THREE.Mesh(topGeometry, topMaterial);
+    top.position.set(0, -hh + 2, 0.1);
+    group.add(top);
+
+    // Bottom shadow
+    const bottomGeometry = new THREE.PlaneGeometry(w, 4);
+    const bottomMaterial = new THREE.MeshBasicMaterial({ color: 0x1e293b, side: THREE.DoubleSide });
+    const bottom = new THREE.Mesh(bottomGeometry, bottomMaterial);
+    bottom.position.set(0, hh - 2, 0.1);
+    group.add(bottom);
+
+    // Vertical panel lines
+    const lineMaterial = new THREE.MeshBasicMaterial({ color: 0x1e293b, side: THREE.DoubleSide });
+    for (let panelX = -hw + 15; panelX < hw - 10; panelX += 25) {
+      const lineGeometry = new THREE.PlaneGeometry(2, h - 8);
+      const line = new THREE.Mesh(lineGeometry, lineMaterial);
+      line.position.set(panelX, 0, 0.1);
+      group.add(line);
+    }
+
+    // Horizontal panel line (middle)
+    const horizGeometry = new THREE.PlaneGeometry(w - 8, 2);
+    const horiz = new THREE.Mesh(horizGeometry, lineMaterial);
+    horiz.position.z = 0.1;
+    group.add(horiz);
+
+    // Rivets/bolts
+    const rivetMaterial = new THREE.MeshBasicMaterial({ color: 0x64748b, side: THREE.DoubleSide });
+    const rivetGeometry = new THREE.CircleGeometry(3, 8);
+    const rivetPositions = [
+      [-hw + 6, -hh + 6], [hw - 6, -hh + 6],
+      [-hw + 6, hh - 6], [hw - 6, hh - 6],
+      [0, -hh + 6], [0, hh - 6],
+    ];
+    rivetPositions.forEach(([rx, ry]) => {
+      const rivet = new THREE.Mesh(rivetGeometry, rivetMaterial);
+      rivet.position.set(rx, ry, 0.2);
+      group.add(rivet);
+      // Rivet highlight
+      const highlightGeometry = new THREE.CircleGeometry(1, 8);
+      const highlightMaterial = new THREE.MeshBasicMaterial({ color: 0x94a3b8, side: THREE.DoubleSide });
+      const highlight = new THREE.Mesh(highlightGeometry, highlightMaterial);
+      highlight.position.set(rx - 1, ry - 1, 0.3);
+      group.add(highlight);
+    });
+
+    // Vent/grate in center if large enough
+    if (w > 60 && h > 60) {
+      const ventMaterial = new THREE.MeshBasicMaterial({ color: 0x0f172a, side: THREE.DoubleSide });
+      const ventW = 20;
+      const ventH = 30;
+      const ventGeometry = new THREE.PlaneGeometry(ventW, ventH);
+      const vent = new THREE.Mesh(ventGeometry, ventMaterial);
+      vent.position.z = 0.1;
+      group.add(vent);
+
+      // Vent slats
+      const slatMaterial = new THREE.MeshBasicMaterial({ color: 0x334155, side: THREE.DoubleSide });
+      for (let vy = -10; vy <= 10; vy += 6) {
+        const slatGeometry = new THREE.PlaneGeometry(ventW - 4, 2);
+        const slat = new THREE.Mesh(slatGeometry, slatMaterial);
+        slat.position.set(0, vy, 0.2);
+        group.add(slat);
+      }
+    }
+
+    // Warning stripe accent (bottom)
+    const stripeMaterial = new THREE.MeshBasicMaterial({ color: 0xf59e0b, side: THREE.DoubleSide });
+    const stripeY = hh - 12;
+    for (let stripeX = -hw + 4; stripeX < hw - 4; stripeX += 16) {
+      const stripeShape = new THREE.Shape();
+      stripeShape.moveTo(0, 0);
+      stripeShape.lineTo(8, 8);
+      stripeShape.lineTo(6, 8);
+      stripeShape.lineTo(-2, 0);
+      stripeShape.closePath();
+      const stripeGeometry = new THREE.ShapeGeometry(stripeShape);
+      const stripe = new THREE.Mesh(stripeGeometry, stripeMaterial);
+      stripe.position.set(stripeX, stripeY, 0.2);
+      group.add(stripe);
+    }
+  }
+
+  private updateFountainAnimation(group: THREE.Group, time: number): void {
+    group.children.forEach(child => {
+      if (child.userData.isSpout) {
+        // Pulsing water spout
+        const pulse = Math.sin(time * 5) * 3;
+        (child as THREE.Mesh).scale.setScalar((4 + pulse) / 5);
+        (child as THREE.Mesh).position.y = -25 - pulse;
+      } else if (child.userData.isDrop) {
+        // Water droplets
+        const dropOffset = (time * 20) % 20;
+        const i = child.userData.dropIndex;
+        const dy = ((dropOffset + i * 7) % 20) - 5;
+        const dx = Math.sin(dy * 0.5) * 3;
+        const size = Math.max(0.1, 2 - (dy + 5) / 10);
+        (child as THREE.Mesh).position.set(dx, -20 + dy, 0.6);
+        (child as THREE.Mesh).scale.setScalar(size / 2);
+        (child as THREE.Mesh).visible = size > 0;
+      }
+    });
   }
 
   private renderParticles(particles: Particle[]): void {
@@ -1340,38 +1625,8 @@ export class ThreeRenderer {
 
   /**
    * Draw obstacles using Canvas 2D (overlay approach)
-   * Aligned with Three.js camera to prevent parallax
-   */
-  renderObstaclesCanvas(ctx: CanvasContext, obstacles: Obstacle[], _playerX: number, _playerY: number, cw: number, ch: number): void {
-    if (!ctx) return;
-
-    // Get Three.js camera bounds for coordinate alignment
-    const camera = this.sceneManager.camera;
-    const halfWidth = (camera.right - camera.left) / 2;
-    const halfHeight = (camera.top - camera.bottom) / 2;
-
-    // Calculate screen-to-world ratio (pixels per world unit)
-    const pixelsPerUnitX = cw / (halfWidth * 2);
-    const pixelsPerUnitY = ch / (halfHeight * 2);
-
-    for (const obs of obstacles) {
-      // Get wrapped offset for screen space rendering
-      const offset = this.cameraController.getWrappedOffset(obs.x, obs.y);
-      // Convert to screen coordinates
-      const sx = offset.dx * pixelsPerUnitX + cw / 2;
-      const sy = ch / 2 + offset.dy * pixelsPerUnitY;
-
-      // Culling
-      if (sx < -100 || sx > cw + 100 || sy < -100 || sy > ch + 100) continue;
-
-      // Draw obstacle shape
-      obs.drawShape(ctx, { sx, sy } as ScreenPosition);
-    }
-  }
-
-  /**
-   * Draw UI elements (health bar, joysticks) using Canvas 2D
-   */
+    * Draw UI elements (health bar, joysticks) using Canvas 2D
+    */
   renderUI(
     ctx: CanvasContext,
     playerHp: number,
@@ -1506,6 +1761,7 @@ export class ThreeRenderer {
     this.activeProjectiles.clear();
     this.activeLoot.clear();
     this.activeFireballs.clear();
+    this.activeObstacles.clear();
   }
 }
 

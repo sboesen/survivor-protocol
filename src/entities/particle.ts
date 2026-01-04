@@ -264,20 +264,27 @@ export class Particle {
       }
 
       case 'splash': {
-        // Larger water splash droplet
-        const r = Math.max(2, this.size);
-        ctx.globalAlpha = alpha * 0.6;
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.arc(sx, sy, r, 0, Math.PI * 2);
-        ctx.fill();
-        // Outer ring
+        // For tiny particles, draw as single pixel rect instead of arc
         ctx.globalAlpha = alpha * 0.3;
-        ctx.strokeStyle = '#60a5fa';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(sx, sy, r * 1.5, 0, Math.PI * 2);
-        ctx.stroke();
+        ctx.fillStyle = this.color;
+        if (this.size < 0.5) {
+          // Single pixel for ultra-small particles
+          ctx.fillRect(Math.floor(sx), Math.floor(sy), 1, 1);
+        } else {
+          // Normal circle for larger particles
+          ctx.beginPath();
+          ctx.arc(sx, sy, this.size, 0, Math.PI * 2);
+          ctx.fill();
+          // Outer ring only for larger particles
+          if (this.size > 1.5) {
+            ctx.globalAlpha = alpha * 0.3;
+            ctx.strokeStyle = '#60a5fa';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(sx, sy, this.size * 1.5, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        }
         break;
       }
 

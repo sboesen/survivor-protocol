@@ -34,7 +34,7 @@ export interface Character {
   desc: string;
 }
 
-export type WeaponType = 'pepper_spray' | 'bubble_stream' | 'frying_pan' | 'thrown_cds' | 'fireball' | 'lighter';
+export type WeaponType = 'pepper_spray' | 'bubble_stream' | 'frying_pan' | 'thrown_cds' | 'fireball' | 'lighter' | 'shield_bash';
 export type ItemType = 'pierce' | 'scope' | 'damage' | 'cooldown' | 'projectile';
 export type UpgradeType = WeaponType | ItemType;
 
@@ -61,7 +61,7 @@ export interface Weapon {
   id: WeaponType;
   cd: number;
   dmg: number;
-  type: 'nearest' | 'facing' | 'aura' | 'arc' | 'fireball' | 'spray' | 'bubble';
+  type: 'nearest' | 'facing' | 'aura' | 'arc' | 'fireball' | 'spray' | 'bubble' | 'cleave';
   area?: number;
   range?: number;
   falloff?: number;
@@ -80,7 +80,8 @@ export interface Weapon {
   size?: number; // Projectile size
   splits?: boolean; // Bubbles split into smaller bubbles on hit
   trailDamage?: number; // Fireball trail deals damage
-  coneLength?: number; // Lighter cone length
+  coneLength?: number; // Lighter cone length / cleave range
+  coneWidth?: number; // Cleave cone width in radians
 }
 
 export interface ShopItem {

@@ -21,6 +21,8 @@ function isSpriteKey(key: string): key is SpriteKey {
  * Main game uses Three.js renderer.
  */
 class RendererSystem {
+  private imageCache: Map<string, HTMLImageElement> = new Map();
+
   drawSprite(
     ctx: CanvasContext,
     spriteKey: string,
@@ -67,6 +69,19 @@ class RendererSystem {
     }
 
     ctx.globalAlpha = 1.0;
+  }
+
+  /**
+   * Get a cached image for projectile sprites.
+   * Returns the Image element or a placeholder if not loaded yet.
+   */
+  getLoadedImage(spriteId: string): HTMLImageElement {
+    if (!this.imageCache.has(spriteId)) {
+      const img = new Image();
+      img.src = `/src/assets/sprites/${spriteId}.png`;
+      this.imageCache.set(spriteId, img);
+    }
+    return this.imageCache.get(spriteId)!;
   }
 }
 

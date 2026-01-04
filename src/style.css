@@ -132,6 +132,61 @@ canvas {
   gap: 8px;
 }
 
+/* Weapon Slots */
+.weapon-slots {
+  position: absolute;
+  top: 60px;
+  left: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.weapon-slot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 4px 6px;
+  transition: 0.2s;
+}
+
+.weapon-slot.cooldown-ready {
+  border-color: #4ade80;
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.3);
+}
+
+.weapon-slot.cooldown-ready .weapon-icon {
+  opacity: 1;
+}
+
+.weapon-icon {
+  width: 20px;
+  height: 20px;
+  image-rendering: pixelated;
+  opacity: 0.7;
+}
+
+.weapon-level {
+  font-size: 7px;
+  color: #fbbf24;
+  min-width: 12px;
+  text-align: center;
+}
+
+.weapon-name {
+  font-size: 7px;
+  color: #aaa;
+  max-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
 .item-slot {
   width: 40px;
   height: 40px;

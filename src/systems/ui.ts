@@ -269,6 +269,94 @@ class UISystem {
     const screen = this.getEl('levelup-screen');
     if (screen) screen.classList.add('active');
   }
+
+  // Map weapon IDs to icon image paths
+  private weaponIconMap: Record<string, string> = {
+    pepper_spray: '/pepper_spray.png',
+    bubble_stream: '/bubble_stream.png',
+    frying_pan: '/frying_pan.png',
+    thrown_cds: '/thrown_cds.png',
+    fireball: '/fireball.png',
+    lighter: '/lighter.png',
+    shield_bash: '/shield_bash.png',
+  };
+
+  // Fallback emoji icons for weapons without image sprites
+  private weaponEmojiMap: Record<string, string> = {
+    pepper_spray: '🧪',
+    bubble_stream: '🫧',
+    frying_pan: '🍳',
+    thrown_cds: '💿',
+    fireball: '🔥',
+    lighter: '🔥',
+    shield_bash: '🛡️',
+  };
+
+  updateWeaponSlots(weapons: Array<{ id: string; level: number; curCd: number; cd: number }>): void {
+    const container = this.getEl('weapon-slots');
+    if (!container) return;
+
+    // Only rebuild if weapon count changed (optimization)
+    const currentSlots = container.querySelectorAll('.weapon-slot').length;
+    if (currentSlots !== weapons.length) {
+      container.innerHTML = '';
+      weapons.forEach(w => {
+        const slot = document.createElement('div');
+        slot.className = 'weapon-slot';
+        slot.dataset.weaponId = w.id;
+
+        const icon = document.createElement('img');
+        icon.className = 'weapon-icon';
+        // Check if we have an image sprite for this weapon
+        if (this.weaponIconMap[w.id]) {
+          icon.src = this.weaponIconMap[w.id];
+          icon.onerror = () => {
+            // Fallback to emoji if image fails to load
+            icon.style.display = 'none';
+            const emoji = document.createElement('span');
+            emoji.className = 'weapon-icon';
+            emoji.style.fontSize = '16px';
+            emoji.textContent = this.weaponEmojiMap[w.id] || '⚔️';
+            icon.parentElement?.insertBefore(emoji, icon);
+          };
+        } else {
+          // Use emoji directly
+          icon.style.display = 'none';
+          const emoji = document.createElement('span');
+          emoji.className = 'weapon-icon';
+          emoji.style.fontSize = '16px';
+          emoji.textContent = this.weaponEmojiMap[w.id] || '⚔️';
+          slot.appendChild(emoji);
+        }
+
+        const level = document.createElement('span');
+        level.className = 'weapon-level';
+        level.textContent = `Lv${w.level}`;
+
+        const name = document.createElement('span');
+        name.className = 'weapon-name';
+        const upgrade = UPGRADES[w.id];
+        name.textContent = upgrade ? upgrade.name.replace(/[A-Z]/g, m => ' ' + m).trim() : w.id;
+
+        slot.appendChild(icon);
+        slot.appendChild(level);
+        slot.appendChild(name);
+        container.appendChild(slot);
+      });
+    }
+
+    // Update cooldown ready state
+    weapons.forEach((w, i) => {
+      const slot = container.querySelectorAll('.weapon-slot')[i];
+      if (slot) {
+        if (w.curCd <= 0) {
+          slot.classList.add('cooldown-ready');
+        } else {
+          slot.classList.remove('cooldown-ready');
+        }
+      }
+    });
+  }
 }
 
 export const UI = new UISystem();

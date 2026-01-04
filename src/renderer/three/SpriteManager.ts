@@ -4,7 +4,7 @@ import { PALETTE } from '../../assets/palette';
 import type { Sprites, PaletteKey } from '../../types';
 
 // Sprite keys that have image files
-const IMAGE_SPRITES: Set<string> = new Set(['bat', 'heart', 'gem', 'wizard']);
+const IMAGE_SPRITES: Set<string> = new Set(['bat', 'heart', 'gem', 'wizard', 'shield_bash', 'fireball']);
 
 /**
  * Type guard to check if a character is a valid palette key.

@@ -578,11 +578,53 @@ class GameCore {
             }
           }
 
+          // Handle cleave weapon effects (shield bash - shoots shield sprite at nearest)
+          if (result.cleave) {
+            const { baseAngle, range } = result.cleave;
+
+            // Find nearest enemy for direction
+            let nearestDist = Infinity;
+            let nearestAngle = baseAngle;
+            for (const e of this.enemies) {
+              const d = Utils.getDist(p.x, p.y, e.x, e.y);
+              if (d < nearestDist) {
+                nearestDist = d;
+                let edx = e.x - p.x;
+                let edy = e.y - p.y;
+                if (edx > CONFIG.worldSize / 2) edx -= CONFIG.worldSize;
+                if (edx < -CONFIG.worldSize / 2) edx += CONFIG.worldSize;
+                if (edy > CONFIG.worldSize / 2) edy -= CONFIG.worldSize;
+                if (edy < -CONFIG.worldSize / 2) edy += CONFIG.worldSize;
+                nearestAngle = Math.atan2(edy, edx);
+              }
+            }
+
+            // Shoot shield projectile
+            const speed = 6;
+            const proj = new Projectile(
+              p.x,
+              p.y,
+              Math.cos(nearestAngle) * speed,
+              Math.sin(nearestAngle) * speed,
+              8, // Larger radius (16x16 sprite)
+              '#8899aa',
+              dmg,
+              range / speed, // Duration based on range
+              1,
+              isCrit,
+              false,
+              w.id || 'shield_bash'
+            );
+            proj.knockback = w.knockback || 8;
+            proj.spriteId = 'shield_bash'; // Use the sprite
+            this.projectiles.push(proj);
+          }
+
           // Handle spray weapon effects
           if (result.spray) {
             const { baseAngle, isLighter, gasColor, pelletCount, spreadAmount, coneLength } = result.spray;
 
-            // Spawn gas cloud particles
+            // Spawn gas cloud particles (pepper spray and lighter)
             for (let i = 0; i < (isLighter ? 10 : 6); i++) {
               const dist = 10 + Math.random() * (isLighter ? 50 : 80);
               let gasSpread = isLighter ? spreadAmount * 0.3 : spreadAmount;
@@ -638,7 +680,9 @@ class GameCore {
                   dmg,
                   12,
                   1,
-                  isCrit
+                  isCrit,
+                  false,
+                  w.id || 'pepper_spray'
                 );
                 this.projectiles.push(proj);
               }
@@ -674,16 +718,46 @@ class GameCore {
     // Update projectiles
     this.projectiles.forEach(proj => proj.update());
 
-    // Spawn bubble trail particles
+    // Spawn bubble trail particles - more frequent and varied
     this.projectiles.forEach(proj => {
-      if ((proj as any).isBubble && this.frames % 5 === 0) {
+      if ((proj as any).isBubble && this.frames % 3 === 0) {
+        // Foam trail - floats upward
         this.spawnParticles({
           type: 'foam' as ParticleType,
-          x: proj.x,
-          y: proj.y,
-          size: 2 + Math.random() * 2,
-          vy: -0.5 - Math.random() * 0.5 // Float upward
+          x: proj.x + (Math.random() - 0.5) * 6,
+          y: proj.y + (Math.random() - 0.5) * 6,
+          size: 2 + Math.random() * 3,
+          vy: -0.8 - Math.random() * 0.5,
+          vx: (Math.random() - 0.5) * 0.3
         }, 1);
+
+        // Occasional sparkle
+        if (Math.random() > 0.6) {
+          this.spawnParticles({
+            type: 'splash' as ParticleType,
+            x: proj.x + (Math.random() - 0.5) * 8,
+            y: proj.y + (Math.random() - 0.5) * 8,
+            size: 1 + Math.random() * 2,
+            vx: (Math.random() - 0.5) * 0.5,
+            vy: -0.3 - Math.random() * 0.3,
+            color: '#aaddff'
+          }, 1);
+        }
+      }
+
+      // Shield sprite trail - tiny faint particles
+      if ((proj as any).spriteId === 'shield_bash' && this.frames % 4 === 0) {
+        for (let i = 0; i < 2; i++) {
+          this.spawnParticles({
+            type: 'splash' as ParticleType,
+            x: proj.x + (Math.random() - 0.5) * 12,
+            y: proj.y + (Math.random() - 0.5) * 12,
+            size: 0.05,
+            vx: (Math.random() - 0.5) * 0.3,
+            vy: (Math.random() - 0.5) * 0.3,
+            color: '#555566'
+          }, 1);
+        }
       }
     });
 
@@ -938,6 +1012,7 @@ class GameCore {
     UI.updateDamageTexts(this.damageTexts, p.x, p.y, this.frames);
     UI.updateUlt(p.ultCharge, p.ultMax);
     UI.updateItemSlots(p.items, p.inventory);
+    UI.updateWeaponSlots(p.weapons);
 
     // Update HUD
     if (shouldUpdateHud(this.frames)) {
@@ -1027,12 +1102,10 @@ class GameCore {
       this.loot,
       this.fireballs,
       this.particles,
+      this.obstacles,
       cw,
       ch
     );
-
-    // Render obstacles using Canvas 2D overlay
-    threeRenderer.renderObstaclesCanvas(ctx, this.obstacles, p.x, p.y, cw, ch);
 
     // Draw joysticks (mobile only)
     // Movement joystick (left)

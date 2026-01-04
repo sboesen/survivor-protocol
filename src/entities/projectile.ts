@@ -1,6 +1,7 @@
 import { CONFIG } from '../config';
 import type { CanvasContext } from '../types';
 import { Entity, type ScreenPosition } from './entity';
+import { Renderer } from '../systems/renderer';
 
 export class Projectile extends Entity {
   vx: number;
@@ -22,6 +23,7 @@ export class Projectile extends Entity {
   knockback?: number;
   splits?: boolean;
   weaponId: string; // Track which weapon created this projectile
+  spriteId?: string; // Use sprite instead of circle
 
   constructor(
     x: number,
@@ -86,27 +88,67 @@ export class Projectile extends Entity {
     ctx.translate(sx, sy);
     if (this.isArc) ctx.rotate(this.rot);
 
-    ctx.fillStyle = this.isCrit ? '#ff0' : this.color;
+    // Fade out near end of life
+    const alpha = this.dur < 5 ? this.dur / 5 : 1;
+    ctx.globalAlpha = alpha;
 
-    if (this.isArc) {
+    // Draw sprite if specified
+    if (this.spriteId) {
+      ctx.drawImage(
+        Renderer.getLoadedImage(this.spriteId),
+        -8, -8, 16, 16
+      );
+    } else if (this.isArc) {
+      ctx.fillStyle = this.isCrit ? '#ff0' : this.color;
       ctx.fillRect(-6, -6, 12, 12);
     } else if (this.isBubble) {
-      // Draw bubble with shine
+      // Draw bubble with shimmering rings and inner glow
+      const pulse = Math.sin(this.age * 0.2) * 0.1 + 1; // Subtle pulse
+
+      // Outer ring with glow
       ctx.beginPath();
-      ctx.arc(0, 0, this.radius * 1.5, 0, Math.PI * 2);
-      ctx.strokeStyle = this.color;
-      ctx.lineWidth = 2;
+      ctx.arc(0, 0, this.radius * 1.6 * pulse, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(170, 221, 255, 0.4)';
+      ctx.lineWidth = 3;
       ctx.stroke();
+
+      // Main bubble body
       ctx.beginPath();
-      ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(200, 240, 255, 0.3)';
+      ctx.arc(0, 0, this.radius * 1.3 * pulse, 0, Math.PI * 2);
+      const gradient = ctx.createRadialGradient(-this.radius * 0.3, -this.radius * 0.3, 0, 0, 0, this.radius * 1.5);
+      gradient.addColorStop(0, 'rgba(255, 255, 255, 0.5)');
+      gradient.addColorStop(0.5, 'rgba(170, 221, 255, 0.3)');
+      gradient.addColorStop(1, 'rgba(100, 180, 255, 0.1)');
+      ctx.fillStyle = gradient;
       ctx.fill();
-      // Shine
+
+      // Inner ring
       ctx.beginPath();
-      ctx.arc(-this.radius * 0.3, -this.radius * 0.3, this.radius * 0.3, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+      ctx.arc(0, 0, this.radius * 0.8 * pulse, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(200, 240, 255, 0.5)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Multiple shine spots for iridescent effect
+      ctx.beginPath();
+      ctx.arc(-this.radius * 0.4, -this.radius * 0.4, this.radius * 0.25, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(this.radius * 0.3, this.radius * 0.2, this.radius * 0.15, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(200, 240, 255, 0.4)';
+      ctx.fill();
+
+      // Wobble highlight
+      const wobbleX = Math.sin(this.age * 0.15 + this.wobble) * this.radius * 0.3;
+      const wobbleY = Math.cos(this.age * 0.12 + this.wobble) * this.radius * 0.2;
+      ctx.beginPath();
+      ctx.arc(wobbleX, wobbleY, this.radius * 0.2, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
       ctx.fill();
     } else {
+      ctx.fillStyle = this.isCrit ? '#ff0' : this.color;
       ctx.beginPath();
       ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
       ctx.fill();

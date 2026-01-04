@@ -51,6 +51,14 @@ export interface SprayData {
   pelletCount: number;
   spreadAmount: number;
   coneLength: number;
+  isShieldBash?: boolean;  // Shield bash fires heavy pellets with knockback
+}
+
+export interface CleaveData {
+  baseAngle: number;
+  range: number;
+  coneWidth: number;
+  knockback: number;
 }
 
 export interface WeaponFireResult {
@@ -59,6 +67,7 @@ export interface WeaponFireResult {
   fireballs?: FireballData[];
   spray?: SprayData;
   auraDamage?: { dmg: number; isCrit: boolean; area: number };
+  cleave?: CleaveData;
 }
 
 /**
@@ -287,7 +296,7 @@ export function fireFireball(
 }
 
 /**
- * Fire a weapon of type 'spray' (pepper_spray or lighter).
+ * Fire a weapon of type 'spray' (pepper_spray, lighter, or shield_bash).
  */
 export function fireSpray(
   _p: { x: number; y: number },
@@ -304,10 +313,11 @@ export function fireSpray(
   );
 
   const isLighter = weaponId === 'lighter';
-  const gasColor = isLighter ? '#ffcccc' : '#33ff33';
-  const pelletCount = isLighter ? 3 : (w.pelletCount || 5);
-  const spreadAmount = w.spread || (isLighter ? 0.25 : 0.4);
-  const coneLength = w.coneLength || 60;
+  const isShieldBash = weaponId === 'shield_bash';
+  const gasColor = isLighter ? '#ffcccc' : (isShieldBash ? '#8899aa' : '#33ff33');
+  const pelletCount = isLighter ? 3 : (isShieldBash ? (w.pelletCount || 4) : (w.pelletCount || 5));
+  const spreadAmount = w.spread || (isLighter ? 0.25 : (isShieldBash ? 0.5 : 0.4));
+  const coneLength = w.coneLength || (isShieldBash ? 50 : (isLighter ? 60 : 60));
 
   return {
     fired: true,
@@ -318,6 +328,34 @@ export function fireSpray(
       pelletCount,
       spreadAmount,
       coneLength,
+      isShieldBash,
+    },
+  };
+}
+
+/**
+ * Fire a weapon of type 'cleave' (melee cone attack like shield bash).
+ */
+export function fireCleave(
+  _p: { x: number; y: number },
+  lastDx: number | undefined,
+  lastDy: number | undefined,
+  aimAngle: number | undefined,
+  w: Weapon
+): WeaponFireResult {
+  const baseAngle = aimAngle ?? (
+    lastDx !== undefined ?
+      Math.atan2(lastDy || 0, lastDx) :
+      Math.random() * Math.PI * 2
+  );
+
+  return {
+    fired: true,
+    cleave: {
+      baseAngle,
+      range: w.coneLength || 60,
+      coneWidth: w.coneWidth || 0.6,
+      knockback: w.knockback || 8,
     },
   };
 }
@@ -423,6 +461,8 @@ export function fireWeapon(
       return fireFireball(p, enemies, w, dmg, isCrit, pierce, projectileBonus);
     case 'spray':
       return fireSpray(p, lastDx, lastDy, aimAngle, w, weaponId);
+    case 'cleave':
+      return fireCleave(p, lastDx, lastDy, aimAngle, w);
     case 'aura':
       return checkAura(w, frameCount, dmg, isCrit);
     default:

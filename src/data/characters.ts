@@ -35,7 +35,7 @@ export const CHARACTERS: Record<string, Character> = {
     id: 'knight',
     name: 'Knight',
     icon: '⚔️',
-    weapon: 'pepper_spray',
+    weapon: 'shield_bash',
     hpMod: 1.5,
     spdMod: 0.8,
     ult: 'IronWill',
