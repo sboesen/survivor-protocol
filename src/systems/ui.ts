@@ -126,7 +126,8 @@ class UISystem {
       if (ry > worldSize / 2) ry -= worldSize;
 
       const scale = t.el.classList.contains('crit-text') ? 1.5 : 1;
-      t.el.style.transform = `translate(${rx + window.innerWidth / 2}px, ${ry + window.innerHeight / 2 - (50 - t.life)}px) scale(${scale})`;
+      // Position text above sprites - use larger offset to clear enemy sprites
+      t.el.style.transform = `translate(${rx + window.innerWidth / 2}px, ${ry + window.innerHeight / 2 - (80 - t.life)}px) scale(${scale})`;
     });
   }
 

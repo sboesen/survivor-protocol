@@ -231,6 +231,11 @@ export class ThreeRenderer {
       }
     }
 
+    // Get camera position for wrapping calculations
+    const camX = this.sceneManager.camera.position.x;
+    const camY = this.sceneManager.camera.position.y;
+    const worldSize = 2000;
+
     // Update or create enemy views
     for (const enemy of enemies) {
       if (enemy.marked) continue;
@@ -244,7 +249,17 @@ export class ThreeRenderer {
         this.activeEnemies.add(enemy);
       }
 
-      view.position.set(enemy.x, enemy.y, 9);
+      // Apply world wrapping for enemy position
+      let ex = enemy.x - camX;
+      let ey = enemy.y - camY;
+
+      // Handle wrapping
+      if (ex < -worldSize / 2) ex += worldSize;
+      if (ex > worldSize / 2) ex -= worldSize;
+      if (ey < -worldSize / 2) ey += worldSize;
+      if (ey > worldSize / 2) ey -= worldSize;
+
+      view.position.set(ex + camX, ey + camY, 9);
       view.visible = !enemy.marked;
     }
   }
