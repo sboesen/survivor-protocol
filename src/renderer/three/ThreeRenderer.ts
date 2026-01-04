@@ -43,6 +43,10 @@ export class ThreeRenderer {
   // Particles are recreated each frame
   private particleViews: THREE.Points[] = [];
 
+  // Illumination sprites for fireballs
+  private fireballIllumViews: WeakMap<FireballProjectile, THREE.Sprite> = new WeakMap();
+  private activeFireballIllums = new Set<FireballProjectile>();
+
   // Feature flag to enable/disable Three.js
   static enabled = true;
 
@@ -93,115 +97,57 @@ export class ThreeRenderer {
     this.renderFireballs(fireballs);
     this.renderParticles(particles);
     this.renderObstacles(obstacles);
+    this.renderIllumination(particles, fireballs);
 
     // Finally render the scene
     this.sceneManager.render();
   }
 
-  /**
-   * Render ground illumination effects (fire glow, etc.)
-   * Call this after renderBackgroundCanvas but before Three.js sprites
-   */
-  renderIllumination(
-    ctx: CanvasContext,
-    particles: Particle[],
-    fireballs: FireballProjectile[],
-    _playerX: number,
-    _playerY: number,
-    cw: number,
-    ch: number
-  ): void {
-    if (!ctx) return;
-
-    const camera = this.sceneManager.camera;
-    const camX = camera.position.x;
-    const camY = camera.position.y;
-    const halfWidth = (camera.right - camera.left) / 2;
-    const halfHeight = (camera.top - camera.bottom) / 2;
-
-    const pixelsPerUnitX = cw / (halfWidth * 2);
-    const pixelsPerUnitY = ch / (halfHeight * 2);
-
-    // Get time for pulsing effects
+  renderIllumination(_particles: Particle[], fireballs: FireballProjectile[]): void {
     const time = Date.now() / 1000;
 
-    // Enable additive blending for glow effect
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
+    // Clean up removed fireball illuminations
+    const currentFireballSet = new Set(fireballs);
+    for (const fb of this.activeFireballIllums) {
+      if (!currentFireballSet.has(fb)) {
+        const view = this.fireballIllumViews.get(fb);
+        if (view) {
+          this.sceneManager.removeFromScene(view);
+          view.material.dispose();
+        }
+        this.activeFireballIllums.delete(fb);
+      }
+    }
 
-    // Render fireball ground illumination
+    // Update or create fireball illumination sprites
     for (const fb of fireballs) {
       if (fb.marked) continue;
 
-      // Get wrapped offset for screen space rendering
-      const offset = this.cameraController.getWrappedOffset(fb.x, fb.y);
-      const sx = offset.dx * pixelsPerUnitX + cw / 2;
-      const sy = ch / 2 + offset.dy * pixelsPerUnitY;
+      let illumSprite = this.fireballIllumViews.get(fb);
 
-      // Culling
-      if (sx < -150 || sx > cw + 150 || sy < -150 || sy > ch + 150) continue;
+      if (!illumSprite) {
+        // Create large glow sprite for fireball
+        illumSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+          map: this.createGlowTexture(0xffc864, 256),
+          transparent: true,
+          opacity: 0.5,
+          depthTest: false,
+          blending: THREE.AdditiveBlending,
+        }));
+        illumSprite.scale.set(fb.radius * 24, fb.radius * 24, 1);
+        illumSprite.position.z = 1;
+        this.sceneManager.addToScene(illumSprite);
+        this.fireballIllumViews.set(fb, illumSprite);
+        this.activeFireballIllums.add(fb);
+      }
 
-      // Pulsing glow
+      const pos = this.cameraController.getWrappedRenderPosition(fb.x, fb.y);
+      illumSprite.position.set(pos.x, pos.y, 1);
+
       const pulseScale = 1 + Math.sin(time * 5 + fb.x) * 0.3;
-      const illumRadius = fb.radius * 12 * pulseScale * pixelsPerUnitX;
-
-      // Outer glow gradient
-      const gradient = ctx.createRadialGradient(sx, sy, 0, sx, sy, illumRadius);
-      gradient.addColorStop(0, 'rgba(255, 200, 100, 0.5)');
-      gradient.addColorStop(0.2, 'rgba(255, 150, 50, 0.3)');
-      gradient.addColorStop(0.5, 'rgba(255, 100, 30, 0.15)');
-      gradient.addColorStop(0.8, 'rgba(255, 60, 10, 0.05)');
-      gradient.addColorStop(1, 'rgba(255, 30, 0, 0)');
-
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.arc(sx, sy, illumRadius, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Bright core
-      const coreRadius = fb.radius * 4 * pixelsPerUnitX;
-      const coreGradient = ctx.createRadialGradient(sx, sy, 0, sx, sy, coreRadius);
-      coreGradient.addColorStop(0, 'rgba(255, 255, 200, 0.4)');
-      coreGradient.addColorStop(0.5, 'rgba(255, 200, 100, 0.2)');
-      coreGradient.addColorStop(1, 'rgba(255, 100, 50, 0)');
-
-      ctx.fillStyle = coreGradient;
-      ctx.beginPath();
-      ctx.arc(sx, sy, coreRadius, 0, Math.PI * 2);
-      ctx.fill();
+      illumSprite.scale.set(fb.radius * 24 * pulseScale, fb.radius * 24 * pulseScale, 1);
+      illumSprite.visible = !fb.marked;
     }
-
-    // Render fire particle illumination
-    for (const pt of particles) {
-      if (pt.marked || pt.type !== 'fire') continue;
-
-      let rx = pt.x - camX;
-      let ry = pt.y - camY;
-
-      // Fire particles don't wrap
-      if (Math.abs(rx) > halfWidth * 1.5 || Math.abs(ry) > halfHeight * 1.5) continue;
-
-      const sx = rx * pixelsPerUnitX + cw / 2;
-      const sy = ch / 2 + ry * pixelsPerUnitY;
-
-      // Culling
-      if (sx < -100 || sx > cw + 100 || sy < -100 || sy > ch + 100) continue;
-
-      const alpha = Math.max(0, pt.life / pt.maxLife);
-      const illumRadius = pt.size * 8 * pixelsPerUnitX;
-
-      const gradient = ctx.createRadialGradient(sx, sy, 0, sx, sy, illumRadius);
-      gradient.addColorStop(0, `rgba(255, 150, 50, ${alpha * 0.4})`);
-      gradient.addColorStop(0.5, `rgba(255, 80, 20, ${alpha * 0.15})`);
-      gradient.addColorStop(1, 'rgba(255, 30, 0, 0)');
-
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.arc(sx, sy, illumRadius, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    ctx.restore();
   }
 
   private renderPlayer(player: Player | null): void {
@@ -1755,6 +1701,16 @@ export class ThreeRenderer {
       (points.material as THREE.Material).dispose();
     }
     this.particleViews = [];
+
+    // Clear fireball illumination views
+    for (const fb of this.activeFireballIllums) {
+      const view = this.fireballIllumViews.get(fb);
+      if (view) {
+        this.sceneManager.removeFromScene(view);
+        view.material.dispose();
+      }
+    }
+    this.activeFireballIllums.clear();
 
     // Clear active entity tracking
     this.activeEnemies.clear();
