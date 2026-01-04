@@ -16,7 +16,7 @@ export class SceneManager {
 
     // Orthographic camera for 2D rendering
     const aspect = window.innerWidth / window.innerHeight;
-    const viewSize = 380; // Base view size (zoomed out)
+    const viewSize = 700;
     this.camera = new THREE.OrthographicCamera(
       -viewSize * aspect,
       viewSize * aspect,
@@ -58,7 +58,7 @@ export class SceneManager {
 
   resize(width: number, height: number): void {
     const aspect = width / height;
-    const viewSize = 380;
+    const viewSize = 700;
     this.camera.left = -viewSize * aspect;
     this.camera.right = viewSize * aspect;
     this.camera.top = viewSize;
