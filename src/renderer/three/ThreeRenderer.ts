@@ -324,52 +324,24 @@ export class ThreeRenderer {
       let view = this.lootViews.get(item);
 
       if (!view) {
-        // For gems, create a 3D octahedron (diamond shape)
-        if (item.type === 'gem') {
-          const geometry = new THREE.OctahedronGeometry(8, 0);
-          // Scale to make it taller (stretch Y axis)
-          geometry.scale(1, 1.3, 1);
-          const material = new THREE.MeshStandardMaterial({
-            color: 0x10b981,
-            emissive: 0x059669,
-            emissiveIntensity: 0.3,
-            metalness: 0.3,
-            roughness: 0.2,
-          });
-          const mesh = new THREE.Mesh(geometry, material);
-
-          // Add edge outline for better rotation visibility
-          const edges = new THREE.EdgesGeometry(geometry);
-          const lineMaterial = new THREE.LineBasicMaterial({ color: 0x6ee7b7, linewidth: 3 });
-          const wireframe = new THREE.LineSegments(edges, lineMaterial);
-          mesh.add(wireframe);
-
-          view = new THREE.Group();
-          view.add(mesh);
-        } else {
-          // For hearts and chests, use sprites
-          const spriteKey = item.type === 'chest' ? 'chest' : 'heart';
-          const sprite = this.spriteManager.getSprite(spriteKey, 20);
-          view = new THREE.Group();
-          view.add(sprite);
-        }
+        // All loot types now use sprites
+        const spriteKey = item.type === 'chest' ? 'chest' : item.type === 'heart' ? 'heart' : 'gem';
+        const sprite = this.spriteManager.getSprite(spriteKey, 20);
+        view = new THREE.Group();
+        view.add(sprite);
 
         this.sceneManager.addToScene(view);
         this.lootViews.set(item, view);
         this.activeLoot.add(item);
       }
 
-      // Animate gems with hover and 3D rotation
+      // Base position
+      view.position.set(item.x, item.y, 7);
+
+      // Animate gems with gentle hover (like hearts)
       if (item.type === 'gem') {
-        const hoverOffset = Math.sin(time * 3 + item.x) * 2; // Hover up/down 2px
-        view.position.set(item.x, item.y + hoverOffset, 7);
-        // 3D rotation - spin on Y axis only
-        const mesh = view.children[0] as THREE.Mesh;
-        if (mesh) {
-          mesh.rotation.y = time * 2 + item.x; // Continuous spinning
-        }
-      } else {
-        view.position.set(item.x, item.y, 7);
+        const hoverOffset = Math.sin(time * 3 + item.x) * 2;
+        view.position.y = item.y + hoverOffset;
       }
 
       // Animate hearts with gentle hover

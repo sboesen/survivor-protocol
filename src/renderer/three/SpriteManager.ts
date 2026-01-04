@@ -4,7 +4,7 @@ import { PALETTE } from '../../assets/palette';
 import type { Sprites, PaletteKey } from '../../types';
 
 // Sprite keys that have image files
-const IMAGE_SPRITES: Set<string> = new Set(['bat', 'heart']);
+const IMAGE_SPRITES: Set<string> = new Set(['bat', 'heart', 'gem']);
 
 /**
  * Type guard to check if a character is a valid palette key.
@@ -25,7 +25,9 @@ export class SpriteManager {
    * Pre-generate all textures from sprite definitions
    */
   async init(): Promise<void> {
-    await Promise.all(Object.keys(SPRITES).map(key => this.loadTexture(key)));
+    const spriteKeys = Object.keys(SPRITES);
+    const imageKeys = Array.from(IMAGE_SPRITES).filter(key => !spriteKeys.includes(key));
+    await Promise.all([...spriteKeys, ...imageKeys].map(key => this.loadTexture(key)));
   }
 
   /**
