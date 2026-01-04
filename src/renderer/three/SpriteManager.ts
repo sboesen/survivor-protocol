@@ -133,13 +133,17 @@ export class SpriteManager {
     for (let py = 0; py < size; py++) {
       for (let px = 0; px < size; px++) {
         const char = art[py]?.[px];
-        if (char && isPaletteKey(char)) {
+        // Check for transparent pixels: '.' or ' ' (space)
+        if (!char || char === '.' || char === ' ') {
+          continue; // Skip transparent pixels
+        }
+        if (isPaletteKey(char)) {
           const color = PALETTE[char];
           if (color) {
             ctx.fillStyle = color;
             ctx.fillRect(px, py, 1, 1);
           }
-        } else if (char && char !== '.') {
+        } else {
           // Log warning for undefined colors (helps catch missing palette entries)
           console.warn(`[SpriteManager] Undefined palette color '${char}' in sprite '${spriteKey}' at (${px},${py})`);
         }
@@ -173,8 +177,8 @@ export class SpriteManager {
   }
 
   /**
-   * Get a Three.js Sprite for the given sprite key
-   */
+    * Get a Three.js Sprite for the given sprite key
+    */
   getSprite(spriteKey: string, scale = 1): THREE.Sprite {
     const texture = this.textures.get(spriteKey);
     if (!texture) {
@@ -185,8 +189,9 @@ export class SpriteManager {
     const material = new THREE.SpriteMaterial({
       map: texture,
       transparent: true,
-      depthTest: false, // Disable depth test for 2D sprites
+      depthTest: true,
       depthWrite: false,
+      sizeAttenuation: false,
     });
 
     const sprite = new THREE.Sprite(material);
@@ -204,8 +209,9 @@ export class SpriteManager {
     const shadowMaterial = new THREE.SpriteMaterial({
       map: this.createShadowTexture(),
       transparent: true,
-      depthTest: false,
+      depthTest: true,
       depthWrite: false,
+      sizeAttenuation: false,
     });
     const shadow = new THREE.Sprite(shadowMaterial);
     shadow.scale.set(scale * 0.8, scale * 0.4, 1);
@@ -241,7 +247,8 @@ export class SpriteManager {
   private createErrorSprite(): THREE.Sprite {
     const material = new THREE.SpriteMaterial({
       color: 0xff00ff,
-      depthTest: false,
+      depthTest: true,
+      depthWrite: false,
     });
     const sprite = new THREE.Sprite(material);
     sprite.scale.set(10, 10, 1);

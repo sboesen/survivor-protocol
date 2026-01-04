@@ -1,22 +1,22 @@
 import * as THREE from 'three';
 
 /**
- * Manages the Three.js scene, camera, and renderer for the game.
+ * Manages Three.js scene, camera, and renderer for game.
  * Uses orthographic projection for 2D pixel art style.
  */
 export class SceneManager {
   scene: THREE.Scene;
   camera: THREE.OrthographicCamera;
-  renderer: THREE.WebGLRenderer;
-  private canvas: HTMLCanvasElement | null = null;
+  renderer!: THREE.WebGLRenderer;
 
   constructor() {
-    // Scene with transparent background (game draws its own floor)
+    // Scene with dark background color
     this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(0x0a0a0f);
 
     // Orthographic camera for 2D rendering
     const aspect = window.innerWidth / window.innerHeight;
-    const viewSize = 700;
+    const viewSize = 350;
     this.camera = new THREE.OrthographicCamera(
       -viewSize * aspect,
       viewSize * aspect,
@@ -30,35 +30,52 @@ export class SceneManager {
     this.camera.lookAt(0, 0, 0);
     // Flip Y axis to match Canvas 2D coordinate system (positive Y is down)
     this.camera.scale.y = -1;
+  }
 
-    // WebGL renderer
+  init(): void {
+    // Clean up any existing Three.js canvas from previous HMR cycles
+    const existingCanvas = document.getElementById('three-canvas');
+    if (existingCanvas) {
+      existingCanvas.remove();
+    }
+
+    // Create WebGL renderer
     this.renderer = new THREE.WebGLRenderer({
       antialias: false,
-      alpha: true,
+      alpha: false,
+      preserveDrawingBuffer: false,
       powerPreference: 'high-performance',
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.autoClear = false; // We'll clear manually if needed
+    this.renderer.setClearColor(0x0a0a0f, 1);
 
-    // Enable auto clear for proper Three.js rendering
-    this.renderer.autoClear = true;
-  }
 
-  init(canvas: HTMLCanvasElement): void {
-    this.canvas = canvas;
-    this.renderer.domElement.id = 'three-canvas';
-    // Insert AFTER the canvas so Three.js sprites appear on top
-    this.canvas.parentNode?.insertBefore(this.renderer.domElement, this.canvas.nextSibling);
-    this.renderer.domElement.style.position = 'absolute';
-    this.renderer.domElement.style.top = '0';
-    this.renderer.domElement.style.left = '0';
-    this.renderer.domElement.style.pointerEvents = 'none'; // Let clicks pass through to canvas
-    this.renderer.domElement.style.zIndex = '10'; // Above floor, below UI
+
+    // Add Three.js canvas to DOM - directly to body for testing
+    const threeCanvas = this.renderer.domElement;
+    threeCanvas.id = 'three-canvas';
+    threeCanvas.style.position = 'fixed';
+    threeCanvas.style.top = '0';
+    threeCanvas.style.left = '0';
+    threeCanvas.style.width = '100%';
+    threeCanvas.style.height = '100%';
+    threeCanvas.style.zIndex = '0';
+    threeCanvas.style.pointerEvents = 'none';
+    document.body.appendChild(threeCanvas);
+
+
+    // Ensure camera projection is up to date
+    this.camera.updateProjectionMatrix();
+
+
+
   }
 
   resize(width: number, height: number): void {
     const aspect = width / height;
-    const viewSize = 700;
+    const viewSize = 350;
     this.camera.left = -viewSize * aspect;
     this.camera.right = viewSize * aspect;
     this.camera.top = viewSize;
@@ -66,10 +83,17 @@ export class SceneManager {
     this.camera.scale.y = -1; // Preserve Y-flip
     this.camera.updateProjectionMatrix();
     this.camera.lookAt(0, 0, 0);
-    this.renderer.setSize(width, height);
+    if (this.renderer) {
+      this.renderer.setSize(width, height);
+    }
   }
 
   render(): void {
+    if (!this.renderer) {
+      console.warn('[SceneManager] render() called but renderer not initialized');
+      return;
+    }
+    this.renderer.clear();
     this.renderer.render(this.scene, this.camera);
   }
 

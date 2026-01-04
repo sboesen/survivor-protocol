@@ -14,9 +14,9 @@ export class CameraController {
   }
 
   /**
-   * Update camera to follow the player.
-   * Camera position stays wrapped to [0, worldSize] to match entities.
-   */
+    * Update camera to follow the player.
+    * Camera position stays wrapped to [0, worldSize] to match entities.
+    */
   follow(playerX: number, playerY: number, _screenWidth: number, _screenHeight: number): void {
     // Wrap camera position to match entity coordinate space
     const wrappedX = ((playerX % CONFIG.worldSize) + CONFIG.worldSize) % CONFIG.worldSize;

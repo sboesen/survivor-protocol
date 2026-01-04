@@ -98,14 +98,8 @@ class GameCore {
   timeFreeze = 0;
 
   async init(): Promise<void> {
-    this.canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
-    if (!this.canvas) return;
-
-    this.ctx = this.canvas.getContext('2d');
-    if (!this.ctx) return;
-
     // Initialize Three.js renderer (async for image loading)
-    await threeRenderer.init(this.canvas);
+    await threeRenderer.init();
 
     this.resize();
     window.onresize = () => this.resize();
@@ -124,28 +118,23 @@ class GameCore {
 
     // Mouse aim tracking - updates aim angle based on cursor position relative to player
     window.onmousemove = (e) => {
-      if (!this.canvas || !this.player) return;
-      const rect = this.canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
+      if (!this.player) return;
       // Calculate angle from center of screen (player position) to mouse
-      const centerX = rect.width / 2;
-      const centerY = rect.height / 2;
-      this.input.aimAngle = Math.atan2(mouseY - centerY, mouseX - centerX);
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+      this.input.aimAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
       // Deactivate aim joystick when using mouse
       this.input.aimJoy.active = false;
     };
 
     // Touch/joystick input - split into two zones
-    const tz = this.canvas;
     const getCanvasPos = (clientX: number, clientY: number) => {
-      const rect = tz.getBoundingClientRect();
       return {
-        x: clientX - rect.left,
-        y: clientY - rect.top,
+        x: clientX,
+        y: clientY,
       };
     };
-    tz.ontouchstart = (e) => {
+    window.ontouchstart = (e) => {
       e.preventDefault();
       for (const touch of e.changedTouches) {
         const pos = getCanvasPos(touch.clientX, touch.clientY);
@@ -163,7 +152,7 @@ class GameCore {
         }
       }
     };
-    tz.ontouchmove = (e) => {
+    window.ontouchmove = (e) => {
       e.preventDefault();
       for (const touch of e.changedTouches) {
         const pos = getCanvasPos(touch.clientX, touch.clientY);
@@ -190,7 +179,7 @@ class GameCore {
         }
       }
     };
-    tz.ontouchend = (e) => {
+    window.ontouchend = (e) => {
       for (const touch of e.changedTouches) {
         const halfWidth = window.innerWidth / 2;
         if (touch.clientX < halfWidth) {
@@ -212,11 +201,7 @@ class GameCore {
   }
 
   resize(): void {
-    if (this.canvas) {
-      this.canvas.width = window.innerWidth;
-      this.canvas.height = window.innerHeight;
-      threeRenderer.resize(window.innerWidth, window.innerHeight);
-    }
+    threeRenderer.resize(window.innerWidth, window.innerHeight);
   }
 
   start(): void {
@@ -338,9 +323,7 @@ class GameCore {
     const enemy = new Enemy(1000, 1000, 'basic', 0);
     enemy.update(dummyPlayer, 0, []);
 
-    // Warm up loot (draw to compile that path)
-    const loot = new Loot(0, 0, 'gem');
-    loot.draw(this.ctx!, 0, 0, 800, 600);
+    // Skip loot draw warmup - no longer using Canvas 2D
   }
 
   quitRun(): void {
@@ -1074,35 +1057,22 @@ class GameCore {
   }
 
   render(): void {
-    if (!this.ctx) return;
+     if (!this.active || !this.player) return;
 
-    const ctx = this.ctx;
-    const cw = ctx.canvas.width;
-    const ch = ctx.canvas.height;
+     const p = this.player;
 
-    // Clear canvas
-    ctx.fillStyle = '#0a0a0f';
-    ctx.fillRect(0, 0, cw, ch);
-
-    // Render background (floor, grid) with Three.js
-    threeRenderer.renderBackground(this.player);
-
-    if (!this.active || !this.player) return;
-
-    const p = this.player;
-
-    // Render main scene with Three.js - passing actual entity objects
-    threeRenderer.render(
-      p,
-      this.enemies,
-      this.projectiles,
-      this.loot,
-      this.fireballs,
-      this.particles,
-      this.obstacles,
-      cw,
-      ch
-    );
+     // Render main scene with Three.js - passing actual entity objects
+     threeRenderer.render(
+       p,
+       this.enemies,
+       this.projectiles,
+       this.loot,
+       this.fireballs,
+       this.particles,
+       this.obstacles,
+       window.innerWidth,
+       window.innerHeight
+     );
 
     // Render ground illumination effects (fire glow, etc.)
     threeRenderer.renderIllumination(this.particles, this.fireballs);

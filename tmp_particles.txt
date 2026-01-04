@@ -1,0 +1,3 @@
+  // Particles are recreated each frame
+  private particleViews: THREE.Points[] = [];
+  private particlesDisabled = true; // TEMP: Disable particles to fix lag

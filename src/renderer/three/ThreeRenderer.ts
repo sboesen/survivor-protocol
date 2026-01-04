@@ -41,6 +41,7 @@ export class ThreeRenderer {
 
   // Particles are recreated each frame
   private particleViews: THREE.Points[] = [];
+  private particlesDisabled = true; // TEMP: Disable particles to fix lag
 
   // Illumination sprites for fireballs
   private fireballIllumViews: WeakMap<FireballProjectile, THREE.Sprite> = new WeakMap();
@@ -65,11 +66,11 @@ export class ThreeRenderer {
     this.cameraController = new CameraController(this.sceneManager.camera);
   }
 
-  async init(canvas: HTMLCanvasElement): Promise<void> {
+  async init(): Promise<void> {
     if (!ThreeRenderer.enabled) return;
-    this.sceneManager.init(canvas);
+    this.sceneManager.init();
     await this.spriteManager.init();
-    this.initUI(canvas);
+    this.initUI();
   }
 
   resize(width: number, height: number): void {
@@ -80,24 +81,27 @@ export class ThreeRenderer {
       this.uiCamera.right = width / 2;
       this.uiCamera.top = height / 2;
       this.uiCamera.bottom = -height / 2;
+      this.uiCamera.scale.y = -1; // Preserve Y-flip
       this.uiCamera.updateProjectionMatrix();
     }
   }
 
-  private initUI(canvas: HTMLCanvasElement): void {
+  private initUI(): void {
     if (!ThreeRenderer.enabled) return;
 
     // Create UI scene and camera (fixed screen space)
     this.uiScene = new THREE.Scene();
     this.uiCamera = new THREE.OrthographicCamera(
-      -canvas.width / 2,
-      canvas.width / 2,
-      canvas.height / 2,
-      -canvas.height / 2,
+      -window.innerWidth / 2,
+      window.innerWidth / 2,
+      window.innerHeight / 2,
+      -window.innerHeight / 2,
       0.1,
       100
     );
     this.uiCamera.position.z = 100;
+    this.uiCamera.scale.y = -1; // Flip Y to match main camera
+
 
     // Create health bar group
     this.healthBar = new THREE.Group();
@@ -698,6 +702,9 @@ export class ThreeRenderer {
   }
 
   private renderParticles(particles: Particle[]): void {
+    // TEMP: Skip particles to fix lag
+    if (this.particlesDisabled || particles.length === 0) return;
+
     // Clear old particle views
     for (const points of this.particleViews) {
       this.sceneManager.removeFromScene(points);
