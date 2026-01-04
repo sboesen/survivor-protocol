@@ -47,10 +47,6 @@ import {
   calculateParticleSpawnCount,
   canSpawnParticles,
 } from './systems/particleSpawning';
-import {
-  calculateJoystickParams,
-  JOYSTICK_COLORS,
-} from './systems/rendering';
 import { threeRenderer } from './renderer/three';
 import { Player } from './entities/player';
 import { Enemy } from './entities/enemy';
@@ -1111,47 +1107,20 @@ class GameCore {
     // Render ground illumination effects (fire glow, etc.)
     threeRenderer.renderIllumination(this.particles, this.fireballs);
 
-    // Draw joysticks (mobile only)
-    // Movement joystick (left)
-    if (this.input.joy.active) {
-      const joy = calculateJoystickParams(this.input.joy.ox, this.input.joy.oy, this.input.joy.x, this.input.joy.y);
-      ctx.save();
-      ctx.strokeStyle = JOYSTICK_COLORS.movement.base;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(joy.centerX, joy.centerY, joy.baseRadius, 0, Math.PI * 2);
-      ctx.stroke();
-
-      ctx.fillStyle = JOYSTICK_COLORS.movement.knob;
-      ctx.beginPath();
-      ctx.arc(joy.knobX, joy.knobY, joy.knobRadius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
-
-    // Aim joystick (right)
-    if (this.input.aimJoy.active) {
-      const aimJoy = calculateJoystickParams(this.input.aimJoy.ox, this.input.aimJoy.oy, this.input.aimJoy.x, this.input.aimJoy.y);
-      ctx.save();
-      ctx.strokeStyle = JOYSTICK_COLORS.aim.base;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(aimJoy.centerX, aimJoy.centerY, aimJoy.baseRadius, 0, Math.PI * 2);
-      ctx.stroke();
-
-      ctx.fillStyle = JOYSTICK_COLORS.aim.knob;
-      ctx.beginPath();
-      ctx.arc(aimJoy.knobX, aimJoy.knobY, aimJoy.knobRadius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
-
-    // Player health bar
-    const hpPct = p.hp / p.maxHp;
-    ctx.fillStyle = 'red';
-    ctx.fillRect(cw / 2 - 15, ch / 2 + 18, 30, 4);
-    ctx.fillStyle = '#0f0';
-    ctx.fillRect(cw / 2 - 15, ch / 2 + 18, 30 * hpPct, 4);
+    // Render UI (health bar, joysticks)
+    threeRenderer.renderUI(
+      p.hp,
+      p.maxHp,
+      {
+        hasTouch: false,
+        joyActive: this.input.joy.active,
+        joyX: this.input.joy.x,
+        joyY: this.input.joy.y,
+        aimJoyActive: this.input.aimJoy.active,
+        aimJoyX: this.input.aimJoy.x,
+        aimJoyY: this.input.aimJoy.y,
+      }
+    );
   }
 
   loop(currentTime = 0): void {

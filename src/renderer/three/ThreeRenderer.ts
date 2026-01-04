@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import { SceneManager } from './SceneManager';
 import { SpriteManager } from './SpriteManager';
 import { CameraController } from './CameraController';
-import type { CanvasContext } from '../../types';
 import type { Player } from '../../entities/player';
 import type { Enemy } from '../../entities/enemy';
 import type { Projectile } from '../../entities/projectile';
@@ -50,6 +49,13 @@ export class ThreeRenderer {
   // Grid lines
   private gridLines: THREE.LineSegments | null = null;
 
+  // UI elements (health bar, joysticks)
+  private uiCamera: THREE.OrthographicCamera | null = null;
+  private uiScene: THREE.Scene | null = null;
+  private healthBar: THREE.Group | null = null;
+  private joyGroup: THREE.Group | null = null;
+  private aimJoyGroup: THREE.Group | null = null;
+
   // Feature flag to enable/disable Three.js
   static enabled = true;
 
@@ -63,11 +69,50 @@ export class ThreeRenderer {
     if (!ThreeRenderer.enabled) return;
     this.sceneManager.init(canvas);
     await this.spriteManager.init();
+    this.initUI(canvas);
   }
 
   resize(width: number, height: number): void {
     if (!ThreeRenderer.enabled) return;
     this.sceneManager.resize(width, height);
+    if (this.uiCamera) {
+      this.uiCamera.left = -width / 2;
+      this.uiCamera.right = width / 2;
+      this.uiCamera.top = height / 2;
+      this.uiCamera.bottom = -height / 2;
+      this.uiCamera.updateProjectionMatrix();
+    }
+  }
+
+  private initUI(canvas: HTMLCanvasElement): void {
+    if (!ThreeRenderer.enabled) return;
+
+    // Create UI scene and camera (fixed screen space)
+    this.uiScene = new THREE.Scene();
+    this.uiCamera = new THREE.OrthographicCamera(
+      -canvas.width / 2,
+      canvas.width / 2,
+      canvas.height / 2,
+      -canvas.height / 2,
+      0.1,
+      100
+    );
+    this.uiCamera.position.z = 100;
+
+    // Create health bar group
+    this.healthBar = new THREE.Group();
+    this.healthBar.position.z = 50;
+    this.uiScene?.add(this.healthBar);
+
+    // Create joystick group
+    this.joyGroup = new THREE.Group();
+    this.joyGroup.position.z = 50;
+    this.uiScene?.add(this.joyGroup);
+
+    // Create aim joystick group
+    this.aimJoyGroup = new THREE.Group();
+    this.aimJoyGroup.position.z = 50;
+    this.uiScene?.add(this.aimJoyGroup);
   }
 
   /**
@@ -1571,10 +1616,9 @@ export class ThreeRenderer {
   }
 
   /**
-   * Draw UI elements (health bar, joysticks) using Canvas 2D
-    */
+    * Draw UI elements (health bar, joysticks) using Three.js
+     */
   renderUI(
-    ctx: CanvasContext,
     playerHp: number,
     playerMaxHp: number,
     touchData: {
@@ -1587,61 +1631,161 @@ export class ThreeRenderer {
       aimJoyY: number;
     }
   ): void {
-    if (!ctx) return;
+    if (!this.uiCamera || !this.uiScene) return;
 
-    const cw = ctx.canvas.width;
-    const ch = ctx.canvas.height;
+    const cw = window.innerWidth;
+    const ch = window.innerHeight;
 
-    // Player health bar (above player)
-    if (playerMaxHp > 0) {
-      const hpPct = Math.max(0, playerHp / playerMaxHp);
-      ctx.fillStyle = 'red';
-      ctx.fillRect(cw / 2 - 15, ch / 2 + 21, 30, 4);
-      ctx.fillStyle = '#0f0';
-      ctx.fillRect(cw / 2 - 15, ch / 2 + 21, 30 * hpPct, 4);
-    }
+    // Update health bar
+    this.renderHealthBar(playerHp, playerMaxHp, cw, ch);
 
-    // Touch joysticks
-    if (touchData.hasTouch) {
-      const joyRadius = 50;
-      const knobRadius = 20;
+    // Update joysticks
+    this.renderJoysticks(touchData, cw, ch);
 
-      if (touchData.joyActive) {
-        const joyX = cw / 2 - 100;
-        const joyY = ch - 100;
-        const knobX = joyX + touchData.joyX * joyRadius;
-        const knobY = joyY + touchData.joyY * joyRadius;
+    // Render UI scene on top of everything
+    this.sceneManager.renderer.render(this.uiScene, this.uiCamera);
+  }
 
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(joyX, joyY, joyRadius, 0, Math.PI * 2);
-        ctx.stroke();
+  private renderHealthBar(playerHp: number, playerMaxHp: number, _cw: number, ch: number): void {
+    if (!this.healthBar) return;
 
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.beginPath();
-        ctx.arc(knobX, knobY, knobRadius, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-
-      if (touchData.aimJoyActive) {
-        const aimJoyX = cw / 2 + 100;
-        const aimJoyY = ch - 100;
-        const aimKnobX = aimJoyX + touchData.aimJoyX * joyRadius;
-        const aimKnobY = aimJoyY + touchData.aimJoyY * joyRadius;
-
-        ctx.strokeStyle = 'rgba(255, 200, 100, 0.3)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(aimJoyX, aimJoyY, joyRadius, 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.strokeStyle = 'rgba(255, 200, 100, 0.5)';
-        ctx.beginPath();
-        ctx.arc(aimKnobX, aimKnobY, knobRadius, 0, Math.PI * 2);
-        ctx.stroke();
+    // Clear existing health bar
+    while (this.healthBar.children.length > 0) {
+      const child = this.healthBar.children[0];
+      this.healthBar.remove(child);
+      if (child instanceof THREE.Mesh) {
+        child.geometry.dispose();
+        (child.material as THREE.Material).dispose();
       }
     }
+
+    if (playerMaxHp <= 0) {
+      this.healthBar.visible = false;
+      return;
+    }
+
+    this.healthBar.visible = true;
+
+    const hpPct = Math.max(0, playerHp / playerMaxHp);
+    const barY = ch / 2 - 21;
+    const barWidth = 30;
+    const barHeight = 4;
+
+    // Background (red)
+    const bgGeometry = new THREE.PlaneGeometry(barWidth, barHeight);
+    const bgMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, side: THREE.DoubleSide });
+    const bg = new THREE.Mesh(bgGeometry, bgMaterial);
+    bg.position.set(0, barY, 0);
+    this.healthBar.add(bg);
+
+    // Health (green)
+    const healthWidth = barWidth * hpPct;
+    if (healthWidth > 0) {
+      const healthGeometry = new THREE.PlaneGeometry(healthWidth, barHeight);
+      const healthMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide });
+      const health = new THREE.Mesh(healthGeometry, healthMaterial);
+      health.position.set(-(barWidth - healthWidth) / 2, barY, 0.1);
+      this.healthBar.add(health);
+    }
+  }
+
+  private renderJoysticks(touchData: {
+    hasTouch: boolean;
+    joyActive: boolean;
+    joyX: number;
+    joyY: number;
+    aimJoyActive: boolean;
+    aimJoyX: number;
+    aimJoyY: number;
+  }, cw: number, ch: number): void {
+    if (!this.joyGroup || !this.aimJoyGroup) return;
+
+    const joyRadius = 50;
+    const knobRadius = 20;
+
+    // Movement joystick (left)
+    if (touchData.joyActive) {
+      this.joyGroup.visible = true;
+      this.updateJoystick(
+        this.joyGroup,
+        cw / 2 - 100,
+        ch / 2 - 100,
+        touchData.joyX,
+        touchData.joyY,
+        joyRadius,
+        knobRadius,
+        0xffffff,
+        0.3
+      );
+    } else {
+      this.joyGroup.visible = false;
+    }
+
+    // Aim joystick (right)
+    if (touchData.aimJoyActive) {
+      this.aimJoyGroup.visible = true;
+      this.updateJoystick(
+        this.aimJoyGroup,
+        cw / 2 + 100,
+        ch / 2 - 100,
+        touchData.aimJoyX,
+        touchData.aimJoyY,
+        joyRadius,
+        knobRadius,
+        0xffc864,
+        0.3
+      );
+    } else {
+      this.aimJoyGroup.visible = false;
+    }
+  }
+
+  private updateJoystick(
+    group: THREE.Group,
+    baseX: number,
+    baseY: number,
+    joyX: number,
+    joyY: number,
+    joyRadius: number,
+    knobRadius: number,
+    color: number,
+    baseOpacity: number
+  ): void {
+    // Clear existing joystick
+    while (group.children.length > 0) {
+      const child = group.children[0];
+      group.remove(child);
+      if (child instanceof THREE.Mesh) {
+        child.geometry.dispose();
+        (child.material as THREE.Material).dispose();
+      }
+    }
+
+    // Base circle
+    const baseGeometry = new THREE.CircleGeometry(joyRadius, 32);
+    const baseMaterial = new THREE.MeshBasicMaterial({
+      color: color,
+      transparent: true,
+      opacity: baseOpacity,
+      side: THREE.DoubleSide,
+    });
+    const base = new THREE.Mesh(baseGeometry, baseMaterial);
+    base.position.set(baseX, baseY, 0);
+    group.add(base);
+
+    // Knob circle
+    const knobGeometry = new THREE.CircleGeometry(knobRadius, 32);
+    const knobMaterial = new THREE.MeshBasicMaterial({
+      color: color,
+      transparent: true,
+      opacity: 0.5,
+      side: THREE.DoubleSide,
+    });
+    const knob = new THREE.Mesh(knobGeometry, knobMaterial);
+    const knobX = baseX + joyX * joyRadius;
+    const knobY = baseY - joyY * joyRadius; // Flip Y for screen space
+    knob.position.set(knobX, knobY, 0.1);
+    group.add(knob);
   }
 
   /**
@@ -1694,6 +1838,48 @@ export class ThreeRenderer {
       this.gridLines.geometry.dispose();
       (this.gridLines.material as THREE.Material).dispose();
       this.gridLines = null;
+    }
+
+    // Clear UI scene
+    if (this.uiScene) {
+      if (this.healthBar) {
+        while (this.healthBar.children.length > 0) {
+          const child = this.healthBar.children[0];
+          this.healthBar.remove(child);
+          if (child instanceof THREE.Mesh) {
+            child.geometry.dispose();
+            (child.material as THREE.Material).dispose();
+          }
+        }
+        this.uiScene.remove(this.healthBar);
+        this.healthBar = null;
+      }
+
+      if (this.joyGroup) {
+        while (this.joyGroup.children.length > 0) {
+          const child = this.joyGroup.children[0];
+          this.joyGroup.remove(child);
+          if (child instanceof THREE.Mesh) {
+            child.geometry.dispose();
+            (child.material as THREE.Material).dispose();
+          }
+        }
+        this.uiScene.remove(this.joyGroup);
+        this.joyGroup = null;
+      }
+
+      if (this.aimJoyGroup) {
+        while (this.aimJoyGroup.children.length > 0) {
+          const child = this.aimJoyGroup.children[0];
+          this.aimJoyGroup.remove(child);
+          if (child instanceof THREE.Mesh) {
+            child.geometry.dispose();
+            (child.material as THREE.Material).dispose();
+          }
+        }
+        this.uiScene.remove(this.aimJoyGroup);
+        this.aimJoyGroup = null;
+      }
     }
 
     // Clear player view
