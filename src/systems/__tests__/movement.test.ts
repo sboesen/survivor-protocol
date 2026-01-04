@@ -122,19 +122,19 @@ describe('movement', () => {
 
   describe('calculateSpeedMultiplier', () => {
     it('should return base speed when no ult', () => {
-      expect(calculateSpeedMultiplier(5, 'ClosingTime', 0)).toBe(5);
+      expect(calculateSpeedMultiplier(5, 'DivineShield', 0)).toBe(5);
     });
 
     it('should return base speed when wrong ult', () => {
-      expect(calculateSpeedMultiplier(5, 'Security', 10)).toBe(5);
+      expect(calculateSpeedMultiplier(5, 'IronWill', 10)).toBe(5);
     });
 
     it('should return base speed when ult not active', () => {
-      expect(calculateSpeedMultiplier(5, 'Ollie', 0)).toBe(5);
+      expect(calculateSpeedMultiplier(5, 'ShadowStep', 0)).toBe(5);
     });
 
-    it('should multiply speed when Ollie ult active', () => {
-      expect(calculateSpeedMultiplier(5, 'Ollie', 10)).toBe(7.5);
+    it('should multiply speed when ShadowStep ult active', () => {
+      expect(calculateSpeedMultiplier(5, 'ShadowStep', 10)).toBe(7.5);
     });
   });
 
@@ -295,30 +295,30 @@ describe('movement', () => {
 
     it('should return same position when no input', () => {
       const input = createInput();
-      const result = processPlayerMovement(100, 100, input, 5, 'Ollie', 0, []);
+      const result = processPlayerMovement(100, 100, input, 5, 'ShadowStep', 0, []);
       expect(result.x).toBe(100);
       expect(result.y).toBe(100);
     });
 
     it('should move player with keyboard input', () => {
       const input = createInput({ d: true });
-      const result = processPlayerMovement(100, 100, input, 5, 'Ollie', 0, []);
+      const result = processPlayerMovement(100, 100, input, 5, 'ShadowStep', 0, []);
       expect(result.x).toBe(105);
       expect(result.y).toBe(100);
       expect(result.lastDx).toBe(1);
       expect(result.lastDy).toBe(0);
     });
 
-    it('should apply Ollie ult speed bonus', () => {
+    it('should apply ShadowStep ult speed bonus', () => {
       const input = createInput({ d: true });
-      const result = processPlayerMovement(100, 100, input, 5, 'Ollie', 10, []);
+      const result = processPlayerMovement(100, 100, input, 5, 'ShadowStep', 10, []);
       expect(result.x).toBe(107.5); // 5 * 1.5
       expect(result.y).toBe(100);
     });
 
     it('should normalize diagonal movement', () => {
       const input = createInput({ d: true, s: true });
-      const result = processPlayerMovement(100, 100, input, 5, 'Ollie', 0, []);
+      const result = processPlayerMovement(100, 100, input, 5, 'ShadowStep', 0, []);
       expect(result.x).toBeCloseTo(103.5, 0);
       expect(result.y).toBeCloseTo(103.5, 0);
     });
@@ -326,7 +326,7 @@ describe('movement', () => {
     it('should stop at obstacle', () => {
       const obstacles = [{ x: 110, y: 100, w: 100, h: 100, type: 'ruin' } as any];
       const input = createInput({ d: true });
-      const result = processPlayerMovement(100, 100, input, 5, 'Ollie', 0, obstacles);
+      const result = processPlayerMovement(100, 100, input, 5, 'ShadowStep', 0, obstacles);
       expect(result.x).toBe(100); // Blocked
       expect(result.y).toBe(100);
     });

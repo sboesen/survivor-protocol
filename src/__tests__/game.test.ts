@@ -8,7 +8,7 @@ vi.mock('../systems/saveData', () => ({
     load: vi.fn(),
     save: vi.fn(),
     data: {
-      selectedChar: 'janitor',
+      selectedChar: 'paladin',
       gold: 0,
       shop: {
         health: 0,
@@ -342,7 +342,7 @@ describe('GameCore', () => {
         game.player.ultCharge = game.player.ultMax;
         game.triggerUlt();
         expect(game.player.ultCharge).toBe(0);
-        // Note: janitor's ult (ClosingTime) doesn't set ultActiveTime
+        // Note: paladin's ult (DivineShield) doesn't set ultActiveTime
         // Other ults like TimeFreeze do set it
       }
     });

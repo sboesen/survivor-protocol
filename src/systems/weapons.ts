@@ -379,15 +379,15 @@ export function calculateWeaponDamage(
  *
  * @param currentCd - Current cooldown value
  * @param cooldownBonus - Player cooldown reduction bonus (e.g., from items)
- * @param isOllieUltActive - Whether Ollie's ultimate is active (doubles cooldown speed)
+ * @param isShadowStepUltActive - Whether ShadowStep's ultimate is active (doubles cooldown speed)
  * @returns New cooldown value (clamped to 0)
  */
 export function decrementCooldown(
   currentCd: number,
   cooldownBonus: number,
-  isOllieUltActive: boolean = false
+  isShadowStepUltActive: boolean = false
 ): number {
-  const decrement = (1 + cooldownBonus) * (isOllieUltActive ? 2 : 1);
+  const decrement = (1 + cooldownBonus) * (isShadowStepUltActive ? 2 : 1);
   return Math.max(0, currentCd - decrement);
 }
 

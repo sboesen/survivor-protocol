@@ -10,10 +10,14 @@ import type { FireballProjectile } from '../../entities/fireballProjectile';
 import type { Loot } from '../../entities/loot';
 import type { Obstacle } from '../../entities/obstacle';
 import type { Particle } from '../../entities/particle';
+import type { ScreenPosition } from '../../entities/entity';
 
 /**
  * Main Three.js renderer for game entities.
  * Floor, grid, and UI are handled by Canvas 2D overlay.
+ *
+ * World wrapping is handled by CameraController.getWrappedRenderPosition().
+ * Camera position is kept in [0, worldSize] to match entity coordinates.
  */
 export class ThreeRenderer {
   sceneManager: SceneManager;
@@ -126,18 +130,10 @@ export class ThreeRenderer {
     for (const fb of fireballs) {
       if (fb.marked) continue;
 
-      let rx = fb.x - camX;
-      let ry = fb.y - camY;
-
-      // Handle wrapping
-      const worldSize = 2000;
-      if (rx < -worldSize / 2) rx += worldSize;
-      if (rx > worldSize / 2) rx -= worldSize;
-      if (ry < -worldSize / 2) ry += worldSize;
-      if (ry > worldSize / 2) ry -= worldSize;
-
-      const sx = rx * pixelsPerUnitX + cw / 2;
-      const sy = ch / 2 + ry * pixelsPerUnitY;
+      // Get wrapped offset for screen space rendering
+      const offset = this.cameraController.getWrappedOffset(fb.x, fb.y);
+      const sx = offset.dx * pixelsPerUnitX + cw / 2;
+      const sy = ch / 2 + offset.dy * pixelsPerUnitY;
 
       // Culling
       if (sx < -150 || sx > cw + 150 || sy < -150 || sy > ch + 150) continue;
@@ -231,11 +227,6 @@ export class ThreeRenderer {
       }
     }
 
-    // Get camera position for wrapping calculations
-    const camX = this.sceneManager.camera.position.x;
-    const camY = this.sceneManager.camera.position.y;
-    const worldSize = 2000;
-
     // Update or create enemy views
     for (const enemy of enemies) {
       if (enemy.marked) continue;
@@ -249,17 +240,9 @@ export class ThreeRenderer {
         this.activeEnemies.add(enemy);
       }
 
-      // Apply world wrapping for enemy position
-      let ex = enemy.x - camX;
-      let ey = enemy.y - camY;
-
-      // Handle wrapping
-      if (ex < -worldSize / 2) ex += worldSize;
-      if (ex > worldSize / 2) ex -= worldSize;
-      if (ey < -worldSize / 2) ey += worldSize;
-      if (ey > worldSize / 2) ey -= worldSize;
-
-      view.position.set(ex + camX, ey + camY, 9);
+      // Get wrapped render position from camera controller
+      const pos = this.cameraController.getWrappedRenderPosition(enemy.x, enemy.y);
+      view.position.set(pos.x, pos.y, 9);
       view.visible = !enemy.marked;
     }
   }
@@ -296,7 +279,9 @@ export class ThreeRenderer {
         this.activeProjectiles.add(proj);
       }
 
-      view.position.set(proj.x, proj.y, 11);
+      // Get wrapped render position
+      const pos = this.cameraController.getWrappedRenderPosition(proj.x, proj.y);
+      view.position.set(pos.x, pos.y, 11);
       view.visible = !proj.marked;
     }
   }
@@ -335,19 +320,22 @@ export class ThreeRenderer {
         this.activeLoot.add(item);
       }
 
-      // Base position
-      view.position.set(item.x, item.y, 7);
+      // Get wrapped render position
+      const pos = this.cameraController.getWrappedRenderPosition(item.x, item.y);
 
-      // Animate gems with gentle hover (like hearts)
+      // Base position
+      view.position.set(pos.x, pos.y, 7);
+
+      // Animate gems with gentle hover
       if (item.type === 'gem') {
         const hoverOffset = Math.sin(time * 3 + item.x) * 2;
-        view.position.y = item.y + hoverOffset;
+        view.position.y = pos.y + hoverOffset;
       }
 
       // Animate hearts with gentle hover
       if (item.type === 'heart') {
         const hoverOffset = Math.sin(time * 2 + item.x) * 1.5;
-        view.position.y = item.y + hoverOffset;
+        view.position.y = pos.y + hoverOffset;
       }
 
       view.visible = !item.marked;
@@ -423,7 +411,9 @@ export class ThreeRenderer {
         this.activeFireballs.add(fb);
       }
 
-      view.position.set(fb.x, fb.y, 11);
+      // Get wrapped render position
+      const pos = this.cameraController.getWrappedRenderPosition(fb.x, fb.y);
+      view.position.set(pos.x, pos.y, 11);
       view.visible = !fb.marked;
     }
   }
@@ -463,8 +453,10 @@ export class ThreeRenderer {
 
       for (let i = 0; i < waterParticles.length; i++) {
         const pt = waterParticles[i];
-        positions[i * 3] = pt.x;
-        positions[i * 3 + 1] = pt.y;
+        // Get wrapped render position
+        const pos = this.cameraController.getWrappedRenderPosition(pt.x, pt.y);
+        positions[i * 3] = pos.x;
+        positions[i * 3 + 1] = pos.y;
         positions[i * 3 + 2] = 13; // Z position
 
         const color = new THREE.Color(pt.color);
@@ -528,8 +520,10 @@ export class ThreeRenderer {
 
       for (let i = 0; i < fireParticles.length; i++) {
         const pt = fireParticles[i];
-        positions[i * 3] = pt.x;
-        positions[i * 3 + 1] = pt.y;
+        // Get wrapped render position
+        const pos = this.cameraController.getWrappedRenderPosition(pt.x, pt.y);
+        positions[i * 3] = pos.x;
+        positions[i * 3 + 1] = pos.y;
         positions[i * 3 + 2] = 12; // Z position
         // Life progress (0 = dead, 1 = full life)
         lives[i] = Math.max(0, pt.life / pt.maxLife);
@@ -624,8 +618,10 @@ export class ThreeRenderer {
 
       for (let i = 0; i < otherParticles.length; i++) {
         const pt = otherParticles[i];
-        positions[i * 3] = pt.x;
-        positions[i * 3 + 1] = pt.y;
+        // Get wrapped render position
+        const pos = this.cameraController.getWrappedRenderPosition(pt.x, pt.y);
+        positions[i * 3] = pos.x;
+        positions[i * 3 + 1] = pos.y;
         positions[i * 3 + 2] = 12;
 
         const color = new THREE.Color(pt.color);
@@ -744,8 +740,6 @@ export class ThreeRenderer {
 
     // Get Three.js camera bounds for coordinate alignment
     const camera = this.sceneManager.camera;
-    const camX = camera.position.x;
-    const camY = camera.position.y;
     const halfWidth = (camera.right - camera.left) / 2;
     const halfHeight = (camera.top - camera.bottom) / 2;
 
@@ -754,26 +748,17 @@ export class ThreeRenderer {
     const pixelsPerUnitY = ch / (halfHeight * 2);
 
     for (const obs of obstacles) {
-      // Calculate relative position from camera (using actual player position passed from game)
-      let rx = obs.x - camX;
-      let ry = obs.y - camY;
-
-      // Handle world wrapping
-      const worldSize = 2000; // CONFIG.worldSize
-      if (rx < -worldSize / 2) rx += worldSize;
-      if (rx > worldSize / 2) rx -= worldSize;
-      if (ry < -worldSize / 2) ry += worldSize;
-      if (ry > worldSize / 2) ry -= worldSize;
-
+      // Get wrapped offset for screen space rendering
+      const offset = this.cameraController.getWrappedOffset(obs.x, obs.y);
       // Convert to screen coordinates
-      const sx = rx * pixelsPerUnitX + cw / 2;
-      const sy = ch / 2 + ry * pixelsPerUnitY;
+      const sx = offset.dx * pixelsPerUnitX + cw / 2;
+      const sy = ch / 2 + offset.dy * pixelsPerUnitY;
 
       // Culling
       if (sx < -100 || sx > cw + 100 || sy < -100 || sy > ch + 100) continue;
 
       // Draw obstacle shape
-      obs.drawShape(ctx, sx, sy);
+      obs.drawShape(ctx, { sx, sy } as ScreenPosition);
     }
   }
 

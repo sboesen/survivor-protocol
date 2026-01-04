@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Entity } from '../entity';
+import { Entity, type ScreenPosition } from '../entity';
 import type { CanvasContext } from '../../types';
 
 // Mock canvas context
@@ -22,14 +22,20 @@ const mockCtx = {
 class TestEntity extends Entity {
   drawShapeCalled = false;
   drawShapeCtx: CanvasContext | null = null;
-  drawShapeX = 0;
-  drawShapeY = 0;
+  drawShapePos: ScreenPosition | null = null;
 
-  drawShape(ctx: CanvasContext, x: number, y: number): void {
+  drawShape(ctx: CanvasContext, pos: ScreenPosition): void {
     this.drawShapeCalled = true;
     this.drawShapeCtx = ctx;
-    this.drawShapeX = x;
-    this.drawShapeY = y;
+    this.drawShapePos = pos;
+  }
+
+  get drawShapeX(): number {
+    return this.drawShapePos?.sx ?? 0;
+  }
+
+  get drawShapeY(): number {
+    return this.drawShapePos?.sy ?? 0;
   }
 }
 

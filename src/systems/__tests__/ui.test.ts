@@ -126,49 +126,49 @@ describe('UI', () => {
 
   describe('updateHud()', () => {
     it('should update gold display', () => {
-      UI.updateHud(100, 0, 1, 0, 'janitor');
+      UI.updateHud(100, 0, 1, 0, 'paladin');
       const goldEl = document.getElementById('hud-gold');
       expect(goldEl?.textContent).toBe('💰 100');
     });
 
     it('should update timer display', () => {
-      UI.updateHud(0, 120, 1, 0, 'janitor');
+      UI.updateHud(0, 120, 1, 0, 'paladin');
       const timerEl = document.getElementById('hud-timer');
       expect(timerEl?.textContent).toBe('02:00'); // fmtTime zero-pads minutes
     });
 
     it('should update level display', () => {
-      UI.updateHud(0, 0, 5, 0, 'janitor');
+      UI.updateHud(0, 0, 5, 0, 'paladin');
       const levelEl = document.getElementById('hud-level');
       expect(levelEl?.textContent).toBe('5');
     });
 
     it('should update kills display', () => {
-      UI.updateHud(0, 0, 1, 42, 'janitor');
+      UI.updateHud(0, 0, 1, 42, 'paladin');
       const killsEl = document.getElementById('hud-kills');
       expect(killsEl?.textContent).toBe('42');
     });
 
     it('should update character name display', () => {
-      UI.updateHud(0, 0, 1, 0, 'janitor');
+      UI.updateHud(0, 0, 1, 0, 'paladin');
       const charEl = document.getElementById('hud-char');
-      expect(charEl?.textContent).toBe(CHARACTERS.janitor.name);
+      expect(charEl?.textContent).toBe(CHARACTERS.paladin.name);
     });
 
     it('should update particles display', () => {
-      UI.updateHud(0, 0, 1, 0, 'janitor', 150);
+      UI.updateHud(0, 0, 1, 0, 'paladin', 150);
       const particlesEl = document.getElementById('hud-particles');
       expect(particlesEl?.textContent).toBe('150');
     });
 
     it('should update enemies display', () => {
-      UI.updateHud(0, 0, 1, 0, 'janitor', 0, 25);
+      UI.updateHud(0, 0, 1, 0, 'paladin', 0, 25);
       const enemiesEl = document.getElementById('hud-enemies');
       expect(enemiesEl?.textContent).toBe('25');
     });
 
     it('should handle default values for particles and enemies', () => {
-      UI.updateHud(0, 0, 1, 0, 'janitor');
+      UI.updateHud(0, 0, 1, 0, 'paladin');
       const particlesEl = document.getElementById('hud-particles');
       const enemiesEl = document.getElementById('hud-enemies');
       expect(particlesEl?.textContent).toBe('0');
@@ -177,7 +177,7 @@ describe('UI', () => {
 
     it('should not throw when elements are missing', () => {
       document.getElementById('hud-gold')?.remove();
-      expect(() => UI.updateHud(100, 0, 1, 0, 'janitor')).not.toThrow();
+      expect(() => UI.updateHud(100, 0, 1, 0, 'paladin')).not.toThrow();
     });
   });
 

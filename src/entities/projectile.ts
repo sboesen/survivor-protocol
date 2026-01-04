@@ -1,6 +1,6 @@
 import { CONFIG } from '../config';
 import type { CanvasContext } from '../types';
-import { Entity } from './entity';
+import { Entity, type ScreenPosition } from './entity';
 
 export class Projectile extends Entity {
   vx: number;
@@ -21,6 +21,7 @@ export class Projectile extends Entity {
   explodeRadius?: number;
   knockback?: number;
   splits?: boolean;
+  weaponId: string; // Track which weapon created this projectile
 
   constructor(
     x: number,
@@ -33,7 +34,8 @@ export class Projectile extends Entity {
     dur: number,
     pierce: number,
     isCrit: boolean,
-    isHostile: boolean = false
+    isHostile: boolean = false,
+    weaponId: string = ''
   ) {
     super(x, y, radius, color);
     this.baseVx = vx;
@@ -51,6 +53,7 @@ export class Projectile extends Entity {
     this.rot = 0;
     this.wobble = Math.random() * Math.PI * 2;
     this.age = 0;
+    this.weaponId = weaponId;
   }
 
   update(): void {
@@ -77,9 +80,10 @@ export class Projectile extends Entity {
     if (this.dur <= 0) this.marked = true;
   }
 
-  drawShape(ctx: CanvasContext, x: number, y: number): void {
+  drawShape(ctx: CanvasContext, pos: ScreenPosition): void {
+    const { sx, sy } = pos;
     ctx.save();
-    ctx.translate(x, y);
+    ctx.translate(sx, sy);
     if (this.isArc) ctx.rotate(this.rot);
 
     ctx.fillStyle = this.isCrit ? '#ff0' : this.color;

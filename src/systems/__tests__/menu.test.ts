@@ -8,8 +8,8 @@ import { SHOP_ITEMS } from '../../data/shop';
 vi.mock('../saveData', () => ({
   SaveData: {
     data: {
-      selectedChar: 'janitor',
-      ownedChars: ['janitor'],
+      selectedChar: 'paladin',
+      ownedChars: ['paladin'],
       gold: 100,
       shop: {
         health: 0,
@@ -98,7 +98,7 @@ describe('Menu', () => {
 
       const list = document.getElementById('char-select-list');
       const ownedCards = list?.querySelectorAll('.owned') || [];
-      // Only janitor is owned based on mock
+      // Only paladin is owned based on mock
       expect(ownedCards.length).toBe(1);
     });
 
@@ -115,7 +115,8 @@ describe('Menu', () => {
 
       const list = document.getElementById('char-select-list');
       const firstCard = list?.children[0] as HTMLElement;
-      expect(firstCard?.innerHTML).toContain('char-icon');
+      // Wizard uses img tag, others use char-icon div
+      expect(firstCard?.innerHTML).toMatch(/char-icon|<img/);
       expect(firstCard?.innerHTML).toContain('</div>'); // contains name
     });
 
@@ -148,11 +149,11 @@ describe('Menu', () => {
       Menu.renderCharSelect();
 
       const list = document.getElementById('char-select-list');
-      const janitorCard = Array.from(list?.children || []).find(
-        el => el.textContent?.includes('Janitor')
+      const paladinCard = Array.from(list?.children || []).find(
+        el => el.textContent?.includes('Paladin')
       ) as HTMLElement;
 
-      expect(janitorCard?.onclick).toBeInstanceOf(Function);
+      expect(paladinCard?.onclick).toBeInstanceOf(Function);
     });
   });
 

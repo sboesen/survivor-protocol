@@ -1,4 +1,5 @@
 import { CONFIG } from '../config';
+import { wrapRelativePosition } from '../systems/movement';
 
 export type ParticleType = 'water' | 'explosion' | 'smoke' | 'blood' | 'spark' | 'foam' | 'ripple' | 'caustic' | 'splash' | 'fire' | 'gas';
 
@@ -225,10 +226,8 @@ export class Particle {
     // Only wrap water particles - others cull if too far
     const wraps = this.type === 'water' || this.type === 'foam' || this.type === 'ripple' || this.type === 'caustic' || this.type === 'splash';
     if (wraps) {
-      if (rx < -CONFIG.worldSize / 2) rx += CONFIG.worldSize;
-      if (rx > CONFIG.worldSize / 2) rx -= CONFIG.worldSize;
-      if (ry < -CONFIG.worldSize / 2) ry += CONFIG.worldSize;
-      if (ry > CONFIG.worldSize / 2) ry -= CONFIG.worldSize;
+      rx = wrapRelativePosition(rx);
+      ry = wrapRelativePosition(ry);
     } else {
       if (Math.abs(rx) > CONFIG.worldSize / 2 || Math.abs(ry) > CONFIG.worldSize / 2) return;
     }

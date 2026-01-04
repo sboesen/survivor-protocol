@@ -36,7 +36,7 @@ describe('Player', () => {
   beforeEach(() => {
     levelUpCallback = vi.fn() as unknown as MockCallback & { mockClear: () => void; mockReset: () => void; calls: unknown[] };
     player = new Player(
-      'dungeonMaster',
+      'wizard',
       0.75,  // hpMod
       0.95,  // spdMod
       'fireball',  // starting weapon
@@ -47,7 +47,7 @@ describe('Player', () => {
 
   describe('constructor', () => {
     it('should initialize with correct character ID', () => {
-      expect(player.charId).toBe('dungeonMaster');
+      expect(player.charId).toBe('wizard');
     });
 
     it('should initialize with max HP based on hpMod and shop upgrades', () => {
@@ -107,7 +107,7 @@ describe('Player', () => {
 
     it('should apply shop health upgrades', () => {
       const boostedPlayer = new Player(
-        'dungeonMaster', 0.75, 0.95, 'fireball', 'MeteorSwarm',
+        'wizard', 0.75, 0.95, 'fireball', 'MeteorSwarm',
         { health: 2, speed: 0, magnet: 0, damage: 0 }
       );
       // (100 + 40) * 0.75 = 105
@@ -116,7 +116,7 @@ describe('Player', () => {
 
     it('should apply shop speed upgrades', () => {
       const boostedPlayer = new Player(
-        'dungeonMaster', 0.75, 0.95, 'fireball', 'MeteorSwarm',
+        'wizard', 0.75, 0.95, 'fireball', 'MeteorSwarm',
         { health: 0, speed: 2, magnet: 0, damage: 0 }
       );
       // 7.5 * 1.1 * 0.95 ≈ 7.84
@@ -126,7 +126,7 @@ describe('Player', () => {
 
     it('should apply shop magnet upgrades', () => {
       const boostedPlayer = new Player(
-        'dungeonMaster', 0.75, 0.95, 'fireball', 'MeteorSwarm',
+        'wizard', 0.75, 0.95, 'fireball', 'MeteorSwarm',
         { health: 0, speed: 0, magnet: 2, damage: 0 }
       );
       // 60 * 1.4 = 84
@@ -135,7 +135,7 @@ describe('Player', () => {
 
     it('should apply shop damage upgrades', () => {
       const boostedPlayer = new Player(
-        'dungeonMaster', 0.75, 0.95, 'fireball', 'MeteorSwarm',
+        'wizard', 0.75, 0.95, 'fireball', 'MeteorSwarm',
         { health: 0, speed: 0, magnet: 0, damage: 2 }
       );
       // 1 + 0.2 = 1.2
@@ -178,7 +178,7 @@ describe('Player', () => {
   describe('addUpgrade - items', () => {
     beforeEach(() => {
       // Reset player with starting weapon
-      player = new Player('dungeonMaster', 0.75, 0.95, 'fireball', 'MeteorSwarm',
+      player = new Player('wizard', 0.75, 0.95, 'fireball', 'MeteorSwarm',
         { health: 0, speed: 0, magnet: 0, damage: 0 });
     });
 
@@ -252,7 +252,7 @@ describe('Player', () => {
 
   describe('addUpgrade - new weapons', () => {
     beforeEach(() => {
-      player = new Player('dungeonMaster', 0.75, 0.95, 'fireball', 'MeteorSwarm',
+      player = new Player('wizard', 0.75, 0.95, 'fireball', 'MeteorSwarm',
         { health: 0, speed: 0, magnet: 0, damage: 0 });
       // Remove starting weapon for cleaner tests
       player.weapons = [];
@@ -332,7 +332,7 @@ describe('Player', () => {
 
   describe('addUpgrade - weapon upgrades', () => {
     beforeEach(() => {
-      player = new Player('dungeonMaster', 0.75, 0.95, 'fireball', 'MeteorSwarm',
+      player = new Player('wizard', 0.75, 0.95, 'fireball', 'MeteorSwarm',
         { health: 0, speed: 0, magnet: 0, damage: 0 });
     });
 
@@ -361,7 +361,7 @@ describe('Player', () => {
 
     describe('bubble_stream specific upgrades', () => {
       beforeEach(() => {
-        player = new Player('dungeonMaster', 0.75, 0.95, 'fireball', 'MeteorSwarm',
+        player = new Player('wizard', 0.75, 0.95, 'fireball', 'MeteorSwarm',
           { health: 0, speed: 0, magnet: 0, damage: 0 });
         player.weapons = [];
         player.inventory = {};
@@ -396,7 +396,7 @@ describe('Player', () => {
 
     describe('pepper_spray specific upgrades', () => {
       beforeEach(() => {
-        player = new Player('dungeonMaster', 0.75, 0.95, 'fireball', 'MeteorSwarm',
+        player = new Player('wizard', 0.75, 0.95, 'fireball', 'MeteorSwarm',
           { health: 0, speed: 0, magnet: 0, damage: 0 });
         player.weapons = [];
         player.inventory = {};
@@ -431,7 +431,7 @@ describe('Player', () => {
 
     describe('frying_pan specific upgrades', () => {
       beforeEach(() => {
-        player = new Player('dungeonMaster', 0.75, 0.95, 'fireball', 'MeteorSwarm',
+        player = new Player('wizard', 0.75, 0.95, 'fireball', 'MeteorSwarm',
           { health: 0, speed: 0, magnet: 0, damage: 0 });
         player.weapons = [];
         player.inventory = {};
@@ -466,7 +466,7 @@ describe('Player', () => {
 
     describe('thrown_cds specific upgrades', () => {
       beforeEach(() => {
-        player = new Player('dungeonMaster', 0.75, 0.95, 'fireball', 'MeteorSwarm',
+        player = new Player('wizard', 0.75, 0.95, 'fireball', 'MeteorSwarm',
           { health: 0, speed: 0, magnet: 0, damage: 0 });
         player.weapons = [];
         player.inventory = {};
@@ -494,7 +494,7 @@ describe('Player', () => {
 
     describe('fireball specific upgrades', () => {
       beforeEach(() => {
-        player = new Player('dungeonMaster', 0.75, 0.95, 'fireball', 'MeteorSwarm',
+        player = new Player('wizard', 0.75, 0.95, 'fireball', 'MeteorSwarm',
           { health: 0, speed: 0, magnet: 0, damage: 0 });
         // Already has fireball at level 1
       });
@@ -527,7 +527,7 @@ describe('Player', () => {
 
     describe('lighter specific upgrades', () => {
       beforeEach(() => {
-        player = new Player('teenager', 0.9, 1.1, 'lighter', 'VapeCloud',
+        player = new Player('pyromancer', 0.9, 1.1, 'lighter', 'SmokeScreen',
           { health: 0, speed: 0, magnet: 0, damage: 0 });
         // Already has lighter at level 1
       });
@@ -561,7 +561,7 @@ describe('Player', () => {
 
   describe('gainXp', () => {
     beforeEach(() => {
-      player = new Player('dungeonMaster', 0.75, 0.95, 'fireball', 'MeteorSwarm',
+      player = new Player('wizard', 0.75, 0.95, 'fireball', 'MeteorSwarm',
         { health: 0, speed: 0, magnet: 0, damage: 0 });
     });
 
@@ -612,7 +612,7 @@ describe('Player', () => {
 
   describe('integration scenarios', () => {
     it('should handle full level up scenario', () => {
-      const player = new Player('janitor', 1.2, 0.9, 'bubble_stream', 'ClosingTime',
+      const player = new Player('paladin', 1.2, 0.9, 'bubble_stream', 'DivineShield',
         { health: 1, speed: 1, magnet: 1, damage: 1 });
 
       // Gain enough XP for level up

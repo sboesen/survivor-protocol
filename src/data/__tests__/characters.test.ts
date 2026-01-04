@@ -6,76 +6,76 @@ describe('CHARACTERS', () => {
     expect(CHARACTERS).toBeDefined();
   });
 
-  it('should have dungeonMaster character', () => {
-    expect(CHARACTERS.dungeonMaster).toBeDefined();
-    expect(CHARACTERS.dungeonMaster.id).toBe('dungeonMaster');
-    expect(CHARACTERS.dungeonMaster.name).toBe('Dungeon Master');
-    expect(CHARACTERS.dungeonMaster.icon).toBe('🐉');
-    expect(CHARACTERS.dungeonMaster.weapon).toBe('fireball');
-    expect(CHARACTERS.dungeonMaster.hpMod).toBe(0.75);
-    expect(CHARACTERS.dungeonMaster.spdMod).toBe(0.95);
-    expect(CHARACTERS.dungeonMaster.ult).toBe('MeteorSwarm');
-    expect(CHARACTERS.dungeonMaster.desc).toBe('Arcane power. Start: Fireball.');
+  it('should have wizard character', () => {
+    expect(CHARACTERS.wizard).toBeDefined();
+    expect(CHARACTERS.wizard.id).toBe('wizard');
+    expect(CHARACTERS.wizard.name).toBe('Wizard');
+    expect(CHARACTERS.wizard.icon).toBe('🧙');
+    expect(CHARACTERS.wizard.weapon).toBe('fireball');
+    expect(CHARACTERS.wizard.hpMod).toBe(0.75);
+    expect(CHARACTERS.wizard.spdMod).toBe(0.95);
+    expect(CHARACTERS.wizard.ult).toBe('MeteorSwarm');
+    expect(CHARACTERS.wizard.desc).toBe('Arcane power. Start: Fireball.');
   });
 
-  it('should have janitor character', () => {
-    expect(CHARACTERS.janitor).toBeDefined();
-    expect(CHARACTERS.janitor.id).toBe('janitor');
-    expect(CHARACTERS.janitor.name).toBe('Janitor');
-    expect(CHARACTERS.janitor.icon).toBe('🧹');
-    expect(CHARACTERS.janitor.weapon).toBe('bubble_stream');
-    expect(CHARACTERS.janitor.hpMod).toBe(1.2);
-    expect(CHARACTERS.janitor.spdMod).toBe(0.9);
-    expect(CHARACTERS.janitor.ult).toBe('ClosingTime');
-    expect(CHARACTERS.janitor.desc).toBe('Tanky. Start: Bubble Stream.');
+  it('should have paladin character', () => {
+    expect(CHARACTERS.paladin).toBeDefined();
+    expect(CHARACTERS.paladin.id).toBe('paladin');
+    expect(CHARACTERS.paladin.name).toBe('Paladin');
+    expect(CHARACTERS.paladin.icon).toBe('🛡️');
+    expect(CHARACTERS.paladin.weapon).toBe('bubble_stream');
+    expect(CHARACTERS.paladin.hpMod).toBe(1.2);
+    expect(CHARACTERS.paladin.spdMod).toBe(0.9);
+    expect(CHARACTERS.paladin.ult).toBe('DivineShield');
+    expect(CHARACTERS.paladin.desc).toBe('Tanky. Start: Holy Aura.');
   });
 
-  it('should have skater character', () => {
-    expect(CHARACTERS.skater).toBeDefined();
-    expect(CHARACTERS.skater.id).toBe('skater');
-    expect(CHARACTERS.skater.name).toBe('Skater');
-    expect(CHARACTERS.skater.icon).toBe('🛹');
-    expect(CHARACTERS.skater.weapon).toBe('thrown_cds');
-    expect(CHARACTERS.skater.hpMod).toBe(0.8);
-    expect(CHARACTERS.skater.spdMod).toBe(1.3);
-    expect(CHARACTERS.skater.ult).toBe('Ollie');
-    expect(CHARACTERS.skater.desc).toBe('Fast. Start: Thrown CDs.');
+  it('should have rogue character', () => {
+    expect(CHARACTERS.rogue).toBeDefined();
+    expect(CHARACTERS.rogue.id).toBe('rogue');
+    expect(CHARACTERS.rogue.name).toBe('Rogue');
+    expect(CHARACTERS.rogue.icon).toBe('🗡️');
+    expect(CHARACTERS.rogue.weapon).toBe('thrown_cds');
+    expect(CHARACTERS.rogue.hpMod).toBe(0.8);
+    expect(CHARACTERS.rogue.spdMod).toBe(1.3);
+    expect(CHARACTERS.rogue.ult).toBe('ShadowStep');
+    expect(CHARACTERS.rogue.desc).toBe('Fast. Start: Dagger Throw.');
   });
 
-  it('should have mallCop character', () => {
-    expect(CHARACTERS.mallCop).toBeDefined();
-    expect(CHARACTERS.mallCop.id).toBe('mallCop');
-    expect(CHARACTERS.mallCop.name).toBe('Mall Cop');
-    expect(CHARACTERS.mallCop.icon).toBe('👮');
-    expect(CHARACTERS.mallCop.weapon).toBe('pepper_spray');
-    expect(CHARACTERS.mallCop.hpMod).toBe(1.5);
-    expect(CHARACTERS.mallCop.spdMod).toBe(0.8);
-    expect(CHARACTERS.mallCop.ult).toBe('Security');
-    expect(CHARACTERS.mallCop.desc).toBe('High HP. Start: Pepper Spray.');
+  it('should have knight character', () => {
+    expect(CHARACTERS.knight).toBeDefined();
+    expect(CHARACTERS.knight.id).toBe('knight');
+    expect(CHARACTERS.knight.name).toBe('Knight');
+    expect(CHARACTERS.knight.icon).toBe('⚔️');
+    expect(CHARACTERS.knight.weapon).toBe('pepper_spray');
+    expect(CHARACTERS.knight.hpMod).toBe(1.5);
+    expect(CHARACTERS.knight.spdMod).toBe(0.8);
+    expect(CHARACTERS.knight.ult).toBe('IronWill');
+    expect(CHARACTERS.knight.desc).toBe('High HP. Start: Shield Bash.');
   });
 
-  it('should have foodCourt (Chef) character', () => {
-    expect(CHARACTERS.foodCourt).toBeDefined();
-    expect(CHARACTERS.foodCourt.id).toBe('foodCourt');
-    expect(CHARACTERS.foodCourt.name).toBe('Chef');
-    expect(CHARACTERS.foodCourt.icon).toBe('🍔');
-    expect(CHARACTERS.foodCourt.weapon).toBe('frying_pan');
-    expect(CHARACTERS.foodCourt.hpMod).toBe(1.0);
-    expect(CHARACTERS.foodCourt.spdMod).toBe(1.0);
-    expect(CHARACTERS.foodCourt.ult).toBe('GreaseFire');
-    expect(CHARACTERS.foodCourt.desc).toBe('Balanced. Start: Frying Pan.');
+  it('should have berserker (Chef) character', () => {
+    expect(CHARACTERS.berserker).toBeDefined();
+    expect(CHARACTERS.berserker.id).toBe('berserker');
+    expect(CHARACTERS.berserker.name).toBe('Berserker');
+    expect(CHARACTERS.berserker.icon).toBe('🪓');
+    expect(CHARACTERS.berserker.weapon).toBe('frying_pan');
+    expect(CHARACTERS.berserker.hpMod).toBe(1.0);
+    expect(CHARACTERS.berserker.spdMod).toBe(1.0);
+    expect(CHARACTERS.berserker.ult).toBe('Inferno');
+    expect(CHARACTERS.berserker.desc).toBe('Balanced. Start: War Hammer.');
   });
 
-  it('should have teenager character', () => {
-    expect(CHARACTERS.teenager).toBeDefined();
-    expect(CHARACTERS.teenager.id).toBe('teenager');
-    expect(CHARACTERS.teenager.name).toBe('Teenager');
-    expect(CHARACTERS.teenager.icon).toBe('🧢');
-    expect(CHARACTERS.teenager.weapon).toBe('lighter');
-    expect(CHARACTERS.teenager.hpMod).toBe(0.9);
-    expect(CHARACTERS.teenager.spdMod).toBe(1.1);
-    expect(CHARACTERS.teenager.ult).toBe('VapeCloud');
-    expect(CHARACTERS.teenager.desc).toBe('Reckless. Start: Lighter.');
+  it('should have pyromancer character', () => {
+    expect(CHARACTERS.pyromancer).toBeDefined();
+    expect(CHARACTERS.pyromancer.id).toBe('pyromancer');
+    expect(CHARACTERS.pyromancer.name).toBe('Pyromancer');
+    expect(CHARACTERS.pyromancer.icon).toBe('🔥');
+    expect(CHARACTERS.pyromancer.weapon).toBe('lighter');
+    expect(CHARACTERS.pyromancer.hpMod).toBe(0.9);
+    expect(CHARACTERS.pyromancer.spdMod).toBe(1.1);
+    expect(CHARACTERS.pyromancer.ult).toBe('SmokeScreen');
+    expect(CHARACTERS.pyromancer.desc).toBe('Reckless. Start: Flame Burst.');
   });
 
   describe('character count', () => {

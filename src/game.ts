@@ -38,7 +38,7 @@ import {
   hasDamageImmunity,
   calculateRebootHeal,
   getUltConfig,
-  calculateGreaseFireProjectiles,
+  calculateInfernoProjectiles,
   getTimeFreezeDuration,
 } from './systems/ultimates';
 import { selectUpgradeChoices } from './systems/levelUp';
@@ -338,7 +338,7 @@ class GameCore {
     }
 
     // Warm up enemy
-    const dummyPlayer = new Player('janitor', 1, 1, 'bubble_stream', 'ClosingTime', { health: 0, speed: 0, magnet: 0, damage: 0 });
+    const dummyPlayer = new Player('paladin', 1, 1, 'bubble_stream', 'DivineShield', { health: 0, speed: 0, magnet: 0, damage: 0 });
     const enemy = new Enemy(1000, 1000, 'basic', 0);
     enemy.update(dummyPlayer, 0, []);
 
@@ -390,16 +390,16 @@ class GameCore {
       this.spawnDamageText(this.player.x, this.player.y, config.text, config.color);
 
       switch (type) {
-        case 'Security':
-        case 'Ollie':
+        case 'IronWill':
+        case 'ShadowStep':
         case 'Reboot':
           this.player.ultActiveTime = config.duration;
           break;
-        case 'ClosingTime':
+        case 'DivineShield':
           this.timeFreeze = getTimeFreezeDuration();
           break;
-        case 'GreaseFire':
-          const projectiles = calculateGreaseFireProjectiles(this.player.x, this.player.y);
+        case 'Inferno':
+          const projectiles = calculateInfernoProjectiles(this.player.x, this.player.y);
           for (const projData of projectiles) {
             const proj = new Projectile(
               this.player.x,
@@ -505,7 +505,7 @@ class GameCore {
         w.curCd = decrementCooldown(
           w.curCd,
           p.items.cooldown,
-          p.ultName === 'Ollie' && p.ultActiveTime > 0
+          p.ultName === 'ShadowStep' && p.ultActiveTime > 0
         );
       }
 
@@ -544,7 +544,9 @@ class GameCore {
                 projData.dmg,
                 projData.duration,
                 projData.pierce,
-                projData.isCrit
+                projData.isCrit,
+                false,
+                w.id
               );
               if (projData.isBubble) (proj as any).isBubble = true;
               if (projData.splits) (proj as any).splits = true;
@@ -567,7 +569,8 @@ class GameCore {
                 fbData.dmg,
                 fbData.duration,
                 fbData.pierce,
-                fbData.isCrit
+                fbData.isCrit,
+                w.id
               );
               if (fbData.explodeRadius) fireball.explodeRadius = fbData.explodeRadius;
               if (fbData.trailDamage) fireball.trailDamage = fbData.trailDamage;
@@ -710,14 +713,15 @@ class GameCore {
       }
     });
 
-    // Projectile collisions
-    this.projectiles.forEach(proj => {
+    // Projectile collisions - shared hit tracking per weapon so stacked projectiles take turns
+    const weaponHitLists = new Map<string, Enemy[]>();
+    for (const proj of this.projectiles) {
       if (proj.isHostile) {
         // Hits player
         if (Utils.getDist(proj.x, proj.y, p.x, p.y) < proj.radius + p.radius) {
           if (hasDamageImmunity(p.ultName, p.ultActiveTime)) {
             proj.marked = true;
-            return;
+            continue;
           }
           p.hp -= proj.dmg;
           this.spawnDamageText(p.x, p.y, `-${proj.dmg}`, '#f00');
@@ -725,12 +729,23 @@ class GameCore {
           if (p.hp <= 0) this.gameOver(false);
         }
       } else {
+        // Get or create hit list for this weapon
+        const weaponId = proj.weaponId || 'unknown';
+        let sharedHitList = weaponHitLists.get(weaponId);
+        if (!sharedHitList) {
+          sharedHitList = [];
+          weaponHitLists.set(weaponId, sharedHitList);
+        }
+
         // Hits enemies
         for (const e of this.enemies) {
-          if (!proj.hitList.includes(e) &&
-              Utils.getDist(proj.x, proj.y, e.x, e.y) < proj.radius + e.radius) {
+          // Skip if this projectile already hit this enemy, OR if another projectile of the same weapon hit it this pass
+          if (proj.hitList.includes(e) || sharedHitList.includes(e)) continue;
+
+          if (Utils.getDist(proj.x, proj.y, e.x, e.y) < proj.radius + e.radius) {
             this.hitEnemy(e, proj.dmg, proj.isCrit);
             proj.hitList.push(e);
+            sharedHitList.push(e); // Mark as hit for all subsequent projectiles of this weapon
 
             // Splash effect for bubbles
             if (proj.isBubble) {
@@ -751,7 +766,9 @@ class GameCore {
                     s.dmg,
                     30,
                     1,
-                    s.isCrit
+                    s.isCrit,
+                    false,
+                    proj.weaponId // Split bubbles inherit the same weapon ID
                   );
                   splitProj.isBubble = true;
                   this.projectiles.push(splitProj);
@@ -763,8 +780,10 @@ class GameCore {
             if (proj.explodeRadius) {
               const explosionResult = findEnemiesInExplosion(proj.x, proj.y, proj.explodeRadius, this.enemies, [e]);
               for (const other of explosionResult.enemies) {
-                if (!proj.hitList.includes(other)) {
+                if (!proj.hitList.includes(other) && !sharedHitList.includes(other)) {
                   this.hitEnemy(other, proj.dmg * explosionResult.damageMultiplier, proj.isCrit);
+                  proj.hitList.push(other);
+                  sharedHitList.push(other);
                 }
               }
               this.spawnParticles({ type: 'splash' as ParticleType, x: proj.x, y: proj.y }, 10);
@@ -786,15 +805,27 @@ class GameCore {
           }
         }
       }
-    });
+    }
 
-    // Fireball collisions
-    this.fireballs.forEach(fb => {
+    // Fireball collisions - shared hit tracking per weapon so stacked fireballs take turns
+    const fireballHitLists = new Map<string, Enemy[]>();
+    for (const fb of this.fireballs) {
+      // Get or create hit list for this weapon
+      const weaponId = fb.weaponId || 'unknown';
+      let sharedFireballHitList = fireballHitLists.get(weaponId);
+      if (!sharedFireballHitList) {
+        sharedFireballHitList = [];
+        fireballHitLists.set(weaponId, sharedFireballHitList);
+      }
+
       for (const e of this.enemies) {
-        if (!fb.hitList.includes(e) &&
-            Utils.getDist(fb.x, fb.y, e.x, e.y) < fb.radius + e.radius) {
+        // Skip if this fireball already hit this enemy, OR if another fireball of the same weapon hit it this pass
+        if (fb.hitList.includes(e) || sharedFireballHitList.includes(e)) continue;
+
+        if (Utils.getDist(fb.x, fb.y, e.x, e.y) < fb.radius + e.radius) {
           this.hitEnemy(e, fb.dmg, fb.isCrit);
           fb.hitList.push(e);
+          sharedFireballHitList.push(e); // Mark as hit for all subsequent fireballs of this weapon
 
           // Explosion particles on hit
           this.spawnParticles({ type: 'fire' as ParticleType, x: fb.x, y: fb.y }, fb.getExplosionParticleCount());
@@ -803,8 +834,10 @@ class GameCore {
           if (fb.explodeRadius) {
             const explosionResult = findEnemiesInExplosion(fb.x, fb.y, fb.explodeRadius, this.enemies, [e]);
             for (const other of explosionResult.enemies) {
-              if (!fb.hitList.includes(other)) {
+              if (!fb.hitList.includes(other) && !sharedFireballHitList.includes(other)) {
                 this.hitEnemy(other, fb.dmg * explosionResult.damageMultiplier, fb.isCrit);
+                fb.hitList.push(other);
+                sharedFireballHitList.push(other);
               }
             }
           }
@@ -816,8 +849,10 @@ class GameCore {
           }
         }
       }
+    }
 
-      // Trail damage (level 4+) - damage enemies near the fireball
+    // Trail damage (level 4+) - damage enemies near the fireball
+    for (const fb of this.fireballs) {
       if (fb.trailDamage && this.frames % 10 === 0) {
         const nearEnemies = findEnemiesNearPoint(fb.x, fb.y, 30, this.enemies, fb.hitList as Enemy[]);
         for (const e of nearEnemies) {
@@ -837,7 +872,7 @@ class GameCore {
           }
         }
       }
-    });
+    }
 
     // Loot collection
     this.loot.forEach(l => {

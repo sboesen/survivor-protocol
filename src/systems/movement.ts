@@ -80,7 +80,7 @@ export function normalizeMovement(dir: Direction): Direction {
  * @returns Speed multiplier
  */
 export function calculateSpeedMultiplier(baseSpeed: number, ultName: string, ultActiveTime: number): number {
-  if (ultName === 'Ollie' && ultActiveTime > 0) {
+  if (ultName === 'ShadowStep' && ultActiveTime > 0) {
     return baseSpeed * 1.5;
   }
   return baseSpeed;
@@ -94,6 +94,24 @@ export function calculateSpeedMultiplier(baseSpeed: number, ultName: string, ult
  */
 export function wrapPosition(pos: number): number {
   return (pos + CONFIG.worldSize) % CONFIG.worldSize;
+}
+
+/**
+ * Normalize relative position for rendering (handles toroidal world).
+ * Converts entity-to-camera offset to the range [-worldSize/2, worldSize/2].
+ * Only wraps if the offset is within reasonable bounds (prevents far-away
+ * entities from being wrapped to visible positions).
+ *
+ * @param relativePos - Entity position minus camera position
+ * @returns Normalized offset for rendering
+ */
+export function wrapRelativePosition(relativePos: number): number {
+  // Only wrap if within one world size (entity and camera both in world bounds)
+  if (Math.abs(relativePos) <= CONFIG.worldSize) {
+    if (relativePos < -CONFIG.worldSize / 2) return relativePos + CONFIG.worldSize;
+    if (relativePos > CONFIG.worldSize / 2) return relativePos - CONFIG.worldSize;
+  }
+  return relativePos;
 }
 
 /**

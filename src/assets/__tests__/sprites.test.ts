@@ -8,7 +8,7 @@ describe('SPRITES', () => {
   });
 
   it('should have all expected player sprites', () => {
-    const expectedSprites = ['janitor', 'skater', 'mallCop', 'foodCourt', 'dungeonMaster', 'teenager'];
+    const expectedSprites = ['paladin', 'rogue', 'knight', 'berserker', 'wizard', 'pyromancer'];
     expectedSprites.forEach(sprite => {
       expect(SPRITES).toHaveProperty(sprite);
     });
@@ -40,40 +40,40 @@ describe('SPRITES', () => {
   });
 
   describe('player sprites', () => {
-    it('should have janitor sprite', () => {
-      expect(SPRITES.janitor).toBeDefined();
-      expect(SPRITES.janitor.length).toBe(10);
-      expect(SPRITES.janitor[0]).toContain('1');
+    it('should have paladin sprite', () => {
+      expect(SPRITES.paladin).toBeDefined();
+      expect(SPRITES.paladin.length).toBe(10);
+      expect(SPRITES.paladin[0]).toContain('1');
     });
 
-    it('should have skater sprite', () => {
-      expect(SPRITES.skater).toBeDefined();
-      expect(SPRITES.skater.length).toBe(10);
-      expect(SPRITES.skater[0]).toContain('r');
+    it('should have rogue sprite', () => {
+      expect(SPRITES.rogue).toBeDefined();
+      expect(SPRITES.rogue.length).toBe(10);
+      expect(SPRITES.rogue[0]).toContain('r');
     });
 
-    it('should have mallCop sprite', () => {
-      expect(SPRITES.mallCop).toBeDefined();
-      expect(SPRITES.mallCop.length).toBe(10);
-      expect(SPRITES.mallCop[0]).toContain('b');
+    it('should have knight sprite', () => {
+      expect(SPRITES.knight).toBeDefined();
+      expect(SPRITES.knight.length).toBe(10);
+      expect(SPRITES.knight[0]).toContain('b');
     });
 
-    it('should have foodCourt sprite', () => {
-      expect(SPRITES.foodCourt).toBeDefined();
-      expect(SPRITES.foodCourt.length).toBe(10);
-      expect(SPRITES.foodCourt[0]).toContain('w');
+    it('should have berserker sprite', () => {
+      expect(SPRITES.berserker).toBeDefined();
+      expect(SPRITES.berserker.length).toBe(10);
+      expect(SPRITES.berserker[0]).toContain('w');
     });
 
-    it('should have dungeonMaster sprite', () => {
-      expect(SPRITES.dungeonMaster).toBeDefined();
-      expect(SPRITES.dungeonMaster.length).toBe(10);
-      expect(SPRITES.dungeonMaster[1]).toContain('3');
+    it('should have wizard sprite', () => {
+      expect(SPRITES.wizard).toBeDefined();
+      expect(SPRITES.wizard.length).toBe(10);
+      expect(SPRITES.wizard[1]).toContain('3');
     });
 
-    it('should have teenager sprite', () => {
-      expect(SPRITES.teenager).toBeDefined();
-      expect(SPRITES.teenager.length).toBe(10);
-      expect(SPRITES.teenager[0]).toContain('p');
+    it('should have pyromancer sprite', () => {
+      expect(SPRITES.pyromancer).toBeDefined();
+      expect(SPRITES.pyromancer.length).toBe(10);
+      expect(SPRITES.pyromancer[0]).toContain('p');
     });
   });
 
@@ -105,7 +105,7 @@ describe('SPRITES', () => {
 
   describe('sprite content validation', () => {
     it('should only use valid palette keys', () => {
-      const validKeys = new Set(['.', 's', 'b', 'd', 'g', 'r', 'p', 'w', '1', '2', '3', 'k', 'e', ' ']);
+      const validKeys = new Set(['.', 's', 'b', 'd', 'g', 'r', 'p', 'w', '1', '2', '3', 'k', 'e', 'y', ' ']);
 
       Object.values(SPRITES).forEach(sprite => {
         sprite.forEach(row => {

@@ -10,8 +10,8 @@ describe('SaveData', () => {
     // Reload default data
     SaveData.data = {
       gold: 0,
-      ownedChars: ['dungeonMaster'],
-      selectedChar: 'dungeonMaster',
+      ownedChars: ['wizard'],
+      selectedChar: 'wizard',
       shop: { damage: 0, health: 0, speed: 0, magnet: 0 }
     };
   });
@@ -23,12 +23,17 @@ describe('SaveData', () => {
   describe('default data', () => {
     it('should initialize with default values', () => {
       expect(SaveData.data.gold).toBe(0);
-      expect(SaveData.data.ownedChars).toEqual(['dungeonMaster']);
-      expect(SaveData.data.selectedChar).toBe('dungeonMaster');
+      expect(SaveData.data.ownedChars).toEqual(['wizard']);
+      expect(SaveData.data.selectedChar).toBe('wizard');
       expect(SaveData.data.shop.damage).toBe(0);
       expect(SaveData.data.shop.health).toBe(0);
       expect(SaveData.data.shop.speed).toBe(0);
       expect(SaveData.data.shop.magnet).toBe(0);
+    });
+
+    it('should have wizard unlocked by default', () => {
+      expect(SaveData.data.ownedChars).toContain('wizard');
+      expect(SaveData.data.selectedChar).toBe('wizard');
     });
   });
 
@@ -36,7 +41,7 @@ describe('SaveData', () => {
     it('should load nothing when localStorage is empty', () => {
       SaveData.load();
       expect(SaveData.data.gold).toBe(0);
-      expect(SaveData.data.ownedChars).toEqual(['dungeonMaster']);
+      expect(SaveData.data.ownedChars).toEqual(['wizard']);
     });
 
     it('should load saved gold value', () => {
@@ -47,23 +52,23 @@ describe('SaveData', () => {
 
     it('should load saved ownedChars', () => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        ownedChars: ['janitor', 'skater', 'mallCop']
+        ownedChars: ['paladin', 'rogue', 'knight']
       }));
       SaveData.load();
-      // dungeonMaster is always added if selectedChar is not in ownedChars
-      // But here selectedChar defaults to dungeonMaster which is not in the list
+      // wizard is always added if selectedChar is not in ownedChars
+      // But here selectedChar defaults to wizard which is not in the list
       // So it gets added
-      expect(SaveData.data.ownedChars).toContain('janitor');
-      expect(SaveData.data.ownedChars).toContain('skater');
-      expect(SaveData.data.ownedChars).toContain('mallCop');
+      expect(SaveData.data.ownedChars).toContain('paladin');
+      expect(SaveData.data.ownedChars).toContain('rogue');
+      expect(SaveData.data.ownedChars).toContain('knight');
     });
 
     it('should load saved selectedChar', () => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        selectedChar: 'janitor'
+        selectedChar: 'paladin'
       }));
       SaveData.load();
-      expect(SaveData.data.selectedChar).toBe('janitor');
+      expect(SaveData.data.selectedChar).toBe('paladin');
     });
 
     it('should load saved shop upgrades', () => {
@@ -80,14 +85,14 @@ describe('SaveData', () => {
     it('should merge partial save data with defaults', () => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         gold: 1000,
-        selectedChar: 'skater'
+        selectedChar: 'rogue'
       }));
       SaveData.load();
       expect(SaveData.data.gold).toBe(1000);
-      expect(SaveData.data.selectedChar).toBe('skater');
-      // selectedChar 'skater' is added to ownedChars
-      expect(SaveData.data.ownedChars).toContain('dungeonMaster');
-      expect(SaveData.data.ownedChars).toContain('skater');
+      expect(SaveData.data.selectedChar).toBe('rogue');
+      // selectedChar 'rogue' is added to ownedChars
+      expect(SaveData.data.ownedChars).toContain('wizard');
+      expect(SaveData.data.ownedChars).toContain('rogue');
       expect(SaveData.data.shop.damage).toBe(0);
     });
 
@@ -96,7 +101,7 @@ describe('SaveData', () => {
         gold: 100
       }));
       SaveData.load();
-      expect(SaveData.data.ownedChars).toEqual(['dungeonMaster']);
+      expect(SaveData.data.ownedChars).toEqual(['wizard']);
     });
 
     it('should use default selectedChar when not in save', () => {
@@ -104,7 +109,7 @@ describe('SaveData', () => {
         gold: 100
       }));
       SaveData.load();
-      expect(SaveData.data.selectedChar).toBe('dungeonMaster');
+      expect(SaveData.data.selectedChar).toBe('wizard');
     });
 
     it('should use default shop values when not in save', () => {
@@ -140,20 +145,20 @@ describe('SaveData', () => {
 
     it('should add selectedChar to ownedChars if not present', () => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        ownedChars: ['janitor'],
-        selectedChar: 'skater'
+        ownedChars: ['paladin'],
+        selectedChar: 'rogue'
       }));
       SaveData.load();
-      expect(SaveData.data.ownedChars).toContain('skater');
+      expect(SaveData.data.ownedChars).toContain('rogue');
     });
 
     it('should not duplicate selectedChar in ownedChars', () => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        ownedChars: ['janitor', 'skater'],
-        selectedChar: 'skater'
+        ownedChars: ['paladin', 'rogue'],
+        selectedChar: 'rogue'
       }));
       SaveData.load();
-      const count = SaveData.data.ownedChars.filter(c => c === 'skater').length;
+      const count = SaveData.data.ownedChars.filter(c => c === 'rogue').length;
       expect(count).toBe(1);
     });
 
@@ -167,6 +172,38 @@ describe('SaveData', () => {
     it('should handle JSON parse errors', () => {
       localStorage.setItem(STORAGE_KEY, '{invalid}');
       expect(() => SaveData.load()).not.toThrow();
+    });
+
+    it('should migrate old character IDs to new fantasy-themed IDs', () => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        ownedChars: ['dungeonMaster', 'janitor', 'skater'],
+        selectedChar: 'dungeonMaster'
+      }));
+      SaveData.load();
+      expect(SaveData.data.ownedChars).toContain('wizard');
+      expect(SaveData.data.ownedChars).toContain('paladin');
+      expect(SaveData.data.ownedChars).toContain('rogue');
+      expect(SaveData.data.selectedChar).toBe('wizard');
+    });
+
+    it('should migrate single old character ID', () => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        ownedChars: ['mallCop'],
+        selectedChar: 'mallCop'
+      }));
+      SaveData.load();
+      expect(SaveData.data.ownedChars).toContain('knight');
+      expect(SaveData.data.selectedChar).toBe('knight');
+    });
+
+    it('should migrate all old character IDs', () => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        ownedChars: ['dungeonMaster', 'janitor', 'skater', 'mallCop', 'foodCourt', 'teenager'],
+        selectedChar: 'teenager'
+      }));
+      SaveData.load();
+      expect(SaveData.data.ownedChars).toEqual(['wizard', 'paladin', 'rogue', 'knight', 'berserker', 'pyromancer']);
+      expect(SaveData.data.selectedChar).toBe('pyromancer');
     });
   });
 
@@ -183,8 +220,8 @@ describe('SaveData', () => {
     it('should save all data properties', () => {
       SaveData.data = {
         gold: 1000,
-        ownedChars: ['janitor', 'skater'],
-        selectedChar: 'janitor',
+        ownedChars: ['paladin', 'rogue'],
+        selectedChar: 'paladin',
         shop: { damage: 3, health: 2, speed: 1, magnet: 1 }
       };
       SaveData.save();
@@ -215,8 +252,8 @@ describe('SaveData', () => {
     it('should preserve data through save/load cycle', () => {
       const originalData = {
         gold: 2500,
-        ownedChars: ['janitor', 'skater', 'mallCop', 'foodCourt'],
-        selectedChar: 'mallCop',
+        ownedChars: ['paladin', 'rogue', 'knight', 'berserker'],
+        selectedChar: 'knight',
         shop: { damage: 5, health: 3, speed: 2, magnet: 4 }
       };
 
@@ -226,8 +263,8 @@ describe('SaveData', () => {
       // Reset and reload
       SaveData.data = {
         gold: 0,
-        ownedChars: ['dungeonMaster'],
-        selectedChar: 'dungeonMaster',
+        ownedChars: ['wizard'],
+        selectedChar: 'wizard',
         shop: { damage: 0, health: 0, speed: 0, magnet: 0 }
       };
       SaveData.load();
@@ -242,8 +279,8 @@ describe('SaveData', () => {
       // Save with current characters
       SaveData.data = {
         gold: 100,
-        ownedChars: ['janitor'],
-        selectedChar: 'janitor',
+        ownedChars: ['paladin'],
+        selectedChar: 'paladin',
         shop: { damage: 1, health: 0, speed: 0, magnet: 0 }
       };
       SaveData.save();
@@ -262,8 +299,8 @@ describe('SaveData', () => {
     it('should handle maxed shop upgrades', () => {
       SaveData.data = {
         gold: 10000,
-        ownedChars: ['dungeonMaster'],
-        selectedChar: 'dungeonMaster',
+        ownedChars: ['wizard'],
+        selectedChar: 'wizard',
         shop: { damage: 5, health: 5, speed: 3, magnet: 3 }
       };
       SaveData.save();
@@ -278,8 +315,8 @@ describe('SaveData', () => {
     it('should handle zero shop upgrades', () => {
       SaveData.data = {
         gold: 0,
-        ownedChars: ['dungeonMaster'],
-        selectedChar: 'dungeonMaster',
+        ownedChars: ['wizard'],
+        selectedChar: 'wizard',
         shop: { damage: 0, health: 0, speed: 0, magnet: 0 }
       };
       SaveData.save();
@@ -299,13 +336,13 @@ describe('SaveData', () => {
     });
 
     it('should allow modifying ownedChars', () => {
-      SaveData.data.ownedChars.push('janitor');
-      expect(SaveData.data.ownedChars).toContain('janitor');
+      SaveData.data.ownedChars.push('paladin');
+      expect(SaveData.data.ownedChars).toContain('paladin');
     });
 
     it('should allow modifying selectedChar', () => {
-      SaveData.data.selectedChar = 'skater';
-      expect(SaveData.data.selectedChar).toBe('skater');
+      SaveData.data.selectedChar = 'rogue';
+      expect(SaveData.data.selectedChar).toBe('rogue');
     });
 
     it('should allow modifying shop upgrades', () => {

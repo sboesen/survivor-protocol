@@ -6,8 +6,8 @@ import { CHARACTERS } from '../../data/characters';
 // Mock dependencies
 vi.mock('../../data/characters', () => ({
   CHARACTERS: {
-    janitor: { id: 'janitor', name: 'Janitor' },
-    skater: { id: 'skater', name: 'Skater' },
+    paladin: { id: 'paladin', name: 'Janitor' },
+    rogue: { id: 'rogue', name: 'Skater' },
   },
 }));
 
@@ -15,7 +15,7 @@ vi.mock('../saveData', () => ({
   SaveData: {
     data: {
       gold: 1000,
-      ownedChars: ['janitor'],
+      ownedChars: ['paladin'],
     },
     save: vi.fn(),
   },
@@ -82,7 +82,7 @@ describe('GachaAnim', () => {
 
     // Reset SaveData mock
     (SaveData.data as any).gold = 1000;
-    (SaveData.data as any).ownedChars = ['janitor'];
+    (SaveData.data as any).ownedChars = ['paladin'];
 
     // Reset GachaAnim state
     GachaAnim.active = false;
@@ -160,7 +160,7 @@ describe('GachaAnim', () => {
     beforeEach(() => {
       GachaAnim.init();
       (SaveData.data as any).gold = 1000;
-      (SaveData.data as any).ownedChars = ['janitor'];
+      (SaveData.data as any).ownedChars = ['paladin'];
       mockCtx = createMockCtx();
       GachaAnim.ctx = mockCtx;
     });
@@ -196,11 +196,11 @@ describe('GachaAnim', () => {
     it('should set result character from pool', () => {
       GachaAnim.startPull();
       expect(GachaAnim.resultChar).toBeDefined();
-      expect(['janitor', 'skater']).toContain(GachaAnim.resultChar?.id);
+      expect(['paladin', 'rogue']).toContain(GachaAnim.resultChar?.id);
     });
 
     it('should detect duplicate character', () => {
-      // Force result to be janitor (already owned)
+      // Force result to be paladin (already owned)
       vi.spyOn(Math, 'random').mockReturnValue(0);
       GachaAnim.startPull();
       expect(GachaAnim.isDup).toBe(true);
@@ -215,7 +215,7 @@ describe('GachaAnim', () => {
     it('should add new character to owned', () => {
       vi.spyOn(Math, 'random').mockReturnValue(0.99);
       GachaAnim.startPull();
-      expect(SaveData.data.ownedChars).toContain('skater');
+      expect(SaveData.data.ownedChars).toContain('rogue');
     });
 
     it('should save after pull', () => {
@@ -306,7 +306,7 @@ describe('GachaAnim', () => {
     beforeEach(() => {
       GachaAnim.init();
       GachaAnim.ctx = createMockCtx();
-      GachaAnim.resultChar = { id: 'skater', name: 'Skater' };
+      GachaAnim.resultChar = { id: 'rogue', name: 'Skater' };
       GachaAnim.active = true;
       GachaAnim.phase = 2;
       GachaAnim.frames = 0;
@@ -358,7 +358,7 @@ describe('GachaAnim', () => {
     beforeEach(() => {
       GachaAnim.init();
       GachaAnim.ctx = createMockCtx();
-      GachaAnim.resultChar = { id: 'skater', name: 'Skater' };
+      GachaAnim.resultChar = { id: 'rogue', name: 'Skater' };
       GachaAnim.active = true;
       GachaAnim.phase = 3;
       GachaAnim.frames = 0;

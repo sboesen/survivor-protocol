@@ -140,7 +140,7 @@ export function applyKnockback(
  * @param playerRadius - Player collision radius
  * @param enemies - List of enemies
  * @param frameCount - Current frame count (for damage timing)
- * @param hasDamageImmunity - Whether player has damage immunity (Security/Reboot ult)
+ * @param hasDamageImmunity - Whether player has damage immunity (IronWill/Reboot ult)
  * @returns Collision result
  */
 export function checkPlayerEnemyCollision(

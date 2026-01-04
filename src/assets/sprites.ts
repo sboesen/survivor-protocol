@@ -2,7 +2,7 @@ import type { Sprites } from '../types';
 
 export const SPRITES: Sprites = {
   // Player characters
-  janitor: [
+  paladin: [
     "   1111   ",
     "  111111  ",
     "  11dd11  ",
@@ -14,7 +14,7 @@ export const SPRITES: Sprites = {
     "   3  3   ",
     "   3333   "
   ],
-  skater: [
+  rogue: [
     "   rrrr   ",
     "  rrrrrr  ",
     "  r11rr1  ",
@@ -26,7 +26,7 @@ export const SPRITES: Sprites = {
     " 22    22 ",
     " 22    22 "
   ],
-  mallCop: [
+  knight: [
     "   bbbb   ",
     "  bbbbbbb ",
     "  bbbbbbb ",
@@ -38,7 +38,7 @@ export const SPRITES: Sprites = {
     "  11  11  ",
     "  11  11  "
   ],
-  foodCourt: [
+  berserker: [
     "   wwww   ",
     "  wwwwww  ",
     "  wwww11  ",
@@ -50,7 +50,7 @@ export const SPRITES: Sprites = {
     "  ww  ww  ",
     "  ww  ww  "
   ],
-  dungeonMaster: [
+  wizard: [
     "          ",
     "   3333   ",
     "  333333  ",
@@ -62,7 +62,7 @@ export const SPRITES: Sprites = {
     "  3   3  ",
     "     33   "
   ],
-  teenager: [
+  pyromancer: [
     "   pppp   ",
     "  pppppp  ",
     "  p11pp1  ",
@@ -195,7 +195,7 @@ export const SPRITES: Sprites = {
     " 33333333 ",
     "    3333  ",
     "   333333 ",
-    "  33333333 "
+    "  3333333 "
   ],
   heart: [
     "   rr rr  ",

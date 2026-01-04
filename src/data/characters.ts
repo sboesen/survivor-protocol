@@ -1,64 +1,64 @@
 import type { Character } from '../types';
 
 export const CHARACTERS: Record<string, Character> = {
-  dungeonMaster: {
-    id: 'dungeonMaster',
-    name: 'Dungeon Master',
-    icon: '🐉',
+  wizard: {
+    id: 'wizard',
+    name: 'Wizard',
+    icon: '🧙',
     weapon: 'fireball',
     hpMod: 0.75,
     spdMod: 0.95,
     ult: 'MeteorSwarm',
     desc: 'Arcane power. Start: Fireball.'
   },
-  janitor: {
-    id: 'janitor',
-    name: 'Janitor',
-    icon: '🧹',
+  paladin: {
+    id: 'paladin',
+    name: 'Paladin',
+    icon: '🛡️',
     weapon: 'bubble_stream',
     hpMod: 1.2,
     spdMod: 0.9,
-    ult: 'ClosingTime',
-    desc: 'Tanky. Start: Bubble Stream.'
+    ult: 'DivineShield',
+    desc: 'Tanky. Start: Holy Aura.'
   },
-  skater: {
-    id: 'skater',
-    name: 'Skater',
-    icon: '🛹',
+  rogue: {
+    id: 'rogue',
+    name: 'Rogue',
+    icon: '🗡️',
     weapon: 'thrown_cds',
     hpMod: 0.8,
     spdMod: 1.3,
-    ult: 'Ollie',
-    desc: 'Fast. Start: Thrown CDs.'
+    ult: 'ShadowStep',
+    desc: 'Fast. Start: Dagger Throw.'
   },
-  mallCop: {
-    id: 'mallCop',
-    name: 'Mall Cop',
-    icon: '👮',
+  knight: {
+    id: 'knight',
+    name: 'Knight',
+    icon: '⚔️',
     weapon: 'pepper_spray',
     hpMod: 1.5,
     spdMod: 0.8,
-    ult: 'Security',
-    desc: 'High HP. Start: Pepper Spray.'
+    ult: 'IronWill',
+    desc: 'High HP. Start: Shield Bash.'
   },
-  foodCourt: {
-    id: 'foodCourt',
-    name: 'Chef',
-    icon: '🍔',
+  berserker: {
+    id: 'berserker',
+    name: 'Berserker',
+    icon: '🪓',
     weapon: 'frying_pan',
     hpMod: 1.0,
     spdMod: 1.0,
-    ult: 'GreaseFire',
-    desc: 'Balanced. Start: Frying Pan.'
+    ult: 'Inferno',
+    desc: 'Balanced. Start: War Hammer.'
   },
-  teenager: {
-    id: 'teenager',
-    name: 'Teenager',
-    icon: '🧢',
+  pyromancer: {
+    id: 'pyromancer',
+    name: 'Pyromancer',
+    icon: '🔥',
     weapon: 'lighter',
     hpMod: 0.9,
     spdMod: 1.1,
-    ult: 'VapeCloud',
-    desc: 'Reckless. Start: Lighter.'
+    ult: 'SmokeScreen',
+    desc: 'Reckless. Start: Flame Burst.'
   }
 };

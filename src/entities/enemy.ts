@@ -1,6 +1,6 @@
 import { CONFIG } from '../config';
 import type { CanvasContext, EntityType } from '../types';
-import { Entity } from './entity';
+import { Entity, type ScreenPosition } from './entity';
 import { Obstacle } from './obstacle';
 import { Renderer } from '../systems/renderer';
 
@@ -255,7 +255,8 @@ export class Enemy extends Entity {
     return false;
   }
 
-  drawShape(ctx: CanvasContext, x: number, y: number): void {
+  drawShape(ctx: CanvasContext, pos: ScreenPosition): void {
+    const { sx, sy } = pos;
 
     const spriteMap: Record<EntityType, 'shopper' | 'sprinter' | 'armored' | 'manager'> = {
       basic: 'shopper',
@@ -265,14 +266,14 @@ export class Enemy extends Entity {
     };
 
     const scale = this.type === 'boss' ? 4 : (this.type === 'elite' ? 3 : 2);
-    Renderer.drawSprite(ctx, spriteMap[this.sprite], x, y, scale);
+    Renderer.drawSprite(ctx, spriteMap[this.sprite], sx, sy, scale);
 
     // Flash effect
     if (this.flash > 0) {
       ctx.globalCompositeOperation = 'source-atop';
       ctx.fillStyle = 'white';
       ctx.beginPath();
-      ctx.arc(x, y, this.radius, 0, Math.PI * 2);
+      ctx.arc(sx, sy, this.radius, 0, Math.PI * 2);
       ctx.fill();
       ctx.globalCompositeOperation = 'source-over';
     }
@@ -280,9 +281,9 @@ export class Enemy extends Entity {
     // Health bar for elite and boss
     if (this.type === 'elite' || this.type === 'boss') {
       ctx.fillStyle = 'red';
-      ctx.fillRect(x - 15, y - 35, 30, 4);
+      ctx.fillRect(sx - 15, sy - 35, 30, 4);
       ctx.fillStyle = '#0f0';
-      ctx.fillRect(x - 15, y - 35, 30 * (this.hp / this.maxHp), 4);
+      ctx.fillRect(sx - 15, sy - 35, 30 * (this.hp / this.maxHp), 4);
     }
   }
 }

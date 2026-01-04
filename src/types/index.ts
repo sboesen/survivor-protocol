@@ -13,7 +13,7 @@ export interface Colors {
   gem: string;
 }
 
-export type SpriteKey = 'janitor' | 'skater' | 'mallCop' | 'foodCourt' | 'dungeonMaster' | 'teenager' | 'shopper' | 'sprinter' | 'armored' | 'manager' | 'basic' | 'bat' | 'elite' | 'boss' | 'gem' | 'chest' | 'heart';
+export type SpriteKey = 'paladin' | 'rogue' | 'knight' | 'berserker' | 'wizard' | 'pyromancer' | 'shopper' | 'sprinter' | 'armored' | 'manager' | 'basic' | 'bat' | 'elite' | 'boss' | 'gem' | 'chest' | 'heart';
 
 export type PaletteKey = '.' | 's' | 'b' | 'd' | 'g' | 'r' | 'p' | 'w' | '1' | '2' | '3' | 'k' | 'e' | 'y';
 

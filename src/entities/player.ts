@@ -1,7 +1,7 @@
 import { CONFIG } from '../config';
 import type { CanvasContext } from '../types';
 import type { Weapon, WeaponType, ItemType, UpgradeType } from '../types';
-import { Entity } from './entity';
+import { Entity, type ScreenPosition } from './entity';
 import { Renderer } from '../systems/renderer';
 
 export interface PlayerItems {
@@ -69,13 +69,14 @@ export class Player extends Entity {
   set hp(value: number) { this._hp = Math.max(0, value); }
   private _hp: number = 100;
 
-  drawShape(ctx: CanvasContext, x: number, y: number): void {
-    Renderer.drawSprite(ctx, this.charId, x, y, 2.5);
+  drawShape(ctx: CanvasContext, pos: ScreenPosition): void {
+    const { sx, sy } = pos;
+    Renderer.drawSprite(ctx, this.charId, sx, sy, 2.5);
 
-    if (this.ultName === 'Security' && this.ultActiveTime > 0) {
+    if (this.ultName === 'IronWill' && this.ultActiveTime > 0) {
       ctx.strokeStyle = '#4af';
       ctx.beginPath();
-      ctx.arc(x, y, 20, 0, Math.PI * 2);
+      ctx.arc(sx, sy, 20, 0, Math.PI * 2);
       ctx.stroke();
     }
   }

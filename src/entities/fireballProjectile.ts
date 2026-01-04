@@ -1,6 +1,6 @@
 import { CONFIG } from '../config';
 import type { CanvasContext } from '../types';
-import { Entity } from './entity';
+import { Entity, type ScreenPosition } from './entity';
 
 /**
  * FireballProjectile - A homing fireball that emits particles as a trail.
@@ -21,6 +21,7 @@ export class FireballProjectile extends Entity {
   hitList: Entity[];
   explodeRadius?: number;
   trailDamage?: number;
+  weaponId: string; // Track which weapon created this fireball
 
   // Visual state
   private pulsePhase: number;
@@ -38,7 +39,8 @@ export class FireballProjectile extends Entity {
     dmg: number,
     dur: number,
     pierce: number,
-    isCrit: boolean
+    isCrit: boolean,
+    weaponId: string = ''
   ) {
     super(x, y, 6, '#ff4400'); // Radius 6, orange color
     this.dmg = dmg;
@@ -46,6 +48,7 @@ export class FireballProjectile extends Entity {
     this.pierce = pierce;
     this.isCrit = isCrit;
     this.hitList = [];
+    this.weaponId = weaponId;
 
     // Calculate initial velocity towards target
     const dx = targetX - x;
@@ -105,9 +108,10 @@ export class FireballProjectile extends Entity {
     return 25;
   }
 
-  drawShape(ctx: CanvasContext, x: number, y: number): void {
+  drawShape(ctx: CanvasContext, pos: ScreenPosition): void {
+    const { sx, sy } = pos;
     ctx.save();
-    ctx.translate(x, y);
+    ctx.translate(sx, sy);
 
     // Pulsing halo (outer ring)
     const pulseScale = 1 + Math.sin(this.pulsePhase) * 0.2;
@@ -157,21 +161,11 @@ export class FireballProjectile extends Entity {
     cw: number,
     ch: number
   ): void {
-    // Calculate screen position (same logic as Entity.draw)
-    let rx = this.x - px;
-    let ry = this.y - py;
+    // Use inherited method with larger cull margin for illumination effect
+    const pos = this.getWrappedScreenPosition(px, py, cw, ch, 150);
+    if (!pos) return;
 
-    // Handle world wrapping for rendering
-    if (rx < -CONFIG.worldSize / 2) rx += CONFIG.worldSize;
-    if (rx > CONFIG.worldSize / 2) rx -= CONFIG.worldSize;
-    if (ry < -CONFIG.worldSize / 2) ry += CONFIG.worldSize;
-    if (ry > CONFIG.worldSize / 2) ry -= CONFIG.worldSize;
-
-    const sx = rx + cw / 2;
-    const sy = ry + ch / 2;
-
-    // Culling (generous bounds for illumination)
-    if (sx < -150 || sx > cw + 150 || sy < -150 || sy > ch + 150) return;
+    const { sx, sy } = pos;
 
     ctx.save();
 

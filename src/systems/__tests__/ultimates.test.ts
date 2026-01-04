@@ -3,16 +3,16 @@ import {
   hasDamageImmunity,
   calculateRebootHeal,
   getUltConfig,
-  calculateGreaseFireProjectiles,
+  calculateInfernoProjectiles,
   getTimeFreezeDuration,
-  type GreaseFireProjectile,
+  type InfernoProjectile,
 } from '../ultimates';
 
 describe('ultimates', () => {
   describe('hasDamageImmunity', () => {
-    it('should return true for Security ult when active', () => {
-      expect(hasDamageImmunity('Security', 300)).toBe(true);
-      expect(hasDamageImmunity('Security', 1)).toBe(true);
+    it('should return true for IronWill ult when active', () => {
+      expect(hasDamageImmunity('IronWill', 300)).toBe(true);
+      expect(hasDamageImmunity('IronWill', 1)).toBe(true);
     });
 
     it('should return true for Reboot ult when active', () => {
@@ -20,8 +20,8 @@ describe('ultimates', () => {
       expect(hasDamageImmunity('Reboot', 1)).toBe(true);
     });
 
-    it('should return false for Security when not active', () => {
-      expect(hasDamageImmunity('Security', 0)).toBe(false);
+    it('should return false for IronWill when not active', () => {
+      expect(hasDamageImmunity('IronWill', 0)).toBe(false);
     });
 
     it('should return false for Reboot when not active', () => {
@@ -29,9 +29,9 @@ describe('ultimates', () => {
     });
 
     it('should return false for other ults', () => {
-      expect(hasDamageImmunity('Ollie', 300)).toBe(false);
-      expect(hasDamageImmunity('ClosingTime', 240)).toBe(false);
-      expect(hasDamageImmunity('GreaseFire', 100)).toBe(false);
+      expect(hasDamageImmunity('ShadowStep', 300)).toBe(false);
+      expect(hasDamageImmunity('DivineShield', 240)).toBe(false);
+      expect(hasDamageImmunity('Inferno', 100)).toBe(false);
     });
 
     it('should return false for unknown ults', () => {
@@ -91,24 +91,24 @@ describe('ultimates', () => {
   });
 
   describe('getUltConfig', () => {
-    it('should return config for Security', () => {
-      const result = getUltConfig('Security');
-      expect(result).toEqual({ duration: 300, text: 'SECURITY!', color: '#4af' });
+    it('should return config for IronWill', () => {
+      const result = getUltConfig('IronWill');
+      expect(result).toEqual({ duration: 300, text: 'IRON WILL!', color: '#4af' });
     });
 
-    it('should return config for Ollie', () => {
-      const result = getUltConfig('Ollie');
-      expect(result).toEqual({ duration: 300, text: 'OLLIE!', color: '#0f0' });
+    it('should return config for ShadowStep', () => {
+      const result = getUltConfig('ShadowStep');
+      expect(result).toEqual({ duration: 300, text: 'SHADOW STEP!', color: '#0f0' });
     });
 
-    it('should return config for ClosingTime', () => {
-      const result = getUltConfig('ClosingTime');
-      expect(result).toEqual({ duration: 240, text: 'CLOSED!', color: '#888' });
+    it('should return config for DivineShield', () => {
+      const result = getUltConfig('DivineShield');
+      expect(result).toEqual({ duration: 240, text: 'DIVINE SHIELD!', color: '#888' });
     });
 
-    it('should return config for GreaseFire', () => {
-      const result = getUltConfig('GreaseFire');
-      expect(result).toEqual({ duration: 0, text: 'GREASE FIRE!', color: '#f80' });
+    it('should return config for Inferno', () => {
+      const result = getUltConfig('Inferno');
+      expect(result).toEqual({ duration: 0, text: 'INFERNO!', color: '#f80' });
     });
 
     it('should return config for Reboot', () => {
@@ -127,42 +127,42 @@ describe('ultimates', () => {
     });
   });
 
-  describe('calculateGreaseFireProjectiles', () => {
+  describe('calculateInfernoProjectiles', () => {
     it('should create 12 projectiles', () => {
-      const result = calculateGreaseFireProjectiles(100, 100);
+      const result = calculateInfernoProjectiles(100, 100);
       expect(result).toHaveLength(12);
     });
 
     it('should create projectiles with correct damage', () => {
-      const result = calculateGreaseFireProjectiles(100, 100);
+      const result = calculateInfernoProjectiles(100, 100);
       result.forEach(proj => {
         expect(proj.damage).toBe(20);
       });
     });
 
     it('should create projectiles with correct color', () => {
-      const result = calculateGreaseFireProjectiles(100, 100);
+      const result = calculateInfernoProjectiles(100, 100);
       result.forEach(proj => {
         expect(proj.color).toBe('#f80');
       });
     });
 
     it('should create projectiles with high pierce', () => {
-      const result = calculateGreaseFireProjectiles(100, 100);
+      const result = calculateInfernoProjectiles(100, 100);
       result.forEach(proj => {
         expect(proj.pierce).toBe(999);
       });
     });
 
     it('should create arc projectiles', () => {
-      const result = calculateGreaseFireProjectiles(100, 100);
+      const result = calculateInfernoProjectiles(100, 100);
       result.forEach(proj => {
         expect(proj.isArc).toBe(true);
       });
     });
 
     it('should spread projectiles in a circle', () => {
-      const result = calculateGreaseFireProjectiles(0, 0);
+      const result = calculateInfernoProjectiles(0, 0);
       // Check that angles are evenly distributed
       expect(result[0].angle).toBeCloseTo(0, 5);
       expect(result[1].angle).toBeCloseTo(Math.PI / 6, 5);
@@ -171,7 +171,7 @@ describe('ultimates', () => {
     });
 
     it('should calculate correct velocity for each angle', () => {
-      const result = calculateGreaseFireProjectiles(0, 0);
+      const result = calculateInfernoProjectiles(0, 0);
       // First projectile (angle 0) should move right at speed 5
       expect(result[0].vx).toBeCloseTo(5, 5);
       expect(result[0].vy).toBeCloseTo(0, 5);
@@ -181,7 +181,7 @@ describe('ultimates', () => {
     });
 
     it('should have consistent duration for all projectiles', () => {
-      const result = calculateGreaseFireProjectiles(100, 100);
+      const result = calculateInfernoProjectiles(100, 100);
       result.forEach(proj => {
         expect(proj.duration).toBe(100);
       });
@@ -196,7 +196,7 @@ describe('ultimates', () => {
 
   describe('edge cases', () => {
     it('should handle negative ult active time', () => {
-      expect(hasDamageImmunity('Security', -1)).toBe(false);
+      expect(hasDamageImmunity('IronWill', -1)).toBe(false);
       expect(hasDamageImmunity('Reboot', -10)).toBe(false);
     });
 

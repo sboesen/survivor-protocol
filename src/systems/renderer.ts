@@ -16,6 +16,10 @@ function isSpriteKey(key: string): key is SpriteKey {
   return key in SPRITES;
 }
 
+/**
+ * Minimal 2D canvas renderer for gacha and UI elements.
+ * Main game uses Three.js renderer.
+ */
 class RendererSystem {
   drawSprite(
     ctx: CanvasContext,

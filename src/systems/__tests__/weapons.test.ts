@@ -439,13 +439,13 @@ describe('weapons', () => {
       expect(result).toBe(8.5); // 10 - (1 + 0.5)
     });
 
-    it('should double decrement when Ollie ult is active', () => {
+    it('should double decrement when ShadowStep ult is active', () => {
       const result = decrementCooldown(10, 0, true);
 
       expect(result).toBe(8); // 10 - (1 * 2)
     });
 
-    it('should combine cooldown bonus with Ollie ult', () => {
+    it('should combine cooldown bonus with ShadowStep ult', () => {
       const result = decrementCooldown(10, 0.5, true);
 
       expect(result).toBe(7); // 10 - ((1 + 0.5) * 2) = 10 - 3

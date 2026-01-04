@@ -14,35 +14,64 @@ export class CameraController {
   }
 
   /**
-   * Update camera to follow the player
+   * Update camera to follow the player.
+   * Camera position stays wrapped to [0, worldSize] to match entities.
    */
   follow(playerX: number, playerY: number, _screenWidth: number, _screenHeight: number): void {
-    // Move camera to follow player, keeping Z offset
-    this.camera.position.set(playerX, playerY, 100);
-    // Always look at the player's position (from slightly above in Z)
-    this.target.set(playerX, playerY, 0);
+    // Wrap camera position to match entity coordinate space
+    const wrappedX = ((playerX % CONFIG.worldSize) + CONFIG.worldSize) % CONFIG.worldSize;
+    const wrappedY = ((playerY % CONFIG.worldSize) + CONFIG.worldSize) % CONFIG.worldSize;
+
+    this.camera.position.set(wrappedX, wrappedY, 100);
+    this.target.set(wrappedX, wrappedY, 0);
     this.camera.lookAt(this.target);
     this.camera.updateMatrixWorld();
+  }
+
+  /**
+   * Get the wrapped position for rendering an entity.
+   * Returns the position where an entity should appear given current camera position.
+   *
+   * Example: If camera is at x=1900 and entity is at x=100,
+   * the wrapped position is x=2100 (appears to the right of camera).
+   */
+  getWrappedRenderPosition(entityX: number, entityY: number): { x: number; y: number } {
+    let dx = entityX - this.camera.position.x;
+    let dy = entityY - this.camera.position.y;
+
+    // Normalize to shortest path (handles toroidal world)
+    if (dx < -CONFIG.worldSize / 2) dx += CONFIG.worldSize;
+    if (dx > CONFIG.worldSize / 2) dx -= CONFIG.worldSize;
+    if (dy < -CONFIG.worldSize / 2) dy += CONFIG.worldSize;
+    if (dy > CONFIG.worldSize / 2) dy -= CONFIG.worldSize;
+
+    return { x: dx + this.camera.position.x, y: dy + this.camera.position.y };
+  }
+
+  /**
+   * Get the relative offset from camera to entity (for screen space rendering).
+   * Returns offset normalized to [-worldSize/2, worldSize/2].
+   */
+  getWrappedOffset(entityX: number, entityY: number): { dx: number; dy: number } {
+    let dx = entityX - this.camera.position.x;
+    let dy = entityY - this.camera.position.y;
+
+    if (dx < -CONFIG.worldSize / 2) dx += CONFIG.worldSize;
+    if (dx > CONFIG.worldSize / 2) dx -= CONFIG.worldSize;
+    if (dy < -CONFIG.worldSize / 2) dy += CONFIG.worldSize;
+    if (dy > CONFIG.worldSize / 2) dy -= CONFIG.worldSize;
+
+    return { dx, dy };
   }
 
   /**
    * Convert world coordinates to screen coordinates
    */
   worldToScreen(wx: number, wy: number, screenWidth: number, screenHeight: number): { x: number; y: number } {
-    // Account for camera position and world wrapping
-    let dx = wx - this.camera.position.x;
-    let dy = wy - this.camera.position.y;
-
-    // Handle wrapping
-    const worldSize = CONFIG.worldSize;
-    if (dx < -worldSize / 2) dx += worldSize;
-    if (dx > worldSize / 2) dx -= worldSize;
-    if (dy < -worldSize / 2) dy += worldSize;
-    if (dy > worldSize / 2) dy -= worldSize;
-
+    const offset = this.getWrappedOffset(wx, wy);
     return {
-      x: screenWidth / 2 + dx,
-      y: screenHeight / 2 - dy,
+      x: screenWidth / 2 + offset.dx,
+      y: screenHeight / 2 - offset.dy,
     };
   }
 

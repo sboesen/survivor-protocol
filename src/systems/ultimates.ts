@@ -7,14 +7,14 @@
 /**
  * Check if a player has damage immunity from their ultimate.
  *
- * Security and Reboot ultimates provide damage immunity while active.
+ * IronWill and Reboot ultimates provide damage immunity while active.
  *
  * @param ultName - The player's ultimate name
  * @param ultActiveTime - The remaining frames the ultimate is active
  * @returns Whether the player has damage immunity
  */
 export function hasDamageImmunity(ultName: string, ultActiveTime: number): boolean {
-  return (ultName === 'Security' || ultName === 'Reboot') && ultActiveTime > 0;
+  return (ultName === 'IronWill' || ultName === 'Reboot') && ultActiveTime > 0;
 }
 
 /**
@@ -50,10 +50,10 @@ export interface UltConfig {
  */
 export function getUltConfig(ultName: string): UltConfig | null {
   const configs: Record<string, UltConfig> = {
-    Security: { duration: 300, text: 'SECURITY!', color: '#4af' },
-    Ollie: { duration: 300, text: 'OLLIE!', color: '#0f0' },
-    ClosingTime: { duration: 240, text: 'CLOSED!', color: '#888' },
-    GreaseFire: { duration: 0, text: 'GREASE FIRE!', color: '#f80' },
+    IronWill: { duration: 300, text: 'IRON WILL!', color: '#4af' },
+    ShadowStep: { duration: 300, text: 'SHADOW STEP!', color: '#0f0' },
+    DivineShield: { duration: 240, text: 'DIVINE SHIELD!', color: '#888' },
+    Inferno: { duration: 0, text: 'INFERNO!', color: '#f80' },
     Reboot: { duration: 300, text: 'REBOOT!', color: '#0ff' },
   };
 
@@ -61,9 +61,9 @@ export function getUltConfig(ultName: string): UltConfig | null {
 }
 
 /**
- * Projectile data for GreaseFire ultimate.
+ * Projectile data for Inferno ultimate.
  */
-export interface GreaseFireProjectile {
+export interface InfernoProjectile {
   angle: number;
   vx: number;
   vy: number;
@@ -75,7 +75,7 @@ export interface GreaseFireProjectile {
 }
 
 /**
- * Calculate projectile data for GreaseFire ultimate.
+ * Calculate projectile data for Inferno ultimate.
  *
  * Creates 12 projectiles in a circle around the player.
  *
@@ -83,11 +83,11 @@ export interface GreaseFireProjectile {
  * @param y - Player Y position
  * @returns Array of 12 projectile data objects
  */
-export function calculateGreaseFireProjectiles(
+export function calculateInfernoProjectiles(
   _x: number,
   _y: number
-): GreaseFireProjectile[] {
-  const projectiles: GreaseFireProjectile[] = [];
+): InfernoProjectile[] {
+  const projectiles: InfernoProjectile[] = [];
 
   for (let i = 0; i < 12; i++) {
     const angle = (Math.PI * 2 / 12) * i;
@@ -107,7 +107,7 @@ export function calculateGreaseFireProjectiles(
 }
 
 /**
- * Get the time freeze duration for ClosingTime ultimate.
+ * Get the time freeze duration for DivineShield ultimate.
  *
  * @returns Time freeze duration in frames
  */
