@@ -88,16 +88,16 @@ export const SPRITES: Sprites = {
     "   1   1  "
   ],
   bat: [
-    " d  d  d  ",
-    "ddddd ddd ",
-    "ddddrdddd ",
-    " ddddddd  ",
-    "  ddddd   ",
-    "   ddd    ",
-    "    d     ",
-    "          ",
-    "          ",
-    "          "
+    "  d   d   ",
+    " d www d ",
+    "drwwwwwd ",
+    " dddrddd ",
+    "  ddddd  ",
+    "   ddd   ",
+    "    d    ",
+    "         ",
+    "         ",
+    "         "
   ],
   elite: [
     "  111111  ",
@@ -137,16 +137,16 @@ export const SPRITES: Sprites = {
     "   1   1  "
   ],
   sprinter: [
-    " d  d  d  ",
-    "ddddd ddd ",
-    "ddddrdddd ",
-    " ddddddd  ",
-    "  ddddd   ",
-    "   ddd    ",
-    "    d     ",
-    "          ",
-    "          ",
-    "          "
+    "  d   d   ",
+    " d www d ",
+    "drwwwwwd ",
+    " dddrddd ",
+    "  ddddd  ",
+    "   ddd   ",
+    "    d    ",
+    "         ",
+    "         ",
+    "         "
   ],
   armored: [
     "  111111  ",

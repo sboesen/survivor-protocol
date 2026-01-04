@@ -45,12 +45,12 @@ export class ThreeRenderer {
     this.sceneManager = new SceneManager();
     this.spriteManager = new SpriteManager();
     this.cameraController = new CameraController(this.sceneManager.camera);
-    this.spriteManager.init();
   }
 
-  init(canvas: HTMLCanvasElement): void {
+  async init(canvas: HTMLCanvasElement): Promise<void> {
     if (!ThreeRenderer.enabled) return;
     this.sceneManager.init(canvas);
+    await this.spriteManager.init();
   }
 
   resize(width: number, height: number): void {

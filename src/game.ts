@@ -101,15 +101,15 @@ class GameCore {
 
   timeFreeze = 0;
 
-  init(): void {
+  async init(): Promise<void> {
     this.canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
     if (!this.canvas) return;
 
     this.ctx = this.canvas.getContext('2d');
     if (!this.ctx) return;
 
-    // Initialize Three.js renderer
-    threeRenderer.init(this.canvas);
+    // Initialize Three.js renderer (async for image loading)
+    await threeRenderer.init(this.canvas);
 
     this.resize();
     window.onresize = () => this.resize();

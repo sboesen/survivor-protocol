@@ -9,7 +9,7 @@ function isPaletteKey(char: string): char is PaletteKey {
 
 interface SpriteView {
   group: THREE.Group;
-  type: 'sprite' | 'gem' | 'heart' | 'chest';
+  type: 'sprite' | 'gem';
   name: string;
   baseY: number;
 }
@@ -124,7 +124,7 @@ class SpriteViewerSystem {
       }
 
       this.scene!.add(group);
-      this.spriteViews.push({ group, type: key === 'gem' ? 'gem' : key === 'heart' ? 'heart' : key === 'chest' ? 'chest' : 'sprite', name: key, baseY: y });
+      this.spriteViews.push({ group, type: key === 'gem' ? 'gem' : 'sprite', name: key, baseY: y });
     });
   }
 
@@ -231,66 +231,45 @@ class SpriteViewerSystem {
   private createLootSprite(spriteKey: 'chest' | 'heart', x: number, y: number): THREE.Group {
     const group = new THREE.Group();
 
-    if (spriteKey === 'heart') {
-      // Create 3D heart shape using the same parametric equation as the outline
-      const heartShape = this.createHeartShapeGeometry();
+    // Both chest and heart now use sprite rendering
+    const art = SPRITES[spriteKey];
+    if (!art) return group;
 
-      const material = new THREE.MeshStandardMaterial({
-        color: 0xff3333,
-        emissive: 0xff0000,
-        emissiveIntensity: 0.3,
-        metalness: 0.1,
-        roughness: 0.3,
-        flatShading: false,
-      });
+    const size = 10;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
 
-      const mesh = new THREE.Mesh(heartShape, material);
-      group.add(mesh);
-
-      // Add edge outline - they'll match since same equation
-      const heartOutline = this.createHeartOutline();
-      group.add(heartOutline);
-    } else {
-      // Chest - use sprite
-      const art = SPRITES[spriteKey];
-      if (!art) return group;
-
-      const size = 10;
-      const canvas = document.createElement('canvas');
-      canvas.width = size;
-      canvas.height = size;
-      const ctx = canvas.getContext('2d');
-
-      if (ctx) {
-        for (let py = 0; py < size; py++) {
-          for (let px = 0; px < size; px++) {
-            const char = art[py]?.[px];
-            if (char && isPaletteKey(char)) {
-              const color = PALETTE[char];
-              if (color) {
-                ctx.fillStyle = color;
-                ctx.fillRect(px, py, 1, 1);
-              }
+    if (ctx) {
+      for (let py = 0; py < size; py++) {
+        for (let px = 0; px < size; px++) {
+          const char = art[py]?.[px];
+          if (char && isPaletteKey(char)) {
+            const color = PALETTE[char];
+            if (color) {
+              ctx.fillStyle = color;
+              ctx.fillRect(px, py, 1, 1);
             }
           }
         }
       }
-
-      const texture = new THREE.CanvasTexture(canvas);
-      texture.magFilter = THREE.NearestFilter;
-      texture.minFilter = THREE.NearestFilter;
-      texture.colorSpace = THREE.SRGBColorSpace;
-
-      const spriteMaterial = new THREE.SpriteMaterial({
-        map: texture,
-        transparent: true,
-        depthTest: false,
-      });
-      const sprite = new THREE.Sprite(spriteMaterial);
-      sprite.scale.set(40, 40, 1);
-      sprite.position.set(0, 0, 0);
-      group.add(sprite);
     }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+    texture.colorSpace = THREE.SRGBColorSpace;
+
+    const spriteMaterial = new THREE.SpriteMaterial({
+      map: texture,
+      transparent: true,
+      depthTest: false,
+    });
+    const sprite = new THREE.Sprite(spriteMaterial);
+    sprite.scale.set(40, 40, 1);
+    sprite.position.set(0, 0, 0);
+    group.add(sprite);
 
     // Shadow for both
     const shadowCanvas = document.createElement('canvas');
@@ -321,66 +300,6 @@ class SpriteViewerSystem {
     return group;
   }
 
-  private createHeartShapeGeometry(): THREE.ExtrudeGeometry {
-    // Create a heart shape using the same parametric equation as the outline
-    const shape = new THREE.Shape();
-    const segments = 64;
-    const scale = 0.83; // 50% larger than original 0.55
-
-    // Generate points from parametric equation
-    const points: THREE.Vector2[] = [];
-    for (let i = 0; i <= segments; i++) {
-      const t = (i / segments) * Math.PI * 2;
-      const x = 16 * Math.pow(Math.sin(t), 3);
-      const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
-      points.push(new THREE.Vector2(x * scale, -y * scale));
-    }
-
-    // Create shape from points
-    shape.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i++) {
-      shape.lineTo(points[i].x, points[i].y);
-    }
-
-    const extrudeSettings = {
-      depth: 5,
-      bevelEnabled: false,
-    };
-
-    const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-    // Center the geometry and adjust so rotation doesn't shift position
-    geometry.center();
-    // Move the geometry so the center of the heart volume is at origin
-    geometry.translate(0, 0, -2.5); // Half the depth
-
-    return geometry;
-  }
-
-  private createHeartOutline(): THREE.LineLoop {
-    // Create a heart-shaped curve outline using same equation as 3D shape
-    const points: THREE.Vector3[] = [];
-    const segments = 64;
-    const scale = 0.83; // Match 3D heart scale
-
-    for (let i = 0; i <= segments; i++) {
-      const t = (i / segments) * Math.PI * 2;
-      const x = 16 * Math.pow(Math.sin(t), 3);
-      const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
-      // Outline at the center of the geometry (no Z offset since geometry is centered)
-      points.push(new THREE.Vector3(x * scale, -y * scale, 0));
-    }
-
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const material = new THREE.LineBasicMaterial({
-      color: 0xffaaaa,
-      linewidth: 2,
-      transparent: true,
-      opacity: 0.8,
-    });
-
-    return new THREE.LineLoop(geometry, material);
-  }
-
   private animate = (): void => {
     if (!this.renderer || !this.scene || !this.camera) return;
 
@@ -394,11 +313,6 @@ class SpriteViewerSystem {
           mesh.rotation.y = time * 2;
         }
         const hoverOffset = Math.sin(time * 3 + view.group.position.x) * 2;
-        view.group.position.y = view.baseY + hoverOffset;
-      } else if (view.type === 'heart') {
-        // Hearts spin slowly and have gentle hover
-        view.group.rotation.y = time * 1.5;
-        const hoverOffset = Math.sin(time * 2 + view.group.position.x) * 1.5;
         view.group.position.y = view.baseY + hoverOffset;
       }
     }
