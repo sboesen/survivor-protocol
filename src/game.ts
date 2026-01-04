@@ -65,17 +65,19 @@ class GameCore {
   private fps: number = 60;
   private fpsFrames: number = 0;
   private fpsLastTime: number = 0;
-  active = false;
-  paused = false;
-  frames = 0;
-  time = 0;
-  mins = 0;
-  goldRun = 0;
-  kills = 0;
-  bossKills = 0;
-  lastTime = 0;
-  accumulator = 0;
-  readonly timestep = 1000 / 60; // 60 FPS fixed timestep
+   active = false;
+   paused = false;
+   frames = 0;
+   time = 0;
+   mins = 0;
+   goldRun = 0;
+   kills = 0;
+   bossKills = 0;
+   lastTime = 0;
+   accumulator = 0;
+   readonly timestep = 1000 / 60; // 60 FPS fixed timestep
+   lastRenderTime = 0;
+   readonly renderInterval = 1000 / 60; // Render at 60 FPS too
 
   player: Player | null = null;
   enemies: Enemy[] = [];
@@ -1061,6 +1063,9 @@ class GameCore {
 
      const p = this.player;
 
+     // Render background/grid first
+     threeRenderer.renderBackground({ x: p.x, y: p.y });
+
      // Render main scene with Three.js - passing actual entity objects
      threeRenderer.render(
        p,
@@ -1074,62 +1079,69 @@ class GameCore {
        window.innerHeight
      );
 
-    // Render ground illumination effects (fire glow, etc.)
-    threeRenderer.renderIllumination(this.particles, this.fireballs);
+     // Render ground illumination effects (fire glow, etc.)
+     threeRenderer.renderIllumination(this.particles, this.fireballs);
 
-    // Render UI (health bar, joysticks)
-    threeRenderer.renderUI(
-      p.hp,
-      p.maxHp,
-      p.x,
-      p.y,
-      {
-        hasTouch: false,
-        joyActive: this.input.joy.active,
-        joyX: this.input.joy.x,
-        joyY: this.input.joy.y,
-        aimJoyActive: this.input.aimJoy.active,
-        aimJoyX: this.input.aimJoy.x,
-        aimJoyY: this.input.aimJoy.y,
-      }
-    );
+     // Render UI (health bar, joysticks)
+     threeRenderer.renderUI(
+       p.hp,
+       p.maxHp,
+       p.x,
+       p.y,
+       {
+         hasTouch: false,
+         joyActive: this.input.joy.active,
+         joyX: this.input.joy.x,
+         joyY: this.input.joy.y,
+         aimJoyActive: this.input.aimJoy.active,
+         aimJoyX: this.input.aimJoy.x,
+         aimJoyY: this.input.aimJoy.y,
+       }
+     );
   }
 
-  loop(currentTime = 0): void {
-    if (!this.lastTime) this.lastTime = currentTime;
-    if (!this.fpsLastTime) this.fpsLastTime = currentTime;
-    const deltaTime = currentTime - this.lastTime;
-    this.lastTime = currentTime;
+   loop(currentTime = 0): void {
+     if (!this.lastTime) this.lastTime = currentTime;
+     if (!this.fpsLastTime) this.fpsLastTime = currentTime;
+     if (!this.lastRenderTime) this.lastRenderTime = currentTime;
+     const deltaTime = currentTime - this.lastTime;
+     this.lastTime = currentTime;
 
-    // FPS tracking
-    this.fpsFrames++;
-    if (currentTime - this.fpsLastTime >= 1000) {
-      this.fps = this.fpsFrames;
-      this.fpsFrames = 0;
-      this.fpsLastTime = currentTime;
+     // FPS tracking
+     this.fpsFrames++;
+     if (currentTime - this.fpsLastTime >= 1000) {
+       this.fps = this.fpsFrames;
+       this.fpsFrames = 0;
+       this.fpsLastTime = currentTime;
 
-      // Log debug info every second
-      if (this.active) {
-        console.log(`FPS: ${this.fps} | Particles: ${this.particles.length} | Enemies: ${this.enemies.length} | Projectiles: ${this.projectiles.length} | Fireballs: ${this.fireballs.length}`);
-      }
-    }
+       // Log debug info every second
+       if (this.active) {
+         console.log(`FPS: ${this.fps} | Particles: ${this.particles.length} | Enemies: ${this.enemies.length} | Projectiles: ${this.projectiles.length} | Fireballs: ${this.fireballs.length}`);
+       }
+     }
 
-    this.accumulator += deltaTime;
+     this.accumulator += deltaTime;
 
-    // Cap accumulator to prevent spiral death on alt-tab (max 100ms catchup)
-    if (this.accumulator > 100) {
-      this.accumulator = 100;
-    }
+     // Cap accumulator to prevent spiral death on alt-tab (max 100ms catchup)
+     if (this.accumulator > 100) {
+       this.accumulator = 100;
+     }
 
-    // Fixed timestep update - run update() exactly 60 times per second
-    while (this.accumulator >= this.timestep) {
-      this.update();
-      this.accumulator -= this.timestep;
-    }
+     // Fixed timestep update - run update() exactly 60 times per second
+     while (this.accumulator >= this.timestep) {
+       this.update();
+       this.accumulator -= this.timestep;
+     }
 
-    this.render();
-    requestAnimationFrame((t) => this.loop(t));
-  }
+     // Throttle rendering to 60 FPS to match update rate (prevents jitter)
+     const renderDelta = currentTime - this.lastRenderTime;
+     if (renderDelta >= this.renderInterval) {
+       this.render();
+       this.lastRenderTime = currentTime;
+     }
+
+     requestAnimationFrame((t) => this.loop(t));
+   }
 }
 
 export const Game = new GameCore();

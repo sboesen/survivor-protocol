@@ -1569,14 +1569,6 @@ export class ThreeRenderer {
   renderBackground(player: { x: number; y: number } | null): void {
     if (!player) return;
 
-    // Clear old grid
-    if (this.gridLines) {
-      this.sceneManager.removeFromScene(this.gridLines);
-      this.gridLines.geometry.dispose();
-      (this.gridLines.material as THREE.Material).dispose();
-      this.gridLines = null;
-    }
-
     const camera = this.sceneManager.camera;
     const halfWidth = (camera.right - camera.left) / 2;
     const halfHeight = (camera.top - camera.bottom) / 2;
@@ -1608,18 +1600,23 @@ export class ThreeRenderer {
       points.push(endWorldX, worldY, 0);
     }
 
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
+    if (!this.gridLines) {
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
 
-    const material = new THREE.LineBasicMaterial({
-      color: 0x1a2030,
-      transparent: true,
-      opacity: 1,
-    });
+      const material = new THREE.LineBasicMaterial({
+        color: 0x1a2030,
+        transparent: true,
+        opacity: 1,
+      });
 
-    this.gridLines = new THREE.LineSegments(geometry, material);
-    this.gridLines.position.z = 0;
-    this.sceneManager.addToScene(this.gridLines);
+      this.gridLines = new THREE.LineSegments(geometry, material);
+      this.gridLines.position.z = 0;
+      this.sceneManager.addToScene(this.gridLines);
+    } else {
+      this.gridLines.geometry.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
+      this.gridLines.geometry.attributes.position.needsUpdate = true;
+    }
   }
 
   /**
@@ -1658,16 +1655,6 @@ export class ThreeRenderer {
   private renderHealthBar(playerHp: number, playerMaxHp: number, playerX: number, playerY: number, _cw: number, ch: number): void {
     if (!this.healthBar) return;
 
-    // Clear existing health bar
-    while (this.healthBar.children.length > 0) {
-      const child = this.healthBar.children[0];
-      this.healthBar.remove(child);
-      if (child instanceof THREE.Mesh) {
-        child.geometry.dispose();
-        (child.material as THREE.Material).dispose();
-      }
-    }
-
     if (playerMaxHp <= 0) {
       this.healthBar.visible = false;
       return;
@@ -1676,33 +1663,43 @@ export class ThreeRenderer {
     this.healthBar.visible = true;
 
     const hpPct = Math.max(0, playerHp / playerMaxHp);
-    
+
     // Convert player world position to screen position
     const screenPos = this.cameraController.worldToScreen(playerX, playerY, _cw, ch);
-    
+
     // Position health bar below player sprite (player is ~30px tall)
     const barX = screenPos.x - _cw / 2;
     const barY = screenPos.y - ch / 2 - 25;
-    
+
     const barWidth = 30;
     const barHeight = 4;
 
-    // Background (red)
-    const bgGeometry = new THREE.PlaneGeometry(barWidth, barHeight);
-    const bgMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, side: THREE.DoubleSide });
-    const bg = new THREE.Mesh(bgGeometry, bgMaterial);
-    bg.position.set(barX, barY, 0);
-    this.healthBar.add(bg);
+    // Create health bar meshes once if they don't exist
+    let bg = this.healthBar.children[0] as THREE.Mesh;
+    let health = this.healthBar.children[1] as THREE.Mesh;
 
-    // Health (green)
-    const healthWidth = barWidth * hpPct;
-    if (healthWidth > 0) {
-      const healthGeometry = new THREE.PlaneGeometry(healthWidth, barHeight);
+    if (!bg) {
+      const bgGeometry = new THREE.PlaneGeometry(barWidth, barHeight);
+      const bgMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, side: THREE.DoubleSide });
+      bg = new THREE.Mesh(bgGeometry, bgMaterial);
+      bg.position.z = 0;
+      this.healthBar.add(bg);
+    }
+
+    if (!health) {
+      const healthGeometry = new THREE.PlaneGeometry(barWidth, barHeight);
       const healthMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide });
-      const health = new THREE.Mesh(healthGeometry, healthMaterial);
-      health.position.set(barX - (barWidth - healthWidth) / 2, barY, 0.1);
+      health = new THREE.Mesh(healthGeometry, healthMaterial);
+      health.position.z = 0.1;
       this.healthBar.add(health);
     }
+
+    // Update position and health width
+    bg.position.set(barX, barY, 0);
+    const healthWidth = barWidth * hpPct;
+    health.scale.set(hpPct, 1, 1);
+    health.position.set(barX - (barWidth - healthWidth) / 2, barY, 0.1);
+    health.visible = healthWidth > 0;
   }
 
   private renderJoysticks(touchData: {
@@ -1767,41 +1764,40 @@ export class ThreeRenderer {
     color: number,
     baseOpacity: number
   ): void {
-    // Clear existing joystick
-    while (group.children.length > 0) {
-      const child = group.children[0];
-      group.remove(child);
-      if (child instanceof THREE.Mesh) {
-        child.geometry.dispose();
-        (child.material as THREE.Material).dispose();
-      }
+    let base = group.children[0] as THREE.Mesh;
+    let knob = group.children[1] as THREE.Mesh;
+
+    if (!base) {
+      const baseGeometry = new THREE.CircleGeometry(joyRadius, 32);
+      const baseMaterial = new THREE.MeshBasicMaterial({
+        color: color,
+        transparent: true,
+        opacity: baseOpacity,
+        side: THREE.DoubleSide,
+      });
+      base = new THREE.Mesh(baseGeometry, baseMaterial);
+      base.position.z = 0;
+      group.add(base);
     }
 
-    // Base circle
-    const baseGeometry = new THREE.CircleGeometry(joyRadius, 32);
-    const baseMaterial = new THREE.MeshBasicMaterial({
-      color: color,
-      transparent: true,
-      opacity: baseOpacity,
-      side: THREE.DoubleSide,
-    });
-    const base = new THREE.Mesh(baseGeometry, baseMaterial);
-    base.position.set(baseX, baseY, 0);
-    group.add(base);
+    if (!knob) {
+      const knobGeometry = new THREE.CircleGeometry(knobRadius, 32);
+      const knobMaterial = new THREE.MeshBasicMaterial({
+        color: color,
+        transparent: true,
+        opacity: 0.5,
+        side: THREE.DoubleSide,
+      });
+      knob = new THREE.Mesh(knobGeometry, knobMaterial);
+      knob.position.z = 0.1;
+      group.add(knob);
+    }
 
-    // Knob circle
-    const knobGeometry = new THREE.CircleGeometry(knobRadius, 32);
-    const knobMaterial = new THREE.MeshBasicMaterial({
-      color: color,
-      transparent: true,
-      opacity: 0.5,
-      side: THREE.DoubleSide,
-    });
-    const knob = new THREE.Mesh(knobGeometry, knobMaterial);
+    // Update positions
+    base.position.set(baseX, baseY, 0);
     const knobX = baseX + joyX * joyRadius;
-    const knobY = baseY - joyY * joyRadius; // Flip Y for screen space
+    const knobY = baseY - joyY * joyRadius;
     knob.position.set(knobX, knobY, 0.1);
-    group.add(knob);
   }
 
   /**

@@ -27,7 +27,7 @@ Survivor Protocol is a vampire survivor-style browser game built with TypeScript
 - `npm run build` - Build for production (runs TypeScript compiler, then Vite build)
 - `npm run lint` - Run ESLint on TypeScript files in `src/`
 
-## Important: Never Kill the Dev Server
+## Important: Never Kill Dev Server
 
 **CRITICAL RULE**: Never use `pkill`, `kill`, or any process termination commands on the dev server. The dev server has hot module replacement (HMR) - most changes auto-refresh without restart. If you need to restart, ask the user to do it manually.
 
