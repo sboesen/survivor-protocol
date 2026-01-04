@@ -431,179 +431,125 @@ export class ThreeRenderer {
 
     // Separate particles by type for different rendering
     const waterParticles: Particle[] = [];
+    const splashParticles: Particle[] = [];
+    const rippleParticles: Particle[] = [];
+    const causticParticles: Particle[] = [];
+    const foamParticles: Particle[] = [];
+    const explosionParticles: Particle[] = [];
+    const sparkParticles: Particle[] = [];
     const fireParticles: Particle[] = [];
-    const otherParticles: Particle[] = [];
+    const smokeParticles: Particle[] = [];
+    const bloodParticles: Particle[] = [];
+    const gasParticles: Particle[] = [];
 
     for (const pt of particles) {
       if (pt.marked) continue;
-      if (pt.type === 'water' || pt.type === 'foam' || pt.type === 'ripple' || pt.type === 'caustic' || pt.type === 'splash') {
-        waterParticles.push(pt);
-      } else if (pt.type === 'fire') {
-        fireParticles.push(pt);
-      } else {
-        otherParticles.push(pt);
+      switch (pt.type) {
+        case 'water':
+          waterParticles.push(pt);
+          break;
+        case 'splash':
+          splashParticles.push(pt);
+          break;
+        case 'ripple':
+          rippleParticles.push(pt);
+          break;
+        case 'caustic':
+          causticParticles.push(pt);
+          break;
+        case 'foam':
+          foamParticles.push(pt);
+          break;
+        case 'explosion':
+          explosionParticles.push(pt);
+          break;
+        case 'spark':
+          sparkParticles.push(pt);
+          break;
+        case 'fire':
+          fireParticles.push(pt);
+          break;
+        case 'smoke':
+          smokeParticles.push(pt);
+          break;
+        case 'blood':
+          bloodParticles.push(pt);
+          break;
+        case 'gas':
+          gasParticles.push(pt);
+          break;
       }
     }
 
-    // Render water particles with sprite textures (circles with highlights)
+    // Water: round droplet with gradient and highlight
     if (waterParticles.length > 0) {
       const positions = new Float32Array(waterParticles.length * 3);
       const colors = new Float32Array(waterParticles.length * 3);
       const alphas = new Float32Array(waterParticles.length);
+      const sizes = new Float32Array(waterParticles.length);
 
       for (let i = 0; i < waterParticles.length; i++) {
         const pt = waterParticles[i];
-        // Get wrapped render position
         const pos = this.cameraController.getWrappedRenderPosition(pt.x, pt.y);
         positions[i * 3] = pos.x;
         positions[i * 3 + 1] = pos.y;
-        positions[i * 3 + 2] = 13; // Z position
+        positions[i * 3 + 2] = 13;
 
         const color = new THREE.Color(pt.color);
         colors[i * 3] = color.r;
         colors[i * 3 + 1] = color.g;
         colors[i * 3 + 2] = color.b;
 
-        alphas[i] = Math.max(0, pt.life / pt.maxLife) * 0.8;
+        alphas[i] = Math.max(0, pt.life / pt.maxLife) * 0.7;
+        sizes[i] = pt.size;
       }
 
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
       geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      geometry.setAttribute('alpha', new THREE.BufferAttribute(alphas, 1));
+      geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
 
-      // Create shader material for circular water particles with highlight
       const material = new THREE.ShaderMaterial({
         uniforms: {
-          pointSize: { value: 8.0 }
+          time: { value: Date.now() * 0.001 }
         },
         vertexShader: `
           attribute vec3 color;
+          attribute float alpha;
+          attribute float size;
           varying vec3 vColor;
           varying float vAlpha;
-          uniform float pointSize;
+          varying float vSize;
           void main() {
             vColor = color;
+            vAlpha = alpha;
+            vSize = size;
             vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-            gl_PointSize = pointSize * (300.0 / -mvPosition.z);
+            gl_PointSize = size * 2.0 * (300.0 / -mvPosition.z);
             gl_Position = projectionMatrix * mvPosition;
           }
         `,
         fragmentShader: `
           varying vec3 vColor;
-          uniform float pointSize;
+          varying float vAlpha;
+          varying float vSize;
           void main() {
             vec2 coord = gl_PointCoord - vec2(0.5);
-            float dist = length(coord);
-            if (dist > 0.5) discard;
+            float dist = length(coord) * 2.0;
+            if (dist > 1.0) discard;
 
-            // Create water droplet effect with highlight
-            float alpha = 1.0 - smoothstep(0.3, 0.5, dist);
-            float highlight = smoothstep(0.35, 0.0, dist) * 0.5;
-
-            vec3 finalColor = vColor + vec3(highlight);
-            gl_FragColor = vec4(finalColor, alpha * 0.8);
-          }
-        `,
-        transparent: true,
-        depthTest: false,
-      });
-
-      const points = new THREE.Points(geometry, material);
-      this.sceneManager.addToScene(points);
-      this.particleViews.push(points);
-    }
-
-    // Render fire particles with life-based color transition
-    if (fireParticles.length > 0) {
-      const positions = new Float32Array(fireParticles.length * 3);
-      const lives = new Float32Array(fireParticles.length);
-
-      for (let i = 0; i < fireParticles.length; i++) {
-        const pt = fireParticles[i];
-        // Get wrapped render position
-        const pos = this.cameraController.getWrappedRenderPosition(pt.x, pt.y);
-        positions[i * 3] = pos.x;
-        positions[i * 3 + 1] = pos.y;
-        positions[i * 3 + 2] = 12; // Z position
-        // Life progress (0 = dead, 1 = full life)
-        lives[i] = Math.max(0, pt.life / pt.maxLife);
-      }
-
-      const geometry = new THREE.BufferGeometry();
-      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-      geometry.setAttribute('life', new THREE.BufferAttribute(lives, 1));
-
-      // Fire particle shader with dramatic color transition
-      const material = new THREE.ShaderMaterial({
-        uniforms: {
-          pointSize: { value: 5.0 }  // Smaller particles
-        },
-        vertexShader: `
-          attribute float life;
-          varying float vLife;
-          uniform float pointSize;
-          void main() {
-            vLife = life;
-            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-            gl_PointSize = pointSize * (300.0 / -mvPosition.z);
-            gl_Position = projectionMatrix * mvPosition;
-          }
-        `,
-        fragmentShader: `
-          varying float vLife;
-          uniform float pointSize;
-          void main() {
-            vec2 coord = gl_PointCoord - vec2(0.5);
-            float dist = length(coord);
-
-            // Circular particle with soft edge
-            float alpha = 1.0 - smoothstep(0.0, 0.5, dist);
-            if (alpha < 0.01) discard;
-
-            // Dramatic 4-stage color transition
-            // Stage 1 (1.0 - 0.7): Bright yellow-white - NEW/HOT
-            // Stage 2 (0.7 - 0.4): Orange - COOLING
-            // Stage 3 (0.4 - 0.2): Dark red - DYING
-            // Stage 4 (0.2 - 0.0): Grey ash - SMOKE
-
-            vec3 brightHot = vec3(1.0, 1.0, 0.7);   // Bright yellow-white
-            vec3 hotColor = vec3(1.0, 0.5, 0.0);    // Orange
-            vec3 coolColor = vec3(0.5, 0.0, 0.0);   // Dark red
-            vec3 smokeColor = vec3(0.25, 0.25, 0.3); // Blue-ish grey (visible!)
-
-            vec3 finalColor;
-            if (vLife > 0.7) {
-              // Bright yellow to orange
-              float t = (vLife - 0.7) / 0.3;
-              finalColor = mix(hotColor, brightHot, t);
-              // Add bright core for new particles
-              float core = smoothstep(0.5, 0.0, dist) * 0.5 * vLife;
-              finalColor += vec3(core);
-            } else if (vLife > 0.4) {
-              // Orange to red
-              float t = (vLife - 0.4) / 0.3;
-              finalColor = mix(coolColor, hotColor, t);
-            } else if (vLife > 0.2) {
-              // Red to dark red
-              float t = (vLife - 0.2) / 0.2;
-              finalColor = mix(vec3(0.2, 0.0, 0.0), coolColor, t);
-            } else {
-              // Dark red to grey smoke - THIS IS THE KEY TRANSITION
-              float t = vLife / 0.2;
-              finalColor = mix(smokeColor, vec3(0.2, 0.0, 0.0), t);
-              // NO bright core for smoke - makes it look dull/grey
-            }
-
-            // Fade overall alpha with life
-            alpha *= smoothstep(0.0, 0.2, vLife);
-
+            // Round water droplet with gradient
+            float alpha = (1.0 - dist) * vAlpha;
+            vec3 finalColor = vColor;
+            // Highlight at top-left
+            float highlight = smoothstep(0.6, 0.0, length(coord - vec2(-0.15, -0.15))) * 0.4 * vAlpha;
+            finalColor += vec3(highlight);
             gl_FragColor = vec4(finalColor, alpha);
           }
         `,
         transparent: true,
         depthTest: false,
-        // Use normal blending so grey smoke is visible
-        blending: THREE.NormalBlending,
       });
 
       const points = new THREE.Points(geometry, material);
@@ -611,14 +557,15 @@ export class ThreeRenderer {
       this.particleViews.push(points);
     }
 
-    // Render other particles (simple circles)
-    if (otherParticles.length > 0) {
-      const positions = new Float32Array(otherParticles.length * 3);
-      const colors = new Float32Array(otherParticles.length * 3);
+    // Splash: tiny droplets, single pixel for very small
+    if (splashParticles.length > 0) {
+      const positions = new Float32Array(splashParticles.length * 3);
+      const colors = new Float32Array(splashParticles.length * 3);
+      const alphas = new Float32Array(splashParticles.length);
+      const sizes = new Float32Array(splashParticles.length);
 
-      for (let i = 0; i < otherParticles.length; i++) {
-        const pt = otherParticles[i];
-        // Get wrapped render position
+      for (let i = 0; i < splashParticles.length; i++) {
+        const pt = splashParticles[i];
         const pos = this.cameraController.getWrappedRenderPosition(pt.x, pt.y);
         positions[i * 3] = pos.x;
         positions[i * 3 + 1] = pos.y;
@@ -628,35 +575,695 @@ export class ThreeRenderer {
         colors[i * 3] = color.r;
         colors[i * 3 + 1] = color.g;
         colors[i * 3 + 2] = color.b;
+
+        alphas[i] = Math.max(0, pt.life / pt.maxLife) * 0.3;
+        sizes[i] = pt.size;
       }
 
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
       geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      geometry.setAttribute('alpha', new THREE.BufferAttribute(alphas, 1));
+      geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
 
       const material = new THREE.ShaderMaterial({
-        uniforms: {
-          pointSize: { value: 6.0 }
-        },
         vertexShader: `
           attribute vec3 color;
+          attribute float alpha;
+          attribute float size;
           varying vec3 vColor;
-          uniform float pointSize;
+          varying float vAlpha;
+          varying float vSize;
           void main() {
             vColor = color;
+            vAlpha = alpha;
+            vSize = size;
             vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-            gl_PointSize = pointSize * (300.0 / -mvPosition.z);
+            gl_PointSize = max(1.0, size * 2.0) * (300.0 / -mvPosition.z);
             gl_Position = projectionMatrix * mvPosition;
           }
         `,
         fragmentShader: `
           varying vec3 vColor;
+          varying float vAlpha;
+          varying float vSize;
           void main() {
             vec2 coord = gl_PointCoord - vec2(0.5);
-            float dist = length(coord);
-            if (dist > 0.5) discard;
-            float alpha = 1.0 - smoothstep(0.3, 0.5, dist);
-            gl_FragColor = vec4(vColor, alpha * 0.8);
+            float dist = length(coord) * 2.0;
+            if (dist > 1.0) discard;
+
+            float alpha = (1.0 - dist) * vAlpha;
+            gl_FragColor = vec4(vColor, alpha);
+          }
+        `,
+        transparent: true,
+        depthTest: false,
+      });
+
+      const points = new THREE.Points(geometry, material);
+      this.sceneManager.addToScene(points);
+      this.particleViews.push(points);
+    }
+
+    // Ripple: expanding concentric rings
+    if (rippleParticles.length > 0) {
+      const positions = new Float32Array(rippleParticles.length * 3);
+      const colors = new Float32Array(rippleParticles.length * 3);
+      const alphas = new Float32Array(rippleParticles.length);
+      const sizes = new Float32Array(rippleParticles.length);
+
+      for (let i = 0; i < rippleParticles.length; i++) {
+        const pt = rippleParticles[i];
+        const pos = this.cameraController.getWrappedRenderPosition(pt.x, pt.y);
+        positions[i * 3] = pos.x;
+        positions[i * 3 + 1] = pos.y;
+        positions[i * 3 + 2] = 11;
+
+        const color = new THREE.Color(pt.color);
+        colors[i * 3] = color.r;
+        colors[i * 3 + 1] = color.g;
+        colors[i * 3 + 2] = color.b;
+
+        alphas[i] = Math.max(0, pt.life / pt.maxLife) * 0.5;
+        sizes[i] = pt.size;
+      }
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      geometry.setAttribute('alpha', new THREE.BufferAttribute(alphas, 1));
+      geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+      const material = new THREE.ShaderMaterial({
+        vertexShader: `
+          attribute vec3 color;
+          attribute float alpha;
+          attribute float size;
+          varying vec3 vColor;
+          varying float vAlpha;
+          varying float vSize;
+          void main() {
+            vColor = color;
+            vAlpha = alpha;
+            vSize = size;
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            gl_PointSize = size * 2.0 * (300.0 / -mvPosition.z);
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        `,
+        fragmentShader: `
+          varying vec3 vColor;
+          varying float vAlpha;
+          varying float vSize;
+          void main() {
+            vec2 coord = gl_PointCoord - vec2(0.5);
+            float dist = length(coord) * 2.0;
+
+            // Ring effect - bright at specific radius
+            float ringWidth = 0.15;
+            float ringRadius = 0.35;
+            float ring = 1.0 - smoothstep(0.0, ringWidth, abs(dist - ringRadius));
+
+            // Second inner ring for larger ripples
+            float innerRing = 0.0;
+            if (vSize > 5.0) {
+              float innerRadius = 0.2;
+              innerRing = 0.5 * (1.0 - smoothstep(0.0, ringWidth, abs(dist - innerRadius)));
+            }
+
+            float alpha = (ring + innerRing) * vAlpha;
+            if (alpha < 0.01) discard;
+            gl_FragColor = vec4(vColor, alpha);
+          }
+        `,
+        transparent: true,
+        depthTest: false,
+      });
+
+      const points = new THREE.Points(geometry, material);
+      this.sceneManager.addToScene(points);
+      this.particleViews.push(points);
+    }
+
+    // Caustic: wavy light pattern with shimmer
+    if (causticParticles.length > 0) {
+      const positions = new Float32Array(causticParticles.length * 3);
+      const colors = new Float32Array(causticParticles.length * 3);
+      const alphas = new Float32Array(causticParticles.length);
+      const sizes = new Float32Array(causticParticles.length);
+      const offsets = new Float32Array(causticParticles.length);
+
+      for (let i = 0; i < causticParticles.length; i++) {
+        const pt = causticParticles[i];
+        const pos = this.cameraController.getWrappedRenderPosition(pt.x, pt.y);
+        positions[i * 3] = pos.x;
+        positions[i * 3 + 1] = pos.y;
+        positions[i * 3 + 2] = 10;
+
+        const color = new THREE.Color(pt.color);
+        colors[i * 3] = color.r;
+        colors[i * 3 + 1] = color.g;
+        colors[i * 3 + 2] = color.b;
+
+        alphas[i] = 0.15;
+        sizes[i] = pt.size;
+        offsets[i] = pt.x * 0.1 + pt.y * 0.1;
+      }
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      geometry.setAttribute('alpha', new THREE.BufferAttribute(alphas, 1));
+      geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+      geometry.setAttribute('offset', new THREE.BufferAttribute(offsets, 1));
+
+      const material = new THREE.ShaderMaterial({
+        uniforms: {
+          time: { value: Date.now() * 0.005 }
+        },
+        vertexShader: `
+          attribute vec3 color;
+          attribute float alpha;
+          attribute float size;
+          attribute float offset;
+          uniform float time;
+          varying vec3 vColor;
+          varying float vAlpha;
+          varying float vSize;
+          varying float vOffset;
+          void main() {
+            vColor = color;
+            vAlpha = alpha;
+            vSize = size;
+            vOffset = offset;
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            gl_PointSize = size * 2.0 * (300.0 / -mvPosition.z);
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        `,
+        fragmentShader: `
+          varying vec3 vColor;
+          varying float vAlpha;
+          varying float vSize;
+          varying float vOffset;
+          uniform float time;
+          void main() {
+            vec2 coord = gl_PointCoord - vec2(0.5);
+            float dist = length(coord) * 2.0;
+            if (dist > 1.0) discard;
+
+            // Shimmer effect
+            float shimmer = (sin(time * 3.0 + vOffset) + 1.0) * 0.5 * 0.1;
+
+            // Main blob with soft edges
+            float alpha = (1.0 - smoothstep(0.0, 1.0, dist)) * (vAlpha + shimmer);
+
+            // Add smaller organic blobs
+            vec2 offset1 = vec2(0.15, -0.1);
+            vec2 offset2 = vec2(-0.1, 0.15);
+            float blob1 = (1.0 - smoothstep(0.0, 1.0, length(coord - offset1) * 2.0));
+            float blob2 = (1.0 - smoothstep(0.0, 1.0, length(coord - offset2) * 2.5));
+            alpha += (blob1 + blob2) * 0.1;
+
+            gl_FragColor = vec4(vColor, alpha);
+          }
+        `,
+        transparent: true,
+        depthTest: false,
+      });
+
+      const points = new THREE.Points(geometry, material);
+      this.sceneManager.addToScene(points);
+      this.particleViews.push(points);
+    }
+
+    // Foam: white bubble with shine
+    if (foamParticles.length > 0) {
+      const positions = new Float32Array(foamParticles.length * 3);
+      const colors = new Float32Array(foamParticles.length * 3);
+      const alphas = new Float32Array(foamParticles.length);
+      const sizes = new Float32Array(foamParticles.length);
+
+      for (let i = 0; i < foamParticles.length; i++) {
+        const pt = foamParticles[i];
+        const pos = this.cameraController.getWrappedRenderPosition(pt.x, pt.y);
+        positions[i * 3] = pos.x;
+        positions[i * 3 + 1] = pos.y;
+        positions[i * 3 + 2] = 13;
+
+        const color = new THREE.Color(pt.color);
+        colors[i * 3] = color.r;
+        colors[i * 3 + 1] = color.g;
+        colors[i * 3 + 2] = color.b;
+
+        alphas[i] = Math.max(0, pt.life / pt.maxLife) * 0.8;
+        sizes[i] = pt.size;
+      }
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      geometry.setAttribute('alpha', new THREE.BufferAttribute(alphas, 1));
+      geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+      const material = new THREE.ShaderMaterial({
+        vertexShader: `
+          attribute vec3 color;
+          attribute float alpha;
+          attribute float size;
+          varying vec3 vColor;
+          varying float vAlpha;
+          varying float vSize;
+          void main() {
+            vColor = color;
+            vAlpha = alpha;
+            vSize = size;
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            gl_PointSize = size * 2.0 * (300.0 / -mvPosition.z);
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        `,
+        fragmentShader: `
+          varying vec3 vColor;
+          varying float vAlpha;
+          varying float vSize;
+          void main() {
+            vec2 coord = gl_PointCoord - vec2(0.5);
+            float dist = length(coord) * 2.0;
+            if (dist > 1.0) discard;
+
+            // White bubble
+            float alpha = (1.0 - smoothstep(0.0, 0.8, dist)) * vAlpha;
+            vec3 finalColor = vColor;
+
+            // Shine at top-left
+            float shine = smoothstep(0.6, 0.0, length(coord - vec2(-0.15, -0.15))) * 0.6 * vAlpha;
+            finalColor += vec3(shine);
+
+            gl_FragColor = vec4(finalColor, alpha);
+          }
+        `,
+        transparent: true,
+        depthTest: false,
+      });
+
+      const points = new THREE.Points(geometry, material);
+      this.sceneManager.addToScene(points);
+      this.particleViews.push(points);
+    }
+
+    // Explosion: orange expanding burst
+    if (explosionParticles.length > 0) {
+      const positions = new Float32Array(explosionParticles.length * 3);
+      const colors = new Float32Array(explosionParticles.length * 3);
+      const alphas = new Float32Array(explosionParticles.length);
+      const sizes = new Float32Array(explosionParticles.length);
+
+      for (let i = 0; i < explosionParticles.length; i++) {
+        const pt = explosionParticles[i];
+        const pos = this.cameraController.getWrappedRenderPosition(pt.x, pt.y);
+        positions[i * 3] = pos.x;
+        positions[i * 3 + 1] = pos.y;
+        positions[i * 3 + 2] = 12;
+
+        const color = new THREE.Color(pt.color);
+        colors[i * 3] = color.r;
+        colors[i * 3 + 1] = color.g;
+        colors[i * 3 + 2] = color.b;
+
+        alphas[i] = Math.max(0, pt.life / pt.maxLife);
+        sizes[i] = pt.size;
+      }
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      geometry.setAttribute('alpha', new THREE.BufferAttribute(alphas, 1));
+      geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+      const material = new THREE.ShaderMaterial({
+        vertexShader: `
+          attribute vec3 color;
+          attribute float alpha;
+          attribute float size;
+          varying vec3 vColor;
+          varying float vAlpha;
+          varying float vSize;
+          void main() {
+            vColor = color;
+            vAlpha = alpha;
+            vSize = size;
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            gl_PointSize = size * 2.0 * (300.0 / -mvPosition.z);
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        `,
+        fragmentShader: `
+          varying vec3 vColor;
+          varying float vAlpha;
+          varying float vSize;
+          void main() {
+            vec2 coord = gl_PointCoord - vec2(0.5);
+            float dist = length(coord) * 2.0;
+            if (dist > 1.0) discard;
+
+            // Soft edges
+            float alpha = (1.0 - smoothstep(0.0, 1.0, dist)) * vAlpha;
+            gl_FragColor = vec4(vColor, alpha);
+          }
+        `,
+        transparent: true,
+        depthTest: false,
+      });
+
+      const points = new THREE.Points(geometry, material);
+      this.sceneManager.addToScene(points);
+      this.particleViews.push(points);
+    }
+
+    // Spark: small bright particles
+    if (sparkParticles.length > 0) {
+      const positions = new Float32Array(sparkParticles.length * 3);
+      const colors = new Float32Array(sparkParticles.length * 3);
+      const alphas = new Float32Array(sparkParticles.length);
+      const sizes = new Float32Array(sparkParticles.length);
+
+      for (let i = 0; i < sparkParticles.length; i++) {
+        const pt = sparkParticles[i];
+        const pos = this.cameraController.getWrappedRenderPosition(pt.x, pt.y);
+        positions[i * 3] = pos.x;
+        positions[i * 3 + 1] = pos.y;
+        positions[i * 3 + 2] = 12;
+
+        const color = new THREE.Color(pt.color);
+        colors[i * 3] = color.r;
+        colors[i * 3 + 1] = color.g;
+        colors[i * 3 + 2] = color.b;
+
+        alphas[i] = Math.max(0, pt.life / pt.maxLife);
+        sizes[i] = pt.size;
+      }
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      geometry.setAttribute('alpha', new THREE.BufferAttribute(alphas, 1));
+      geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+      const material = new THREE.ShaderMaterial({
+        vertexShader: `
+          attribute vec3 color;
+          attribute float alpha;
+          attribute float size;
+          varying vec3 vColor;
+          varying float vAlpha;
+          varying float vSize;
+          void main() {
+            vColor = color;
+            vAlpha = alpha;
+            vSize = size;
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            gl_PointSize = size * 2.0 * (300.0 / -mvPosition.z);
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        `,
+        fragmentShader: `
+          varying vec3 vColor;
+          varying float vAlpha;
+          varying float vSize;
+          void main() {
+            vec2 coord = gl_PointCoord - vec2(0.5);
+            float dist = length(coord) * 2.0;
+            if (dist > 1.0) discard;
+
+            // Bright sharp particles
+            float alpha = (1.0 - smoothstep(0.0, 0.8, dist)) * vAlpha;
+            gl_FragColor = vec4(vColor, alpha);
+          }
+        `,
+        transparent: true,
+        depthTest: false,
+      });
+
+      const points = new THREE.Points(geometry, material);
+      this.sceneManager.addToScene(points);
+      this.particleViews.push(points);
+    }
+
+    // Fire: dynamic color shift (white -> yellow -> orange -> red)
+    if (fireParticles.length > 0) {
+      const positions = new Float32Array(fireParticles.length * 3);
+      const lives = new Float32Array(fireParticles.length);
+      const sizes = new Float32Array(fireParticles.length);
+
+      for (let i = 0; i < fireParticles.length; i++) {
+        const pt = fireParticles[i];
+        const pos = this.cameraController.getWrappedRenderPosition(pt.x, pt.y);
+        positions[i * 3] = pos.x;
+        positions[i * 3 + 1] = pos.y;
+        positions[i * 3 + 2] = 12;
+        lives[i] = Math.max(0, pt.life / pt.maxLife);
+        sizes[i] = pt.size;
+      }
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('life', new THREE.BufferAttribute(lives, 1));
+      geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+      const material = new THREE.ShaderMaterial({
+        vertexShader: `
+          attribute float life;
+          attribute float size;
+          varying float vLife;
+          varying float vSize;
+          void main() {
+            vLife = life;
+            vSize = size;
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            gl_PointSize = size * 2.0 * (300.0 / -mvPosition.z);
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        `,
+        fragmentShader: `
+          varying float vLife;
+          varying float vSize;
+          void main() {
+            vec2 coord = gl_PointCoord - vec2(0.5);
+            float dist = length(coord) * 2.0;
+
+            float alpha = (1.0 - smoothstep(0.0, 1.0, dist));
+            if (alpha < 0.01) discard;
+
+            const float progress = 1.0 - vLife;
+
+            // Dynamic color shift: White -> Yellow -> Orange -> Red
+            vec3 fireColor;
+            if (progress < 0.2) {
+              fireColor = vec3(1.0, 1.0, 1.0); // White
+            } else if (progress < 0.5) {
+              fireColor = vec3(1.0, 0.8, 0.0); // Yellow
+            } else {
+              fireColor = vec3(1.0, 0.27, 0.0); // Red-orange
+            }
+
+            // Add bright core for new particles
+            float core = smoothstep(0.5, 0.0, dist) * 0.5 * vLife;
+            fireColor += vec3(core);
+
+            alpha *= vLife;
+            gl_FragColor = vec4(fireColor, alpha);
+          }
+        `,
+        transparent: true,
+        depthTest: false,
+        blending: THREE.NormalBlending,
+      });
+
+      const points = new THREE.Points(geometry, material);
+      this.sceneManager.addToScene(points);
+      this.particleViews.push(points);
+    }
+
+    // Smoke: rising, expanding grey puffs
+    if (smokeParticles.length > 0) {
+      const positions = new Float32Array(smokeParticles.length * 3);
+      const alphas = new Float32Array(smokeParticles.length);
+      const sizes = new Float32Array(smokeParticles.length);
+
+      for (let i = 0; i < smokeParticles.length; i++) {
+        const pt = smokeParticles[i];
+        const pos = this.cameraController.getWrappedRenderPosition(pt.x, pt.y);
+        positions[i * 3] = pos.x;
+        positions[i * 3 + 1] = pos.y;
+        positions[i * 3 + 2] = 11;
+
+        alphas[i] = Math.max(0, pt.life / pt.maxLife) * 0.5;
+        sizes[i] = pt.size;
+      }
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('alpha', new THREE.BufferAttribute(alphas, 1));
+      geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+      const material = new THREE.ShaderMaterial({
+        vertexShader: `
+          attribute float alpha;
+          attribute float size;
+          varying float vAlpha;
+          varying float vSize;
+          void main() {
+            vAlpha = alpha;
+            vSize = size;
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            gl_PointSize = size * 2.0 * (300.0 / -mvPosition.z);
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        `,
+        fragmentShader: `
+          varying float vAlpha;
+          varying float vSize;
+          void main() {
+            vec2 coord = gl_PointCoord - vec2(0.5);
+            float dist = length(coord) * 2.0;
+            if (dist > 1.0) discard;
+
+            // Soft smoke with very gradual fade
+            float alpha = (1.0 - smoothstep(0.0, 1.0, dist)) * vAlpha;
+            vec3 smokeColor = vec3(0.39, 0.28, 0.53); // #64748b
+            gl_FragColor = vec4(smokeColor, alpha);
+          }
+        `,
+        transparent: true,
+        depthTest: false,
+      });
+
+      const points = new THREE.Points(geometry, material);
+      this.sceneManager.addToScene(points);
+      this.particleViews.push(points);
+    }
+
+    // Blood: red droplets
+    if (bloodParticles.length > 0) {
+      const positions = new Float32Array(bloodParticles.length * 3);
+      const colors = new Float32Array(bloodParticles.length * 3);
+      const alphas = new Float32Array(bloodParticles.length);
+      const sizes = new Float32Array(bloodParticles.length);
+
+      for (let i = 0; i < bloodParticles.length; i++) {
+        const pt = bloodParticles[i];
+        const pos = this.cameraController.getWrappedRenderPosition(pt.x, pt.y);
+        positions[i * 3] = pos.x;
+        positions[i * 3 + 1] = pos.y;
+        positions[i * 3 + 2] = 12;
+
+        const color = new THREE.Color(pt.color);
+        colors[i * 3] = color.r;
+        colors[i * 3 + 1] = color.g;
+        colors[i * 3 + 2] = color.b;
+
+        alphas[i] = Math.max(0, pt.life / pt.maxLife) * 0.8;
+        sizes[i] = pt.size;
+      }
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      geometry.setAttribute('alpha', new THREE.BufferAttribute(alphas, 1));
+      geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+      const material = new THREE.ShaderMaterial({
+        vertexShader: `
+          attribute vec3 color;
+          attribute float alpha;
+          attribute float size;
+          varying vec3 vColor;
+          varying float vAlpha;
+          void main() {
+            vColor = color;
+            vAlpha = alpha;
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            gl_PointSize = size * 2.0 * (300.0 / -mvPosition.z);
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        `,
+        fragmentShader: `
+          varying vec3 vColor;
+          varying float vAlpha;
+          void main() {
+            vec2 coord = gl_PointCoord - vec2(0.5);
+            float dist = length(coord) * 2.0;
+            if (dist > 1.0) discard;
+
+            float alpha = (1.0 - smoothstep(0.0, 1.0, dist)) * vAlpha;
+            gl_FragColor = vec4(vColor, alpha);
+          }
+        `,
+        transparent: true,
+        depthTest: false,
+      });
+
+      const points = new THREE.Points(geometry, material);
+      this.sceneManager.addToScene(points);
+      this.particleViews.push(points);
+    }
+
+    // Gas: soft green clouds
+    if (gasParticles.length > 0) {
+      const positions = new Float32Array(gasParticles.length * 3);
+      const colors = new Float32Array(gasParticles.length * 3);
+      const alphas = new Float32Array(gasParticles.length);
+      const sizes = new Float32Array(gasParticles.length);
+
+      for (let i = 0; i < gasParticles.length; i++) {
+        const pt = gasParticles[i];
+        const pos = this.cameraController.getWrappedRenderPosition(pt.x, pt.y);
+        positions[i * 3] = pos.x;
+        positions[i * 3 + 1] = pos.y;
+        positions[i * 3 + 2] = 11;
+
+        const color = new THREE.Color(pt.color);
+        colors[i * 3] = color.r;
+        colors[i * 3 + 1] = color.g;
+        colors[i * 3 + 2] = color.b;
+
+        alphas[i] = Math.max(0, pt.life / pt.maxLife) * 0.3;
+        sizes[i] = pt.size;
+      }
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      geometry.setAttribute('alpha', new THREE.BufferAttribute(alphas, 1));
+      geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+      const material = new THREE.ShaderMaterial({
+        vertexShader: `
+          attribute vec3 color;
+          attribute float alpha;
+          attribute float size;
+          varying vec3 vColor;
+          varying float vAlpha;
+          void main() {
+            vColor = color;
+            vAlpha = alpha;
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            gl_PointSize = size * 2.0 * (300.0 / -mvPosition.z);
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        `,
+        fragmentShader: `
+          varying vec3 vColor;
+          varying float vAlpha;
+          void main() {
+            vec2 coord = gl_PointCoord - vec2(0.5);
+            float dist = length(coord) * 2.0;
+            if (dist > 1.0) discard;
+
+            // Very soft gas cloud
+            float alpha = (1.0 - smoothstep(0.0, 1.0, dist)) * vAlpha;
+            gl_FragColor = vec4(vColor, alpha);
           }
         `,
         transparent: true,
