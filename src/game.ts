@@ -1081,6 +1081,8 @@ class GameCore {
     threeRenderer.renderUI(
       p.hp,
       p.maxHp,
+      p.x,
+      p.y,
       {
         hasTouch: false,
         joyActive: this.input.joy.active,

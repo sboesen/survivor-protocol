@@ -1628,6 +1628,8 @@ export class ThreeRenderer {
   renderUI(
     playerHp: number,
     playerMaxHp: number,
+    playerX: number,
+    playerY: number,
     touchData: {
       hasTouch: boolean;
       joyActive: boolean;
@@ -1644,7 +1646,7 @@ export class ThreeRenderer {
     const ch = window.innerHeight;
 
     // Update health bar
-    this.renderHealthBar(playerHp, playerMaxHp, cw, ch);
+    this.renderHealthBar(playerHp, playerMaxHp, playerX, playerY, cw, ch);
 
     // Update joysticks
     this.renderJoysticks(touchData, cw, ch);
@@ -1653,7 +1655,7 @@ export class ThreeRenderer {
     this.sceneManager.renderer.render(this.uiScene, this.uiCamera);
   }
 
-  private renderHealthBar(playerHp: number, playerMaxHp: number, _cw: number, ch: number): void {
+  private renderHealthBar(playerHp: number, playerMaxHp: number, playerX: number, playerY: number, _cw: number, ch: number): void {
     if (!this.healthBar) return;
 
     // Clear existing health bar
@@ -1674,7 +1676,14 @@ export class ThreeRenderer {
     this.healthBar.visible = true;
 
     const hpPct = Math.max(0, playerHp / playerMaxHp);
-    const barY = ch / 2 - 21;
+    
+    // Convert player world position to screen position
+    const screenPos = this.cameraController.worldToScreen(playerX, playerY, _cw, ch);
+    
+    // Position health bar below player sprite (player is ~30px tall)
+    const barX = screenPos.x - _cw / 2;
+    const barY = screenPos.y - ch / 2 - 25;
+    
     const barWidth = 30;
     const barHeight = 4;
 
@@ -1682,7 +1691,7 @@ export class ThreeRenderer {
     const bgGeometry = new THREE.PlaneGeometry(barWidth, barHeight);
     const bgMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, side: THREE.DoubleSide });
     const bg = new THREE.Mesh(bgGeometry, bgMaterial);
-    bg.position.set(0, barY, 0);
+    bg.position.set(barX, barY, 0);
     this.healthBar.add(bg);
 
     // Health (green)
@@ -1691,7 +1700,7 @@ export class ThreeRenderer {
       const healthGeometry = new THREE.PlaneGeometry(healthWidth, barHeight);
       const healthMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide });
       const health = new THREE.Mesh(healthGeometry, healthMaterial);
-      health.position.set(-(barWidth - healthWidth) / 2, barY, 0.1);
+      health.position.set(barX - (barWidth - healthWidth) / 2, barY, 0.1);
       this.healthBar.add(health);
     }
   }
