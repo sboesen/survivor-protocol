@@ -1084,8 +1084,12 @@ class GameCore {
     const cw = ctx.canvas.width;
     const ch = ctx.canvas.height;
 
-    // Render background (floor, grid) with Canvas 2D
-    threeRenderer.renderBackgroundCanvas(ctx, this.player, cw, ch);
+    // Clear canvas
+    ctx.fillStyle = '#0a0a0f';
+    ctx.fillRect(0, 0, cw, ch);
+
+    // Render background (floor, grid) with Three.js
+    threeRenderer.renderBackground(this.player);
 
     if (!this.active || !this.player) return;
 

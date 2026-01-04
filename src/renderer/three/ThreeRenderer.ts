@@ -47,6 +47,9 @@ export class ThreeRenderer {
   private fireballIllumViews: WeakMap<FireballProjectile, THREE.Sprite> = new WeakMap();
   private activeFireballIllums = new Set<FireballProjectile>();
 
+  // Grid lines
+  private gridLines: THREE.LineSegments | null = null;
+
   // Feature flag to enable/disable Three.js
   static enabled = true;
 
@@ -1508,24 +1511,20 @@ export class ThreeRenderer {
   }
 
   /**
-   * Draw floor and grid using Canvas 2D (background layer)
-   * This is drawn before Three.js sprites
-   */
-  renderBackgroundCanvas(
-    ctx: CanvasContext,
-    player: { x: number; y: number } | null,
-    width: number,
-    height: number
-  ): void {
-    if (!ctx) return;
-
-    // Clear with black
-    ctx.fillStyle = '#0a0a0f';
-    ctx.fillRect(0, 0, width, height);
-
+    * Draw floor and grid using Three.js (background layer)
+    * This is drawn before Three.js sprites
+    */
+  renderBackground(player: { x: number; y: number } | null): void {
     if (!player) return;
 
-    // Get Three.js camera bounds to sync background with sprites
+    // Clear old grid
+    if (this.gridLines) {
+      this.sceneManager.removeFromScene(this.gridLines);
+      this.gridLines.geometry.dispose();
+      (this.gridLines.material as THREE.Material).dispose();
+      this.gridLines = null;
+    }
+
     const camera = this.sceneManager.camera;
     const halfWidth = (camera.right - camera.left) / 2;
     const halfHeight = (camera.top - camera.bottom) / 2;
@@ -1533,45 +1532,46 @@ export class ThreeRenderer {
     const camX = camera.position.x;
     const camY = camera.position.y;
 
-    // Calculate screen-to-world ratio (pixels per world unit)
-    const pixelsPerUnitX = width / (halfWidth * 2);
-    const pixelsPerUnitY = height / (halfHeight * 2);
-
     // Draw grid/floor aligned with Three.js world coordinates
     const tileSize = 100;
 
-    // Calculate starting world position for visible area
-    const startWorldX = camX - halfWidth;
-    const startWorldY = camY - halfHeight;
+    // Calculate visible grid area
+    const startWorldX = camX - halfWidth - tileSize;
+    const startWorldY = camY - halfHeight - tileSize;
+    const endWorldX = camX + halfWidth + tileSize;
+    const endWorldY = camY + halfHeight + tileSize;
 
-    // Calculate first visible grid line positions
-    const firstGridX = Math.floor(startWorldX / tileSize) * tileSize;
-    const firstGridY = Math.floor(startWorldY / tileSize) * tileSize;
+    // Calculate grid line positions
+    const points: number[] = [];
 
-    ctx.strokeStyle = '#1a2030';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-
-    // Vertical grid lines - convert world X to screen X
-    for (let worldX = firstGridX; worldX < startWorldX + halfWidth * 2 + tileSize; worldX += tileSize) {
-      const screenX = (worldX - camX) * pixelsPerUnitX + width / 2;
-      ctx.moveTo(screenX, 0);
-      ctx.lineTo(screenX, height);
+    // Vertical grid lines
+    for (let worldX = startWorldX; worldX <= endWorldX; worldX += tileSize) {
+      points.push(worldX, startWorldY, 0);
+      points.push(worldX, endWorldY, 0);
     }
 
-    // Horizontal grid lines - convert world Y to screen Y (flip Y for screen coords)
-    for (let worldY = firstGridY; worldY < startWorldY + halfHeight * 2 + tileSize; worldY += tileSize) {
-      const screenY = height / 2 + (worldY - camY) * pixelsPerUnitY;
-      ctx.moveTo(0, screenY);
-      ctx.lineTo(width, screenY);
+    // Horizontal grid lines
+    for (let worldY = startWorldY; worldY <= endWorldY; worldY += tileSize) {
+      points.push(startWorldX, worldY, 0);
+      points.push(endWorldX, worldY, 0);
     }
 
-    ctx.stroke();
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
+
+    const material = new THREE.LineBasicMaterial({
+      color: 0x1a2030,
+      transparent: true,
+      opacity: 1,
+    });
+
+    this.gridLines = new THREE.LineSegments(geometry, material);
+    this.gridLines.position.z = 0;
+    this.sceneManager.addToScene(this.gridLines);
   }
 
   /**
-   * Draw obstacles using Canvas 2D (overlay approach)
-    * Draw UI elements (health bar, joysticks) using Canvas 2D
+   * Draw UI elements (health bar, joysticks) using Canvas 2D
     */
   renderUI(
     ctx: CanvasContext,
@@ -1687,6 +1687,14 @@ export class ThreeRenderer {
   dispose(): void {
     this.spriteManager.dispose();
     this.sceneManager.dispose();
+
+    // Clear grid lines
+    if (this.gridLines) {
+      this.sceneManager.removeFromScene(this.gridLines);
+      this.gridLines.geometry.dispose();
+      (this.gridLines.material as THREE.Material).dispose();
+      this.gridLines = null;
+    }
 
     // Clear player view
     if (this.playerView) {
