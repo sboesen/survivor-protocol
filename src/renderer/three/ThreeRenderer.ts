@@ -15,7 +15,7 @@ import { bubbleFragmentShader } from './water/shaders/bubbleFragment';
 
 /**
  * Main Three.js renderer for game entities.
- * Floor, grid, and UI are handled by Canvas 2D overlay.
+ * All gameplay elements including world, entities, and HUD are rendered via WebGL.
  *
  * World wrapping is handled by CameraController.getWrappedRenderPosition().
  * Camera position is kept in [0, worldSize] to match entity coordinates.
