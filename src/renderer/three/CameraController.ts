@@ -8,6 +8,7 @@ import { CONFIG } from '../../config';
 export class CameraController {
   private camera: THREE.OrthographicCamera;
   private target = new THREE.Vector3();
+  private pixelSize = 1;
 
   constructor(camera: THREE.OrthographicCamera) {
     this.camera = camera;
@@ -27,9 +28,9 @@ export class CameraController {
     const pixelSize = screenHeight > 0
       ? verticalSpan / screenHeight
       : horizontalSpan / Math.max(1, screenWidth);
-    const snapToPixel = (value: number): number => Math.round(value / pixelSize) * pixelSize;
-    const snappedX = snapToPixel(wrappedX);
-    const snappedY = snapToPixel(wrappedY);
+    this.pixelSize = pixelSize > 0 ? pixelSize : 1;
+    const snappedX = this.snapToPixel(wrappedX);
+    const snappedY = this.snapToPixel(wrappedY);
     const finalX = ((snappedX % CONFIG.worldSize) + CONFIG.worldSize) % CONFIG.worldSize;
     const finalY = ((snappedY % CONFIG.worldSize) + CONFIG.worldSize) % CONFIG.worldSize;
 
@@ -37,6 +38,11 @@ export class CameraController {
     this.target.set(finalX, finalY, 0);
     this.camera.lookAt(this.target);
     this.camera.updateMatrixWorld();
+  }
+
+  private snapToPixel(value: number): number {
+    if (!isFinite(this.pixelSize) || this.pixelSize <= 0) return value;
+    return Math.round(value / this.pixelSize) * this.pixelSize;
   }
 
   /**
@@ -56,7 +62,9 @@ export class CameraController {
     if (dy < -CONFIG.worldSize / 2) dy += CONFIG.worldSize;
     if (dy > CONFIG.worldSize / 2) dy -= CONFIG.worldSize;
 
-    return { x: dx + this.camera.position.x, y: dy + this.camera.position.y };
+    const x = dx + this.camera.position.x;
+    const y = dy + this.camera.position.y;
+    return { x: this.snapToPixel(x), y: this.snapToPixel(y) };
   }
 
   /**
@@ -81,8 +89,8 @@ export class CameraController {
   worldToScreen(wx: number, wy: number, screenWidth: number, screenHeight: number): { x: number; y: number } {
     const offset = this.getWrappedOffset(wx, wy);
     return {
-      x: screenWidth / 2 + offset.dx,
-      y: screenHeight / 2 - offset.dy,
+      x: Math.round(screenWidth / 2 + offset.dx),
+      y: Math.round(screenHeight / 2 - offset.dy),
     };
   }
 

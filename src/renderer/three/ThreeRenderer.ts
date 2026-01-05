@@ -240,7 +240,8 @@ export class ThreeRenderer {
       this.sceneManager.addToScene(this.playerView);
     }
 
-    this.playerView.position.set(renderX, renderY, 10);
+    const pos = this.cameraController.getWrappedRenderPosition(renderX, renderY);
+    this.playerView.position.set(pos.x, pos.y, 10);
     this.playerView.visible = true;
   }
 
