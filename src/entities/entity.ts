@@ -30,13 +30,23 @@ export interface WrappedOffset {
  */
 export abstract class Entity {
   marked: boolean = false;
+  prevX: number;
+  prevY: number;
 
   constructor(
     public x: number,
     public y: number,
     public radius: number,
     public color: string
-  ) {}
+  ) {
+    this.prevX = x;
+    this.prevY = y;
+  }
+
+  savePrevPosition(): void {
+    this.prevX = this.x;
+    this.prevY = this.y;
+  }
 
   /**
    * Get wrapped screen position for rendering.

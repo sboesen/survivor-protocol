@@ -76,8 +76,6 @@ class GameCore {
    lastTime = 0;
    accumulator = 0;
    readonly timestep = 1000 / 60; // 60 FPS fixed timestep
-   lastRenderTime = 0;
-   readonly renderInterval = 1000 / 60; // Render at 60 FPS too
 
   player: Player | null = null;
   enemies: Enemy[] = [];
@@ -431,6 +429,37 @@ class GameCore {
     const particles = calculateExplosionParticles(size);
     this.spawnParticles({ type: 'explosion' as ParticleType, x, y }, particles.explosion);
     this.spawnParticles({ type: 'smoke', x, y }, particles.smoke);
+  }
+
+  private capturePrevPositions(): void {
+    if (this.player) {
+      this.player.savePrevPosition();
+    }
+
+    this.enemies.forEach(enemy => enemy.savePrevPosition());
+    this.projectiles.forEach(projectile => projectile.savePrevPosition());
+    this.fireballs.forEach(fireball => fireball.savePrevPosition());
+    this.loot.forEach(item => item.savePrevPosition());
+    this.particles.forEach(particle => particle.savePrevPosition());
+  }
+
+  private getInterpolatedPosition(
+    entity: { x: number; y: number; prevX?: number; prevY?: number },
+    alpha: number
+  ): { x: number; y: number } {
+    const prevX = entity.prevX ?? entity.x;
+    const prevY = entity.prevY ?? entity.y;
+    let dx = entity.x - prevX;
+    let dy = entity.y - prevY;
+
+    if (dx > CONFIG.worldSize / 2) dx -= CONFIG.worldSize;
+    if (dx < -CONFIG.worldSize / 2) dx += CONFIG.worldSize;
+    if (dy > CONFIG.worldSize / 2) dy -= CONFIG.worldSize;
+    if (dy < -CONFIG.worldSize / 2) dy += CONFIG.worldSize;
+
+    const x = (prevX + dx * alpha + CONFIG.worldSize) % CONFIG.worldSize;
+    const y = (prevY + dy * alpha + CONFIG.worldSize) % CONFIG.worldSize;
+    return { x, y };
   }
 
   update(): void {
@@ -1058,13 +1087,11 @@ class GameCore {
     });
   }
 
-  render(): void {
+  render(alpha = 1): void {
      if (!this.active || !this.player) return;
 
      const p = this.player;
-
-     // Render background/grid first
-     threeRenderer.renderBackground({ x: p.x, y: p.y });
+     const interpPlayer = this.getInterpolatedPosition(p, alpha);
 
      // Render main scene with Three.js - passing actual entity objects
      threeRenderer.render(
@@ -1076,18 +1103,16 @@ class GameCore {
        this.particles,
        this.obstacles,
        window.innerWidth,
-       window.innerHeight
+       window.innerHeight,
+       alpha
      );
-
-     // Render ground illumination effects (fire glow, etc.)
-     threeRenderer.renderIllumination(this.particles, this.fireballs);
 
      // Render UI (health bar, joysticks)
      threeRenderer.renderUI(
        p.hp,
        p.maxHp,
-       p.x,
-       p.y,
+       interpPlayer.x,
+       interpPlayer.y,
        {
          hasTouch: false,
          joyActive: this.input.joy.active,
@@ -1103,7 +1128,6 @@ class GameCore {
    loop(currentTime = 0): void {
      if (!this.lastTime) this.lastTime = currentTime;
      if (!this.fpsLastTime) this.fpsLastTime = currentTime;
-     if (!this.lastRenderTime) this.lastRenderTime = currentTime;
      const deltaTime = currentTime - this.lastTime;
      this.lastTime = currentTime;
 
@@ -1113,11 +1137,6 @@ class GameCore {
        this.fps = this.fpsFrames;
        this.fpsFrames = 0;
        this.fpsLastTime = currentTime;
-
-       // Log debug info every second
-       if (this.active) {
-         console.log(`FPS: ${this.fps} | Particles: ${this.particles.length} | Enemies: ${this.enemies.length} | Projectiles: ${this.projectiles.length} | Fireballs: ${this.fireballs.length}`);
-       }
      }
 
      this.accumulator += deltaTime;
@@ -1129,16 +1148,13 @@ class GameCore {
 
      // Fixed timestep update - run update() exactly 60 times per second
      while (this.accumulator >= this.timestep) {
+       this.capturePrevPositions();
        this.update();
        this.accumulator -= this.timestep;
      }
 
-     // Throttle rendering to 60 FPS to match update rate (prevents jitter)
-     const renderDelta = currentTime - this.lastRenderTime;
-     if (renderDelta >= this.renderInterval) {
-       this.render();
-       this.lastRenderTime = currentTime;
-     }
+     const alpha = this.accumulator / this.timestep;
+     this.render(alpha);
 
      requestAnimationFrame((t) => this.loop(t));
    }

@@ -47,7 +47,8 @@ export class SceneManager {
       powerPreference: 'high-performance',
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const pixelRatio = Math.min(Math.max(1, Math.round(window.devicePixelRatio)), 2);
+    this.renderer.setPixelRatio(pixelRatio);
     this.renderer.autoClear = false; // We'll clear manually if needed
     this.renderer.setClearColor(0x0a0a0f, 1);
 
@@ -85,6 +86,8 @@ export class SceneManager {
     this.camera.lookAt(0, 0, 0);
     if (this.renderer) {
       this.renderer.setSize(width, height);
+      const pixelRatio = Math.min(Math.max(1, Math.round(window.devicePixelRatio)), 2);
+      this.renderer.setPixelRatio(pixelRatio);
     }
   }
 

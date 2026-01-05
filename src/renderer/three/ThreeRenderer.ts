@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { CONFIG } from '../../config';
 import { SceneManager } from './SceneManager';
 import { SpriteManager } from './SpriteManager';
 import { CameraController } from './CameraController';
@@ -64,6 +65,25 @@ export class ThreeRenderer {
     this.sceneManager = new SceneManager();
     this.spriteManager = new SpriteManager();
     this.cameraController = new CameraController(this.sceneManager.camera);
+  }
+
+  private getInterpolatedPosition(
+    entity: { x: number; y: number; prevX?: number; prevY?: number },
+    alpha: number
+  ): { x: number; y: number } {
+    const prevX = entity.prevX ?? entity.x;
+    const prevY = entity.prevY ?? entity.y;
+    let dx = entity.x - prevX;
+    let dy = entity.y - prevY;
+
+    if (dx > CONFIG.worldSize / 2) dx -= CONFIG.worldSize;
+    if (dx < -CONFIG.worldSize / 2) dx += CONFIG.worldSize;
+    if (dy > CONFIG.worldSize / 2) dy -= CONFIG.worldSize;
+    if (dy < -CONFIG.worldSize / 2) dy += CONFIG.worldSize;
+
+    const x = (prevX + dx * alpha + CONFIG.worldSize) % CONFIG.worldSize;
+    const y = (prevY + dy * alpha + CONFIG.worldSize) % CONFIG.worldSize;
+    return { x, y };
   }
 
   async init(): Promise<void> {
@@ -132,30 +152,38 @@ export class ThreeRenderer {
     particles: Particle[],
     obstacles: Obstacle[],
     width: number,
-    height: number
+    height: number,
+    alpha = 1
   ): void {
     if (!ThreeRenderer.enabled) return;
 
+    const interpPlayer = player ? this.getInterpolatedPosition(player, alpha) : null;
+
     // Update camera to follow player
-    if (player) {
-      this.cameraController.follow(player.x, player.y, width, height);
+    if (interpPlayer) {
+      this.cameraController.follow(interpPlayer.x, interpPlayer.y, width, height);
     }
 
+    // Render background/grid after camera update
+    this.renderBackground(interpPlayer);
+
     // Render all entities
-    this.renderPlayer(player);
-    this.renderEnemies(enemies);
-    this.renderProjectiles(projectiles);
-    this.renderLoot(loot);
-    this.renderFireballs(fireballs);
-    this.renderParticles(particles);
+    if (player && interpPlayer) {
+      this.renderPlayer(player, interpPlayer.x, interpPlayer.y);
+    }
+    this.renderEnemies(enemies, alpha);
+    this.renderProjectiles(projectiles, alpha);
+    this.renderLoot(loot, alpha);
+    this.renderFireballs(fireballs, alpha);
+    this.renderParticles(particles, alpha);
     this.renderObstacles(obstacles);
-    this.renderIllumination(particles, fireballs);
+    this.renderIllumination(particles, fireballs, alpha);
 
     // Finally render the scene
     this.sceneManager.render();
   }
 
-  renderIllumination(_particles: Particle[], fireballs: FireballProjectile[]): void {
+  renderIllumination(_particles: Particle[], fireballs: FireballProjectile[], alpha = 1): void {
     const time = Date.now() / 1000;
 
     // Clean up removed fireball illuminations
@@ -193,7 +221,8 @@ export class ThreeRenderer {
         this.activeFireballIllums.add(fb);
       }
 
-      const pos = this.cameraController.getWrappedRenderPosition(fb.x, fb.y);
+      const interp = this.getInterpolatedPosition(fb, alpha);
+      const pos = this.cameraController.getWrappedRenderPosition(interp.x, interp.y);
       illumSprite.position.set(pos.x, pos.y, 1);
 
       const pulseScale = 1 + Math.sin(time * 5 + fb.x) * 0.3;
@@ -202,7 +231,7 @@ export class ThreeRenderer {
     }
   }
 
-  private renderPlayer(player: Player | null): void {
+  private renderPlayer(player: Player | null, renderX: number, renderY: number): void {
     if (!player) return;
 
     if (!this.playerView) {
@@ -211,11 +240,11 @@ export class ThreeRenderer {
       this.sceneManager.addToScene(this.playerView);
     }
 
-    this.playerView.position.set(player.x, player.y, 10);
+    this.playerView.position.set(renderX, renderY, 10);
     this.playerView.visible = true;
   }
 
-  private renderEnemies(enemies: Enemy[]): void {
+  private renderEnemies(enemies: Enemy[], alpha: number): void {
     // Clean up removed enemies
     const currentSet = new Set(enemies);
     for (const enemy of this.activeEnemies) {
@@ -242,13 +271,14 @@ export class ThreeRenderer {
       }
 
       // Get wrapped render position from camera controller
-      const pos = this.cameraController.getWrappedRenderPosition(enemy.x, enemy.y);
+      const interp = this.getInterpolatedPosition(enemy, alpha);
+      const pos = this.cameraController.getWrappedRenderPosition(interp.x, interp.y);
       view.position.set(pos.x, pos.y, 9);
       view.visible = !enemy.marked;
     }
   }
 
-  private renderProjectiles(projectiles: Projectile[]): void {
+  private renderProjectiles(projectiles: Projectile[], alpha: number): void {
     // Clean up removed projectiles
     const currentSet = new Set(projectiles);
     for (const proj of this.activeProjectiles) {
@@ -281,13 +311,14 @@ export class ThreeRenderer {
       }
 
       // Get wrapped render position
-      const pos = this.cameraController.getWrappedRenderPosition(proj.x, proj.y);
+      const interp = this.getInterpolatedPosition(proj, alpha);
+      const pos = this.cameraController.getWrappedRenderPosition(interp.x, interp.y);
       view.position.set(pos.x, pos.y, 11);
       view.visible = !proj.marked;
     }
   }
 
-  private renderLoot(loot: Loot[]): void {
+  private renderLoot(loot: Loot[], alpha: number): void {
     // Clean up removed loot
     const currentSet = new Set(loot);
     for (const item of this.activeLoot) {
@@ -322,7 +353,8 @@ export class ThreeRenderer {
       }
 
       // Get wrapped render position
-      const pos = this.cameraController.getWrappedRenderPosition(item.x, item.y);
+      const interp = this.getInterpolatedPosition(item, alpha);
+      const pos = this.cameraController.getWrappedRenderPosition(interp.x, interp.y);
 
       // Base position
       view.position.set(pos.x, pos.y, 7);
@@ -343,7 +375,7 @@ export class ThreeRenderer {
     }
   }
 
-  private renderFireballs(fireballs: FireballProjectile[]): void {
+  private renderFireballs(fireballs: FireballProjectile[], alpha: number): void {
     // Clean up removed fireballs
     const currentSet = new Set(fireballs);
     for (const fb of this.activeFireballs) {
@@ -413,7 +445,8 @@ export class ThreeRenderer {
       }
 
       // Get wrapped render position
-      const pos = this.cameraController.getWrappedRenderPosition(fb.x, fb.y);
+      const interp = this.getInterpolatedPosition(fb, alpha);
+      const pos = this.cameraController.getWrappedRenderPosition(interp.x, interp.y);
       view.position.set(pos.x, pos.y, 11);
       view.visible = !fb.marked;
     }
@@ -701,7 +734,7 @@ export class ThreeRenderer {
     });
   }
 
-  private renderParticles(particles: Particle[]): void {
+  private renderParticles(particles: Particle[], alpha: number): void {
     // TEMP: Skip particles to fix lag
     if (this.particlesDisabled || particles.length === 0) return;
 
@@ -776,7 +809,8 @@ export class ThreeRenderer {
 
       for (let i = 0; i < waterParticles.length; i++) {
         const pt = waterParticles[i];
-        const pos = this.cameraController.getWrappedRenderPosition(pt.x, pt.y);
+        const interp = this.getInterpolatedPosition(pt, alpha);
+        const pos = this.cameraController.getWrappedRenderPosition(interp.x, interp.y);
         positions[i * 3] = pos.x;
         positions[i * 3 + 1] = pos.y;
         positions[i * 3 + 2] = 13;
@@ -852,7 +886,8 @@ export class ThreeRenderer {
 
       for (let i = 0; i < splashParticles.length; i++) {
         const pt = splashParticles[i];
-        const pos = this.cameraController.getWrappedRenderPosition(pt.x, pt.y);
+        const interp = this.getInterpolatedPosition(pt, alpha);
+        const pos = this.cameraController.getWrappedRenderPosition(interp.x, interp.y);
         positions[i * 3] = pos.x;
         positions[i * 3 + 1] = pos.y;
         positions[i * 3 + 2] = 12;
@@ -920,7 +955,8 @@ export class ThreeRenderer {
 
       for (let i = 0; i < rippleParticles.length; i++) {
         const pt = rippleParticles[i];
-        const pos = this.cameraController.getWrappedRenderPosition(pt.x, pt.y);
+        const interp = this.getInterpolatedPosition(pt, alpha);
+        const pos = this.cameraController.getWrappedRenderPosition(interp.x, interp.y);
         positions[i * 3] = pos.x;
         positions[i * 3 + 1] = pos.y;
         positions[i * 3 + 2] = 11;
@@ -1001,7 +1037,8 @@ export class ThreeRenderer {
 
       for (let i = 0; i < causticParticles.length; i++) {
         const pt = causticParticles[i];
-        const pos = this.cameraController.getWrappedRenderPosition(pt.x, pt.y);
+        const interp = this.getInterpolatedPosition(pt, alpha);
+        const pos = this.cameraController.getWrappedRenderPosition(interp.x, interp.y);
         positions[i * 3] = pos.x;
         positions[i * 3 + 1] = pos.y;
         positions[i * 3 + 2] = 10;
@@ -1092,7 +1129,8 @@ export class ThreeRenderer {
 
       for (let i = 0; i < foamParticles.length; i++) {
         const pt = foamParticles[i];
-        const pos = this.cameraController.getWrappedRenderPosition(pt.x, pt.y);
+        const interp = this.getInterpolatedPosition(pt, alpha);
+        const pos = this.cameraController.getWrappedRenderPosition(interp.x, interp.y);
         positions[i * 3] = pos.x;
         positions[i * 3 + 1] = pos.y;
         positions[i * 3 + 2] = 13;
@@ -1167,7 +1205,8 @@ export class ThreeRenderer {
 
       for (let i = 0; i < explosionParticles.length; i++) {
         const pt = explosionParticles[i];
-        const pos = this.cameraController.getWrappedRenderPosition(pt.x, pt.y);
+        const interp = this.getInterpolatedPosition(pt, alpha);
+        const pos = this.cameraController.getWrappedRenderPosition(interp.x, interp.y);
         positions[i * 3] = pos.x;
         positions[i * 3 + 1] = pos.y;
         positions[i * 3 + 2] = 12;
@@ -1236,7 +1275,8 @@ export class ThreeRenderer {
 
       for (let i = 0; i < sparkParticles.length; i++) {
         const pt = sparkParticles[i];
-        const pos = this.cameraController.getWrappedRenderPosition(pt.x, pt.y);
+        const interp = this.getInterpolatedPosition(pt, alpha);
+        const pos = this.cameraController.getWrappedRenderPosition(interp.x, interp.y);
         positions[i * 3] = pos.x;
         positions[i * 3 + 1] = pos.y;
         positions[i * 3 + 2] = 12;
@@ -1304,7 +1344,8 @@ export class ThreeRenderer {
 
       for (let i = 0; i < fireParticles.length; i++) {
         const pt = fireParticles[i];
-        const pos = this.cameraController.getWrappedRenderPosition(pt.x, pt.y);
+        const interp = this.getInterpolatedPosition(pt, alpha);
+        const pos = this.cameraController.getWrappedRenderPosition(interp.x, interp.y);
         positions[i * 3] = pos.x;
         positions[i * 3 + 1] = pos.y;
         positions[i * 3 + 2] = 12;
@@ -1379,7 +1420,8 @@ export class ThreeRenderer {
 
       for (let i = 0; i < smokeParticles.length; i++) {
         const pt = smokeParticles[i];
-        const pos = this.cameraController.getWrappedRenderPosition(pt.x, pt.y);
+        const interp = this.getInterpolatedPosition(pt, alpha);
+        const pos = this.cameraController.getWrappedRenderPosition(interp.x, interp.y);
         positions[i * 3] = pos.x;
         positions[i * 3 + 1] = pos.y;
         positions[i * 3 + 2] = 11;
@@ -1439,7 +1481,8 @@ export class ThreeRenderer {
 
       for (let i = 0; i < bloodParticles.length; i++) {
         const pt = bloodParticles[i];
-        const pos = this.cameraController.getWrappedRenderPosition(pt.x, pt.y);
+        const interp = this.getInterpolatedPosition(pt, alpha);
+        const pos = this.cameraController.getWrappedRenderPosition(interp.x, interp.y);
         positions[i * 3] = pos.x;
         positions[i * 3 + 1] = pos.y;
         positions[i * 3 + 2] = 12;
@@ -1504,7 +1547,8 @@ export class ThreeRenderer {
 
       for (let i = 0; i < gasParticles.length; i++) {
         const pt = gasParticles[i];
-        const pos = this.cameraController.getWrappedRenderPosition(pt.x, pt.y);
+        const interp = this.getInterpolatedPosition(pt, alpha);
+        const pos = this.cameraController.getWrappedRenderPosition(interp.x, interp.y);
         positions[i * 3] = pos.x;
         positions[i * 3 + 1] = pos.y;
         positions[i * 3 + 2] = 11;
@@ -1585,19 +1629,44 @@ export class ThreeRenderer {
     const endWorldX = camX + halfWidth + tileSize;
     const endWorldY = camY + halfHeight + tileSize;
 
-    // Calculate grid line positions
+    // Helper to add a grid line
+    const addVerticalLine = (x: number) => {
+      points.push(x, startWorldY, 0);
+      points.push(x, endWorldY, 0);
+    };
+
+    const addHorizontalLine = (y: number) => {
+      points.push(startWorldX, y, 0);
+      points.push(endWorldX, y, 0);
+    };
+
+    // Calculate grid line positions with world wrapping support
     const points: number[] = [];
 
-    // Vertical grid lines
-    for (let worldX = startWorldX; worldX <= endWorldX; worldX += tileSize) {
-      points.push(worldX, startWorldY, 0);
-      points.push(worldX, endWorldY, 0);
+    // Vertical grid lines - handle wrapping
+    const gridStartX = Math.floor(startWorldX / tileSize) * tileSize;
+    const gridEndX = Math.ceil(endWorldX / tileSize) * tileSize;
+    for (let worldX = gridStartX; worldX <= gridEndX; worldX += tileSize) {
+      const lineX = worldX;
+      addVerticalLine(lineX);
+      // If this line is near a world boundary, also draw it wrapped
+      if (Math.abs(lineX % CONFIG.worldSize) < tileSize) {
+        addVerticalLine(lineX + CONFIG.worldSize);
+        addVerticalLine(lineX - CONFIG.worldSize);
+      }
     }
 
-    // Horizontal grid lines
-    for (let worldY = startWorldY; worldY <= endWorldY; worldY += tileSize) {
-      points.push(startWorldX, worldY, 0);
-      points.push(endWorldX, worldY, 0);
+    // Horizontal grid lines - handle wrapping
+    const gridStartY = Math.floor(startWorldY / tileSize) * tileSize;
+    const gridEndY = Math.ceil(endWorldY / tileSize) * tileSize;
+    for (let worldY = gridStartY; worldY <= gridEndY; worldY += tileSize) {
+      const lineY = worldY;
+      addHorizontalLine(lineY);
+      // If this line is near a world boundary, also draw it wrapped
+      if (Math.abs(lineY % CONFIG.worldSize) < tileSize) {
+        addHorizontalLine(lineY + CONFIG.worldSize);
+        addHorizontalLine(lineY - CONFIG.worldSize);
+      }
     }
 
     if (!this.gridLines) {

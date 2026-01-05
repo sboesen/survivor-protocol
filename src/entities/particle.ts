@@ -30,6 +30,8 @@ export class Particle {
 
   x: number;
   y: number;
+  prevX: number;
+  prevY: number;
   vx: number;
   vy: number;
   life: number;
@@ -41,6 +43,8 @@ export class Particle {
   constructor(config: ParticleSpawnConfig) {
     this.x = config.x;
     this.y = config.y;
+    this.prevX = this.x;
+    this.prevY = this.y;
     this.type = config.type;
     this.color = config.color || this.getDefaultColor();
     this.life = config.life ?? this.getDefaultLife();
@@ -52,6 +56,11 @@ export class Particle {
     const angle = Math.random() * Math.PI * 2;
     this.vx = config.vx ?? Math.cos(angle) * speed * (0.5 + Math.random() * 0.5);
     this.vy = config.vy ?? Math.sin(angle) * speed * (0.5 + Math.random() * 0.5);
+  }
+
+  savePrevPosition(): void {
+    this.prevX = this.x;
+    this.prevY = this.y;
   }
 
   private getDefaultColor(): string {

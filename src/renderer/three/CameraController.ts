@@ -17,13 +17,24 @@ export class CameraController {
     * Update camera to follow the player.
     * Camera position stays wrapped to [0, worldSize] to match entities.
     */
-  follow(playerX: number, playerY: number, _screenWidth: number, _screenHeight: number): void {
+  follow(playerX: number, playerY: number, screenWidth: number, screenHeight: number): void {
     // Wrap camera position to match entity coordinate space
     const wrappedX = ((playerX % CONFIG.worldSize) + CONFIG.worldSize) % CONFIG.worldSize;
     const wrappedY = ((playerY % CONFIG.worldSize) + CONFIG.worldSize) % CONFIG.worldSize;
 
-    this.camera.position.set(wrappedX, wrappedY, 100);
-    this.target.set(wrappedX, wrappedY, 0);
+    const verticalSpan = this.camera.top - this.camera.bottom;
+    const horizontalSpan = this.camera.right - this.camera.left;
+    const pixelSize = screenHeight > 0
+      ? verticalSpan / screenHeight
+      : horizontalSpan / Math.max(1, screenWidth);
+    const snapToPixel = (value: number): number => Math.round(value / pixelSize) * pixelSize;
+    const snappedX = snapToPixel(wrappedX);
+    const snappedY = snapToPixel(wrappedY);
+    const finalX = ((snappedX % CONFIG.worldSize) + CONFIG.worldSize) % CONFIG.worldSize;
+    const finalY = ((snappedY % CONFIG.worldSize) + CONFIG.worldSize) % CONFIG.worldSize;
+
+    this.camera.position.set(finalX, finalY, 100);
+    this.target.set(finalX, finalY, 0);
     this.camera.lookAt(this.target);
     this.camera.updateMatrixWorld();
   }
