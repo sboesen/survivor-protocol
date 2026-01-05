@@ -24,8 +24,10 @@ export class FireballProjectile extends Entity {
   weaponId: string; // Track which weapon created this fireball
 
   // Visual state
-  private pulsePhase: number;
-  private rotation: number;
+  public pulsePhase: number;
+  public rotation: number;
+  public trailPositions: { x: number; y: number }[] = [];
+  public readonly maxTrail = 8;
 
   // Particle emission counter
   private particleTimer: number;
@@ -67,8 +69,14 @@ export class FireballProjectile extends Entity {
     this.y = (this.y + this.vy + CONFIG.worldSize) % CONFIG.worldSize;
 
     // Visual updates
-    this.pulsePhase += 0.2;
-    this.rotation += 0.15;
+    this.pulsePhase += 0.15; // Reduced from 0.3
+    this.rotation += 0.15; // Reduced from 0.2
+
+    // Track trail positions
+    this.trailPositions.unshift({ x: this.x, y: this.y });
+    if (this.trailPositions.length > this.maxTrail) {
+      this.trailPositions.pop();
+    }
 
     this.dur--;
     if (this.dur <= 0) this.marked = true;

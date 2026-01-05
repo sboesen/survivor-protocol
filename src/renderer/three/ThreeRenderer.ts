@@ -225,8 +225,12 @@ export class ThreeRenderer {
       const pos = this.cameraController.getWrappedRenderPosition(interp.x, interp.y);
       illumSprite.position.set(pos.x, pos.y, 1);
 
-      const pulseScale = 1 + Math.sin(time * 5 + fb.x) * 0.3;
-      illumSprite.scale.set(fb.radius * 24 * pulseScale, fb.radius * 24 * pulseScale, 1);
+      // Flickering effect for illumination
+      const flicker = 1 + (Math.random() - 0.5) * 0.1;
+      const baseScale = fb.radius * 12;
+      illumSprite.scale.set(baseScale * flicker, baseScale * flicker, 1);
+      illumSprite.material.opacity = 0.4 + Math.sin(time * 10 + fb.x) * 0.1;
+
       illumSprite.visible = !fb.marked;
     }
   }
@@ -436,7 +440,7 @@ export class ThreeRenderer {
           blending: THREE.AdditiveBlending,
         });
         const core = new THREE.Sprite(coreMaterial);
-        core.scale.set(fb.radius * 1.5, fb.radius * 1.5, 1);
+        core.scale.set(fb.radius * 2.4, fb.radius * 2.4, 1);
         core.position.z = 0.1;
         view.add(core);
 
@@ -445,10 +449,108 @@ export class ThreeRenderer {
         this.activeFireballs.add(fb);
       }
 
-      // Get wrapped render position
       const interp = this.getInterpolatedPosition(fb, alpha);
       const pos = this.cameraController.getWrappedRenderPosition(interp.x, interp.y);
       view.position.set(pos.x, pos.y, 11);
+
+      // Velocity stretching - move up to use for counter-scaling
+      const speed = Math.hypot(fb.vx, fb.vy);
+      let invSX = 1;
+      let invSY = 1;
+
+      if (speed > 0.1) {
+        const stretch = 1 + speed * 0.06;
+        const angle = Math.atan2(fb.vy, fb.vx);
+        view.rotation.z = angle;
+        view.scale.set(stretch, 1 / Math.sqrt(stretch), 1);
+        invSX = 1 / view.scale.x;
+        invSY = 1 / view.scale.y;
+      } else {
+        view.rotation.z = 0;
+        view.scale.set(1, 1, 1);
+      }
+
+      // Dynamic pulsing - more subtle as requested
+      const pulse = 1 + Math.sin(fb.pulsePhase) * 0.12;
+      const secondaryPulse = Math.sin(fb.pulsePhase * 0.8);
+
+      // Access children: 0: outer glow, 1: mid layer, 2: core
+      const glow = view.children[0] as THREE.Sprite;
+      const mid = view.children[1] as THREE.Sprite;
+      const core = view.children[2] as THREE.Sprite;
+
+      if (glow) {
+        const glowScale = fb.radius * 6.5 * pulse;
+        glow.scale.set(glowScale * invSX, glowScale * invSY, 1);
+        glow.material.opacity = 0.35 + secondaryPulse * 0.1;
+      }
+
+      if (mid) {
+        // Subtle churning
+        const midSize = fb.radius * 3.2 * (1.1 - pulse * 0.1);
+        mid.scale.set(midSize * invSX, midSize * invSY, 1);
+        mid.material.rotation = -fb.rotation * 0.8;
+        mid.material.opacity = 0.6 + secondaryPulse * 0.1;
+      }
+
+      if (core) {
+        const coreSize = fb.radius * 2.6 * (1 + Math.sin(fb.pulsePhase * 1.5) * 0.1);
+        core.scale.set(coreSize * invSX, coreSize * invSY, 1);
+        core.material.rotation = fb.rotation * 0.6;
+      }
+
+      // Update trail if it exists (or add if needed)
+      const currentTrailCount = view.children.filter(c => c.userData.isTrail).length;
+      if (view.children.length >= 3 && currentTrailCount < fb.maxTrail) {
+        for (let i = currentTrailCount; i < fb.maxTrail; i++) {
+          const trailColor = i % 2 === 0 ? 0xff4400 : 0xffaa00;
+          const trailTexture = this.createGlowTexture(trailColor, 32);
+          const trailMaterial = new THREE.SpriteMaterial({
+            map: trailTexture,
+            transparent: true,
+            opacity: 0.3,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            depthTest: false, // Ensure trail is always visible
+          });
+          const trailSprite = new THREE.Sprite(trailMaterial);
+          trailSprite.userData = { isTrail: true, index: i };
+          view.add(trailSprite);
+        }
+      }
+
+      // Position trail sprites relative to the head
+      view.children.forEach(child => {
+        if (child.userData.isTrail) {
+          const trailIdx = child.userData.index;
+          const trailPos = fb.trailPositions[trailIdx];
+          if (trailPos) {
+            child.visible = true;
+            let dx = trailPos.x - fb.x;
+            let dy = trailPos.y - fb.y;
+            if (dx > CONFIG.worldSize / 2) dx -= CONFIG.worldSize;
+            if (dx < -CONFIG.worldSize / 2) dx += CONFIG.worldSize;
+            if (dy > CONFIG.worldSize / 2) dy -= CONFIG.worldSize;
+            if (dy < -CONFIG.worldSize / 2) dy += CONFIG.worldSize;
+
+            const localX = dx * Math.cos(-view.rotation.z) - dy * Math.sin(-view.rotation.z);
+            const localY = dx * Math.sin(-view.rotation.z) + dy * Math.cos(-view.rotation.z);
+
+            // Adjust position and counter-act group scale for trail segments
+            child.position.set(localX / view.scale.x, localY / view.scale.y, -0.5 - trailIdx * 0.1);
+
+            const progress = trailIdx / fb.maxTrail;
+            const life = 1 - progress;
+            // Scale and opacity fading
+            const trailBaseSize = fb.radius * (2.5 - progress * 1.5);
+            child.scale.set(trailBaseSize / view.scale.x, trailBaseSize / view.scale.y, 1);
+            (child as THREE.Sprite).material.opacity = 0.5 * life;
+          } else {
+            child.visible = false;
+          }
+        }
+      });
+
       view.visible = !fb.marked;
     }
   }

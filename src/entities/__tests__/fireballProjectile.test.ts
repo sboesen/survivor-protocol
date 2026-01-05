@@ -1,21 +1,22 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { FireballProjectile } from '../fireballProjectile';
 import type { CanvasContext } from '../../types';
+import type { ScreenPosition } from '../entity';
 
 // Mock canvas context
 const mockCtx = {
-  save: () => {},
-  restore: () => {},
-  translate: () => {},
-  rotate: () => {},
-  beginPath: () => {},
-  arc: () => {},
-  fill: () => {},
-  stroke: () => {},
-  lineTo: () => {},
-  moveTo: () => {},
+  save: () => { },
+  restore: () => { },
+  translate: () => { },
+  rotate: () => { },
+  beginPath: () => { },
+  arc: () => { },
+  fill: () => { },
+  stroke: () => { },
+  lineTo: () => { },
+  moveTo: () => { },
   createRadialGradient: () => ({
-    addColorStop: () => {},
+    addColorStop: () => { },
   }),
   fillStyle: '',
   strokeStyle: '',
@@ -136,7 +137,7 @@ describe('FireballProjectile', () => {
       const initialPhase = fireball['pulsePhase'];
       fireball.update();
 
-      expect(fireball['pulsePhase']).toBeCloseTo(initialPhase + 0.2, 1);
+      expect(fireball['pulsePhase']).toBeCloseTo(initialPhase + 0.15, 1);
     });
 
     it('should increment rotation', () => {
@@ -201,18 +202,18 @@ describe('FireballProjectile', () => {
 
   describe('drawShape', () => {
     it('should draw without errors', () => {
-      expect(() => fireball.drawShape(mockCtx, 400, 300)).not.toThrow();
+      expect(() => fireball.drawShape(mockCtx, { sx: 400, sy: 300 } as ScreenPosition)).not.toThrow();
     });
 
     it('should draw pulsing halo', () => {
       // This test just verifies the method runs
       fireball['pulsePhase'] = Math.PI / 2; // Maximum pulse
-      expect(() => fireball.drawShape(mockCtx, 400, 300)).not.toThrow();
+      expect(() => fireball.drawShape(mockCtx, { sx: 400, sy: 300 } as ScreenPosition)).not.toThrow();
     });
 
     it('should draw with rotation', () => {
       fireball['rotation'] = Math.PI;
-      expect(() => fireball.drawShape(mockCtx, 400, 300)).not.toThrow();
+      expect(() => fireball.drawShape(mockCtx, { sx: 400, sy: 300 } as ScreenPosition)).not.toThrow();
     });
   });
 
