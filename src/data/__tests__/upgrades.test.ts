@@ -60,6 +60,15 @@ describe('UPGRADES', () => {
       expect(UPGRADES.lighter.dmg).toBe(1);
       expect(UPGRADES.lighter.cd).toBe(3);
     });
+
+    it('should have shield_bash weapon', () => {
+      expect(UPGRADES.shield_bash).toBeDefined();
+      expect(UPGRADES.shield_bash.name).toBe('Shield Bash');
+      expect(UPGRADES.shield_bash.type).toBe('Weapon');
+      expect(UPGRADES.shield_bash.desc).toBe('Heavy close-range bash');
+      expect(UPGRADES.shield_bash.dmg).toBe(25);
+      expect(UPGRADES.shield_bash.cd).toBe(25);
+    });
   });
 
   describe('items', () => {
@@ -105,9 +114,9 @@ describe('UPGRADES', () => {
   });
 
   describe('upgrade count', () => {
-    it('should have 6 weapons', () => {
+    it('should have 7 weapons', () => {
       const weapons = Object.values(UPGRADES).filter(u => u.type === 'Weapon');
-      expect(weapons.length).toBe(6);
+      expect(weapons.length).toBe(7);
     });
 
     it('should have 5 items', () => {
@@ -115,8 +124,8 @@ describe('UPGRADES', () => {
       expect(items.length).toBe(5);
     });
 
-    it('should have 11 total upgrades', () => {
-      expect(Object.keys(UPGRADES).length).toBe(11);
+    it('should have 12 total upgrades', () => {
+      expect(Object.keys(UPGRADES).length).toBe(12);
     });
   });
 

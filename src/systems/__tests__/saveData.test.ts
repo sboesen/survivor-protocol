@@ -1,10 +1,35 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { SaveData } from '../saveData';
 
+const createLocalStorage = (): Storage => {
+  let store = new Map<string, string>();
+  return {
+    getItem: (key: string) => (store.has(key) ? store.get(key)! : null),
+    setItem: (key: string, value: string) => {
+      store.set(key, String(value));
+    },
+    removeItem: (key: string) => {
+      store.delete(key);
+    },
+    clear: () => {
+      store.clear();
+    },
+    key: (index: number) => Array.from(store.keys())[index] ?? null,
+    get length() {
+      return store.size;
+    },
+  } as Storage;
+};
+
 describe('SaveData', () => {
   const STORAGE_KEY = 'survivor_protocol_v2';
+  let originalLocalStorage: Storage | undefined;
 
   beforeEach(() => {
+    originalLocalStorage = globalThis.localStorage;
+    if (!originalLocalStorage || typeof originalLocalStorage.clear !== 'function') {
+      globalThis.localStorage = createLocalStorage();
+    }
     // Clear localStorage before each test
     localStorage.clear();
     // Reload default data
@@ -18,6 +43,11 @@ describe('SaveData', () => {
 
   afterEach(() => {
     localStorage.clear();
+    if (originalLocalStorage) {
+      globalThis.localStorage = originalLocalStorage;
+    } else {
+      delete (globalThis as any).localStorage;
+    }
   });
 
   describe('default data', () => {

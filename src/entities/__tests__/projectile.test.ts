@@ -13,6 +13,7 @@ const mockCtx = {
   fill: () => {},
   fillRect: () => {},
   stroke: () => {},
+  createRadialGradient: () => ({ addColorStop: () => {} }),
   fillStyle: '',
   strokeStyle: '',
   lineWidth: 0,
@@ -214,23 +215,25 @@ describe('Projectile', () => {
   });
 
   describe('drawShape', () => {
+    const screenPos = { sx: 400, sy: 300 } as any;
+
     it('should draw arc projectile as rectangle', () => {
       projectile.isArc = true;
       projectile.isCrit = false;
 
-      expect(() => projectile.drawShape(mockCtx, 400, 300)).not.toThrow();
+      expect(() => projectile.drawShape(mockCtx, screenPos)).not.toThrow();
     });
 
     it('should draw bubble projectile with circle', () => {
       projectile.isBubble = true;
 
-      expect(() => projectile.drawShape(mockCtx, 400, 300)).not.toThrow();
+      expect(() => projectile.drawShape(mockCtx, screenPos)).not.toThrow();
     });
 
     it('should draw crit projectile in yellow', () => {
       projectile.isCrit = true;
 
-      expect(() => projectile.drawShape(mockCtx, 400, 300)).not.toThrow();
+      expect(() => projectile.drawShape(mockCtx, screenPos)).not.toThrow();
     });
 
     it('should draw normal projectile as circle', () => {
@@ -238,7 +241,7 @@ describe('Projectile', () => {
       projectile.isBubble = false;
       projectile.isCrit = false;
 
-      expect(() => projectile.drawShape(mockCtx, 400, 300)).not.toThrow();
+      expect(() => projectile.drawShape(mockCtx, screenPos)).not.toThrow();
     });
   });
 

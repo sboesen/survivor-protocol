@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { Window } from 'happy-dom';
 import { GameCore } from '../game';
+import { threeRenderer } from '../renderer/three';
 
 // Mock all the imported modules that have side effects
 vi.mock('../renderer/three', () => ({
@@ -8,6 +9,7 @@ vi.mock('../renderer/three', () => ({
     init: vi.fn(async () => {}),
     dispose: vi.fn(),
     render: vi.fn(),
+    renderUI: vi.fn(),
     resize: vi.fn(),
     renderBackgroundCanvas: vi.fn(),
     renderIllumination: vi.fn(),
@@ -44,6 +46,7 @@ vi.mock('../systems/ui', () => ({
     updateXp: vi.fn(),
     updateUlt: vi.fn(),
     updateItemSlots: vi.fn(),
+    updateWeaponSlots: vi.fn(),
     spawnDamageText: vi.fn(() => ({ style: {} })),
     updateDamageTexts: vi.fn(),
     showLevelUpScreen: vi.fn(),
@@ -69,6 +72,10 @@ vi.spyOn(Math, 'random').mockImplementation(() => {
 });
 
 describe('GameCore', () => {
+  let originalWindow: typeof globalThis.window | undefined;
+  let originalDocument: typeof globalThis.document | undefined;
+  let originalRequestAnimationFrame: typeof globalThis.requestAnimationFrame | undefined;
+  let originalLocalStorage: Storage | undefined;
   let window: Window;
   let document: Document;
   let canvas: HTMLCanvasElement;
@@ -78,6 +85,11 @@ describe('GameCore', () => {
   const drawCalls: string[] = [];
 
   beforeEach(() => {
+    originalWindow = globalThis.window;
+    originalDocument = globalThis.document;
+    originalRequestAnimationFrame = globalThis.requestAnimationFrame;
+    originalLocalStorage = globalThis.localStorage;
+
     // Create happy-dom window
     window = new Window({
       url: 'http://localhost:3000',
@@ -85,8 +97,10 @@ describe('GameCore', () => {
       height: 768,
     });
     document = window.document;
-    global.window = window as any;
-    global.document = document;
+    globalThis.window = window as any;
+    globalThis.document = document;
+    globalThis.requestAnimationFrame = vi.fn();
+    globalThis.localStorage = window.localStorage;
 
     // Create canvas element
     canvas = document.createElement('canvas');
@@ -133,8 +147,26 @@ describe('GameCore', () => {
   afterEach(() => {
     // Clean up
     document.body.innerHTML = '';
-    delete global.window;
-    delete global.document;
+    if (originalWindow) {
+      globalThis.window = originalWindow;
+    } else {
+      delete (globalThis as any).window;
+    }
+    if (originalDocument) {
+      globalThis.document = originalDocument;
+    } else {
+      delete (globalThis as any).document;
+    }
+    if (originalRequestAnimationFrame) {
+      globalThis.requestAnimationFrame = originalRequestAnimationFrame;
+    } else {
+      delete (globalThis as any).requestAnimationFrame;
+    }
+    if (originalLocalStorage) {
+      globalThis.localStorage = originalLocalStorage;
+    } else {
+      delete (globalThis as any).localStorage;
+    }
   });
 
   describe('initialization', () => {
@@ -153,16 +185,11 @@ describe('GameCore', () => {
       expect(game.projectiles).toEqual([]);
     });
 
-    it('should get canvas element on init', () => {
+    it('should not require a 2d canvas on init', () => {
       const game = new GameCore();
       game.init();
-      expect(game.canvas).toBe(canvas);
-    });
-
-    it('should get 2d context on init', () => {
-      const game = new GameCore();
-      game.init();
-      expect(game.ctx).toBe(ctx);
+      expect(game.canvas).toBeNull();
+      expect(game.ctx).toBeNull();
     });
 
     it('should return early if canvas not found', () => {
@@ -215,12 +242,11 @@ describe('GameCore', () => {
   });
 
   describe('resize()', () => {
-    it('should resize canvas to window size', () => {
+    it('should resize renderer to window size', () => {
       const game = new GameCore();
       game.init();
       game.resize();
-      expect(game.canvas?.width).toBe(window.innerWidth);
-      expect(game.canvas?.height).toBe(window.innerHeight);
+      expect(threeRenderer.resize).toHaveBeenCalledWith(window.innerWidth, window.innerHeight);
     });
 
     it('should work without canvas being initialized', () => {
@@ -538,7 +564,7 @@ describe('GameCore', () => {
       const game = new GameCore();
       game.init();
       game.init();
-      expect(game.canvas).toBe(canvas);
+      expect(game.canvas).toBeNull();
     });
 
     it('should handle render without init', () => {

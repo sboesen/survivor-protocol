@@ -47,7 +47,7 @@ describe('CHARACTERS', () => {
     expect(CHARACTERS.knight.id).toBe('knight');
     expect(CHARACTERS.knight.name).toBe('Knight');
     expect(CHARACTERS.knight.icon).toBe('⚔️');
-    expect(CHARACTERS.knight.weapon).toBe('pepper_spray');
+    expect(CHARACTERS.knight.weapon).toBe('shield_bash');
     expect(CHARACTERS.knight.hpMod).toBe(1.5);
     expect(CHARACTERS.knight.spdMod).toBe(0.8);
     expect(CHARACTERS.knight.ult).toBe('IronWill');
@@ -90,7 +90,7 @@ describe('CHARACTERS', () => {
       expect(weapons).toContain('fireball');
       expect(weapons).toContain('bubble_stream');
       expect(weapons).toContain('thrown_cds');
-      expect(weapons).toContain('pepper_spray');
+      expect(weapons).toContain('shield_bash');
       expect(weapons).toContain('frying_pan');
       expect(weapons).toContain('lighter');
     });
