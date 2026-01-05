@@ -65,17 +65,17 @@ class GameCore {
   private fps: number = 60;
   private fpsFrames: number = 0;
   private fpsLastTime: number = 0;
-   active = false;
-   paused = false;
-   frames = 0;
-   time = 0;
-   mins = 0;
-   goldRun = 0;
-   kills = 0;
-   bossKills = 0;
-   lastTime = 0;
-   accumulator = 0;
-   readonly timestep = 1000 / 60; // 60 FPS fixed timestep
+  active = false;
+  paused = false;
+  frames = 0;
+  time = 0;
+  mins = 0;
+  goldRun = 0;
+  kills = 0;
+  bossKills = 0;
+  lastTime = 0;
+  accumulator = 0;
+  readonly timestep = 1000 / 60; // 60 FPS fixed timestep
 
   player: Player | null = null;
   enemies: Enemy[] = [];
@@ -558,7 +558,9 @@ class GameCore {
                 false,
                 w.id
               );
-              if (projData.isBubble) (proj as any).isBubble = true;
+              if (projData.isBubble) {
+                (proj as any).isBubble = true;
+              }
               if (projData.splits) (proj as any).splits = true;
               if (projData.isArc) (proj as any).isArc = true;
               if (projData.explodeRadius) proj.explodeRadius = projData.explodeRadius;
@@ -728,19 +730,9 @@ class GameCore {
     // Update projectiles
     this.projectiles.forEach(proj => proj.update());
 
-    // Spawn bubble trail particles - more frequent and varied
+    // Spawn bubble trail particles - less frequent (every 3 frames)
     this.projectiles.forEach(proj => {
       if ((proj as any).isBubble && this.frames % 3 === 0) {
-        // Foam trail - floats upward
-        this.spawnParticles({
-          type: 'foam' as ParticleType,
-          x: proj.x + (Math.random() - 0.5) * 6,
-          y: proj.y + (Math.random() - 0.5) * 6,
-          size: 2 + Math.random() * 3,
-          vy: -0.8 - Math.random() * 0.5,
-          vx: (Math.random() - 0.5) * 0.3
-        }, 1);
-
         // Occasional sparkle
         if (Math.random() > 0.6) {
           this.spawnParticles({
@@ -1088,76 +1080,76 @@ class GameCore {
   }
 
   render(alpha = 1): void {
-     if (!this.active || !this.player) return;
+    if (!this.active || !this.player) return;
 
-     const p = this.player;
-     const interpPlayer = this.getInterpolatedPosition(p, alpha);
+    const p = this.player;
+    const interpPlayer = this.getInterpolatedPosition(p, alpha);
 
-     // Render main scene with Three.js - passing actual entity objects
-     threeRenderer.render(
-       p,
-       this.enemies,
-       this.projectiles,
-       this.loot,
-       this.fireballs,
-       this.particles,
-       this.obstacles,
-       window.innerWidth,
-       window.innerHeight,
-       alpha
-     );
+    // Render main scene with Three.js - passing actual entity objects
+    threeRenderer.render(
+      p,
+      this.enemies,
+      this.projectiles,
+      this.loot,
+      this.fireballs,
+      this.particles,
+      this.obstacles,
+      window.innerWidth,
+      window.innerHeight,
+      alpha
+    );
 
-     // Render UI (health bar, joysticks)
-     threeRenderer.renderUI(
-       p.hp,
-       p.maxHp,
-       interpPlayer.x,
-       interpPlayer.y,
-       {
-         hasTouch: false,
-         joyActive: this.input.joy.active,
-         joyX: this.input.joy.x,
-         joyY: this.input.joy.y,
-         aimJoyActive: this.input.aimJoy.active,
-         aimJoyX: this.input.aimJoy.x,
-         aimJoyY: this.input.aimJoy.y,
-       }
-     );
+    // Render UI (health bar, joysticks)
+    threeRenderer.renderUI(
+      p.hp,
+      p.maxHp,
+      interpPlayer.x,
+      interpPlayer.y,
+      {
+        hasTouch: false,
+        joyActive: this.input.joy.active,
+        joyX: this.input.joy.x,
+        joyY: this.input.joy.y,
+        aimJoyActive: this.input.aimJoy.active,
+        aimJoyX: this.input.aimJoy.x,
+        aimJoyY: this.input.aimJoy.y,
+      }
+    );
   }
 
-   loop(currentTime = 0): void {
-     if (!this.lastTime) this.lastTime = currentTime;
-     if (!this.fpsLastTime) this.fpsLastTime = currentTime;
-     const deltaTime = currentTime - this.lastTime;
-     this.lastTime = currentTime;
+  loop(currentTime = 0): void {
+    if (!this.lastTime) this.lastTime = currentTime;
+    if (!this.fpsLastTime) this.fpsLastTime = currentTime;
+    const deltaTime = currentTime - this.lastTime;
+    this.lastTime = currentTime;
 
-     // FPS tracking
-     this.fpsFrames++;
-     if (currentTime - this.fpsLastTime >= 1000) {
-       this.fps = this.fpsFrames;
-       this.fpsFrames = 0;
-       this.fpsLastTime = currentTime;
-     }
+    // FPS tracking
+    this.fpsFrames++;
+    if (currentTime - this.fpsLastTime >= 1000) {
+      this.fps = this.fpsFrames;
+      this.fpsFrames = 0;
+      this.fpsLastTime = currentTime;
+    }
 
-     this.accumulator += deltaTime;
+    this.accumulator += deltaTime;
 
-     // Cap accumulator to prevent spiral death on alt-tab (max 100ms catchup)
-     if (this.accumulator > 100) {
-       this.accumulator = 100;
-     }
+    // Cap accumulator to prevent spiral death on alt-tab (max 100ms catchup)
+    if (this.accumulator > 100) {
+      this.accumulator = 100;
+    }
 
-     // Fixed timestep update - run update() exactly 60 times per second
-     while (this.accumulator >= this.timestep) {
-       this.capturePrevPositions();
-       this.update();
-       this.accumulator -= this.timestep;
-     }
+    // Fixed timestep update - run update() exactly 60 times per second
+    while (this.accumulator >= this.timestep) {
+      this.capturePrevPositions();
+      this.update();
+      this.accumulator -= this.timestep;
+    }
 
-     const alpha = this.accumulator / this.timestep;
-     this.render(alpha);
+    const alpha = this.accumulator / this.timestep;
+    this.render(alpha);
 
-     requestAnimationFrame((t) => this.loop(t));
-   }
+    requestAnimationFrame((t) => this.loop(t));
+  }
 }
 
 export const Game = new GameCore();

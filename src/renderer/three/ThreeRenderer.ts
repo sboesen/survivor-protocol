@@ -10,6 +10,8 @@ import type { FireballProjectile } from '../../entities/fireballProjectile';
 import type { Loot } from '../../entities/loot';
 import type { Obstacle } from '../../entities/obstacle';
 import type { Particle } from '../../entities/particle';
+import { bubbleVertexShader } from './water/shaders/bubbleVertex';
+import { bubbleFragmentShader } from './water/shaders/bubbleFragment';
 
 /**
  * Main Three.js renderer for game entities.
@@ -25,7 +27,7 @@ export class ThreeRenderer {
 
   // Entity sprite views - using WeakMap for automatic cleanup
   private enemyViews: WeakMap<Enemy, THREE.Group> = new WeakMap();
-  private projectileViews: WeakMap<Projectile, THREE.Sprite> = new WeakMap();
+  private projectileViews: WeakMap<Projectile, THREE.Object3D> = new WeakMap();
   private lootViews: WeakMap<Loot, THREE.Group> = new WeakMap();
   private fireballViews: WeakMap<FireballProjectile, THREE.Group> = new WeakMap();
   private obstacleViews: WeakMap<Obstacle, THREE.Group> = new WeakMap();
@@ -42,7 +44,7 @@ export class ThreeRenderer {
 
   // Particles are recreated each frame
   private particleViews: THREE.Points[] = [];
-  private particlesDisabled = true; // TEMP: Disable particles to fix lag
+  private particlesDisabled = false;
 
   // Illumination sprites for fireballs
   private fireballIllumViews: WeakMap<FireballProjectile, THREE.Sprite> = new WeakMap();
@@ -291,7 +293,8 @@ export class ThreeRenderer {
         const view = this.projectileViews.get(proj);
         if (view) {
           this.sceneManager.removeFromScene(view);
-          view.material.dispose();
+          if ((view as any).material) (view as any).material.dispose();
+          if ((view as any).geometry) (view as any).geometry.dispose();
         }
         this.activeProjectiles.delete(proj);
       }
@@ -304,15 +307,44 @@ export class ThreeRenderer {
       let view = this.projectileViews.get(proj);
 
       if (!view) {
-        const material = new THREE.SpriteMaterial({
-          color: new THREE.Color(proj.color),
-          depthTest: false,
-        });
-        view = new THREE.Sprite(material);
-        view.scale.set(proj.radius * 2, proj.radius * 2, 1);
+        if (proj.isBubble) {
+          const geometry = new THREE.PlaneGeometry(1, 1);
+          const material = new THREE.ShaderMaterial({
+            uniforms: {
+              uTime: { value: performance.now() / 1000 },
+            },
+            vertexShader: bubbleVertexShader,
+            fragmentShader: bubbleFragmentShader,
+            transparent: true,
+            depthTest: false,
+            side: THREE.DoubleSide,
+            blending: THREE.NormalBlending,
+          });
+          view = new THREE.Mesh(geometry, material);
+        } else {
+          const material = new THREE.SpriteMaterial({
+            color: new THREE.Color(proj.color),
+            depthTest: false,
+          });
+          view = new THREE.Sprite(material);
+        }
+
+        view.scale.set(proj.radius * 1.75, proj.radius * 1.75, 1);
         this.sceneManager.addToScene(view);
         this.projectileViews.set(proj, view);
         this.activeProjectiles.add(proj);
+      }
+
+      // Update scale for bubbles
+      if (proj.isBubble) {
+        // Age-based growth: start at 1.75x, grow to 3.25x over first 30 frames
+        const growth = Math.min(1.0, proj.age / 30.0);
+        const scale = proj.radius * (1.75 + growth * 1.5);
+        view.scale.set(scale, scale, 1);
+
+        if (view instanceof THREE.Mesh && view.material instanceof THREE.ShaderMaterial) {
+          view.material.uniforms.uTime.value = performance.now() / 1000;
+        }
       }
 
       // Get wrapped render position
@@ -1254,44 +1286,97 @@ export class ThreeRenderer {
       geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
 
       const material = new THREE.ShaderMaterial({
+        uniforms: {
+          uTime: { value: performance.now() / 1000 },
+        },
         vertexShader: `
+          uniform float uTime;
           attribute vec3 color;
           attribute float alpha;
           attribute float size;
           varying vec3 vColor;
           varying float vAlpha;
           varying float vSize;
+          varying float vOffset;
+          
           void main() {
             vColor = color;
             vAlpha = alpha;
             vSize = size;
-            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-            gl_PointSize = size * 2.0 * (300.0 / -mvPosition.z);
+            vOffset = position.x + position.y; // Seed for individual animation
+            
+            // Jiggle effect
+            float wobble = sin(uTime * 10.0 + vOffset) * 0.05 * size;
+            vec3 newPos = position + vec3(wobble, wobble * 0.5, 0.0);
+            
+            vec4 mvPosition = modelViewMatrix * vec4(newPos, 1.0);
+            gl_PointSize = (size + wobble) * 2.0 * (300.0 / -mvPosition.z);
             gl_Position = projectionMatrix * mvPosition;
           }
         `,
         fragmentShader: `
-          varying vec3 vColor;
-          varying float vAlpha;
-          varying float vSize;
-          void main() {
-            vec2 coord = gl_PointCoord - vec2(0.5);
-            float dist = length(coord) * 2.0;
-            if (dist > 1.0) discard;
+            uniform float uTime;
+            varying vec3 vColor;
+            varying float vAlpha;
+            varying float vSize;
+            varying float vOffset;
 
-            // White bubble
-            float alpha = (1.0 - smoothstep(0.0, 0.8, dist)) * vAlpha;
-            vec3 finalColor = vColor;
+            // Simple hash for noise
+            float hash(vec2 p) {
+              p = fract(p * vec2(123.34, 456.21));
+              p += dot(p, p + 45.32);
+              return fract(p.x * p.y);
+            }
 
-            // Shine at top-left
-            float shine = smoothstep(0.6, 0.0, length(coord - vec2(-0.15, -0.15))) * 0.6 * vAlpha;
-            finalColor += vec3(shine);
+            // 2D Noise
+            float noise(vec2 p) {
+              vec2 i = floor(p);
+              vec2 f = fract(p);
+              f = f * f * (3.0 - 2.0 * f);
+              return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
+                         mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+            }
 
-            gl_FragColor = vec4(finalColor, alpha);
-          }
+            // FBM for liquid look
+            float fbm(vec2 p) {
+              float v = 0.0;
+              float a = 0.5;
+              for (int i = 0; i < 2; i++) {
+                v += a * noise(p);
+                p *= 2.0;
+                a *= 0.5;
+              }
+              return v;
+            }
+
+            void main() {
+              vec2 coord = gl_PointCoord - vec2(0.5);
+              float dist = length(coord) * 2.0;
+
+              // Refractive Distortion
+              float warp = (fbm(coord * 4.0 + uTime) - 0.5) * 0.2;
+              float finalDist = dist + warp;
+              
+              if (finalDist > 1.0) discard;
+
+              // Sharp Surface Rim
+              float edge = smoothstep(1.0, 0.85, finalDist);
+              float alpha = edge * vAlpha;
+              
+              // Iridescence (rainbow edges)
+              vec3 rainbow = 0.5 + 0.5 * cos(uTime * 2.5 + finalDist * 6.0 + vec3(0, 2, 4));
+              vec3 baseColor = mix(vColor, rainbow, smoothstep(0.85, 1.0, finalDist) * 0.3);
+
+              // Specular Glints
+              float spec = smoothstep(0.3, 0.0, length(coord - vec2(-0.2, -0.2))) * 0.5;
+              vec3 finalColor = baseColor + spec;
+              
+              gl_FragColor = vec4(finalColor, alpha);
+            }
         `,
         transparent: true,
         depthTest: false,
+        blending: THREE.AdditiveBlending,
       });
 
       const points = new THREE.Points(geometry, material);
@@ -1337,29 +1422,29 @@ export class ThreeRenderer {
           varying vec3 vColor;
           varying float vAlpha;
           varying float vSize;
-          void main() {
-            vColor = color;
-            vAlpha = alpha;
-            vSize = size;
+void main() {
+  vColor = color;
+  vAlpha = alpha;
+  vSize = size;
             vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-            gl_PointSize = size * 2.0 * (300.0 / -mvPosition.z);
-            gl_Position = projectionMatrix * mvPosition;
-          }
-        `,
+  gl_PointSize = size * 2.0 * (300.0 / -mvPosition.z);
+  gl_Position = projectionMatrix * mvPosition;
+}
+`,
         fragmentShader: `
           varying vec3 vColor;
           varying float vAlpha;
           varying float vSize;
-          void main() {
+void main() {
             vec2 coord = gl_PointCoord - vec2(0.5);
             float dist = length(coord) * 2.0;
-            if (dist > 1.0) discard;
+  if (dist > 1.0) discard;
 
             // Soft edges
             float alpha = (1.0 - smoothstep(0.0, 1.0, dist)) * vAlpha;
-            gl_FragColor = vec4(vColor, alpha);
-          }
-        `,
+  gl_FragColor = vec4(vColor, alpha);
+}
+`,
         transparent: true,
         depthTest: false,
       });
@@ -1407,29 +1492,29 @@ export class ThreeRenderer {
           varying vec3 vColor;
           varying float vAlpha;
           varying float vSize;
-          void main() {
-            vColor = color;
-            vAlpha = alpha;
-            vSize = size;
+void main() {
+  vColor = color;
+  vAlpha = alpha;
+  vSize = size;
             vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-            gl_PointSize = size * 2.0 * (300.0 / -mvPosition.z);
-            gl_Position = projectionMatrix * mvPosition;
-          }
-        `,
+  gl_PointSize = size * 2.0 * (300.0 / -mvPosition.z);
+  gl_Position = projectionMatrix * mvPosition;
+}
+`,
         fragmentShader: `
           varying vec3 vColor;
           varying float vAlpha;
           varying float vSize;
-          void main() {
+void main() {
             vec2 coord = gl_PointCoord - vec2(0.5);
             float dist = length(coord) * 2.0;
-            if (dist > 1.0) discard;
+  if (dist > 1.0) discard;
 
             // Bright sharp particles
             float alpha = (1.0 - smoothstep(0.0, 0.8, dist)) * vAlpha;
-            gl_FragColor = vec4(vColor, alpha);
-          }
-        `,
+  gl_FragColor = vec4(vColor, alpha);
+}
+`,
         transparent: true,
         depthTest: false,
       });
@@ -1467,44 +1552,44 @@ export class ThreeRenderer {
           attribute float size;
           varying float vLife;
           varying float vSize;
-          void main() {
-            vLife = life;
-            vSize = size;
+void main() {
+  vLife = life;
+  vSize = size;
             vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-            gl_PointSize = size * 2.0 * (300.0 / -mvPosition.z);
-            gl_Position = projectionMatrix * mvPosition;
-          }
-        `,
+  gl_PointSize = size * 2.0 * (300.0 / -mvPosition.z);
+  gl_Position = projectionMatrix * mvPosition;
+}
+`,
         fragmentShader: `
           varying float vLife;
           varying float vSize;
-          void main() {
+void main() {
             vec2 coord = gl_PointCoord - vec2(0.5);
             float dist = length(coord) * 2.0;
 
             float alpha = (1.0 - smoothstep(0.0, 1.0, dist));
-            if (alpha < 0.01) discard;
+  if (alpha < 0.01) discard;
 
-            const float progress = 1.0 - vLife;
+  const float progress = 1.0 - vLife;
 
             // Dynamic color shift: White -> Yellow -> Orange -> Red
             vec3 fireColor;
-            if (progress < 0.2) {
-              fireColor = vec3(1.0, 1.0, 1.0); // White
-            } else if (progress < 0.5) {
-              fireColor = vec3(1.0, 0.8, 0.0); // Yellow
-            } else {
-              fireColor = vec3(1.0, 0.27, 0.0); // Red-orange
-            }
+  if (progress < 0.2) {
+    fireColor = vec3(1.0, 1.0, 1.0); // White
+  } else if (progress < 0.5) {
+    fireColor = vec3(1.0, 0.8, 0.0); // Yellow
+  } else {
+    fireColor = vec3(1.0, 0.27, 0.0); // Red-orange
+  }
 
             // Add bright core for new particles
             float core = smoothstep(0.5, 0.0, dist) * 0.5 * vLife;
-            fireColor += vec3(core);
+  fireColor += vec3(core);
 
-            alpha *= vLife;
-            gl_FragColor = vec4(fireColor, alpha);
-          }
-        `,
+  alpha *= vLife;
+  gl_FragColor = vec4(fireColor, alpha);
+}
+`,
         transparent: true,
         depthTest: false,
         blending: THREE.NormalBlending,
@@ -1544,28 +1629,28 @@ export class ThreeRenderer {
           attribute float size;
           varying float vAlpha;
           varying float vSize;
-          void main() {
-            vAlpha = alpha;
-            vSize = size;
+void main() {
+  vAlpha = alpha;
+  vSize = size;
             vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-            gl_PointSize = size * 2.0 * (300.0 / -mvPosition.z);
-            gl_Position = projectionMatrix * mvPosition;
-          }
-        `,
+  gl_PointSize = size * 2.0 * (300.0 / -mvPosition.z);
+  gl_Position = projectionMatrix * mvPosition;
+}
+`,
         fragmentShader: `
           varying float vAlpha;
           varying float vSize;
-          void main() {
+void main() {
             vec2 coord = gl_PointCoord - vec2(0.5);
             float dist = length(coord) * 2.0;
-            if (dist > 1.0) discard;
+  if (dist > 1.0) discard;
 
             // Soft smoke with very gradual fade
             float alpha = (1.0 - smoothstep(0.0, 1.0, dist)) * vAlpha;
             vec3 smokeColor = vec3(0.39, 0.28, 0.53); // #64748b
-            gl_FragColor = vec4(smokeColor, alpha);
-          }
-        `,
+  gl_FragColor = vec4(smokeColor, alpha);
+}
+`,
         transparent: true,
         depthTest: false,
       });
@@ -1612,26 +1697,26 @@ export class ThreeRenderer {
           attribute float size;
           varying vec3 vColor;
           varying float vAlpha;
-          void main() {
-            vColor = color;
-            vAlpha = alpha;
+void main() {
+  vColor = color;
+  vAlpha = alpha;
             vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-            gl_PointSize = size * 2.0 * (300.0 / -mvPosition.z);
-            gl_Position = projectionMatrix * mvPosition;
-          }
-        `,
+  gl_PointSize = size * 2.0 * (300.0 / -mvPosition.z);
+  gl_Position = projectionMatrix * mvPosition;
+}
+`,
         fragmentShader: `
           varying vec3 vColor;
           varying float vAlpha;
-          void main() {
+void main() {
             vec2 coord = gl_PointCoord - vec2(0.5);
             float dist = length(coord) * 2.0;
-            if (dist > 1.0) discard;
+  if (dist > 1.0) discard;
 
             float alpha = (1.0 - smoothstep(0.0, 1.0, dist)) * vAlpha;
-            gl_FragColor = vec4(vColor, alpha);
-          }
-        `,
+  gl_FragColor = vec4(vColor, alpha);
+}
+`,
         transparent: true,
         depthTest: false,
       });
@@ -1678,27 +1763,27 @@ export class ThreeRenderer {
           attribute float size;
           varying vec3 vColor;
           varying float vAlpha;
-          void main() {
-            vColor = color;
-            vAlpha = alpha;
+void main() {
+  vColor = color;
+  vAlpha = alpha;
             vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-            gl_PointSize = size * 2.0 * (300.0 / -mvPosition.z);
-            gl_Position = projectionMatrix * mvPosition;
-          }
-        `,
+  gl_PointSize = size * 2.0 * (300.0 / -mvPosition.z);
+  gl_Position = projectionMatrix * mvPosition;
+}
+`,
         fragmentShader: `
           varying vec3 vColor;
           varying float vAlpha;
-          void main() {
+void main() {
             vec2 coord = gl_PointCoord - vec2(0.5);
             float dist = length(coord) * 2.0;
-            if (dist > 1.0) discard;
+  if (dist > 1.0) discard;
 
             // Very soft gas cloud
             float alpha = (1.0 - smoothstep(0.0, 1.0, dist)) * vAlpha;
-            gl_FragColor = vec4(vColor, alpha);
-          }
-        `,
+  gl_FragColor = vec4(vColor, alpha);
+}
+`,
         transparent: true,
         depthTest: false,
       });
