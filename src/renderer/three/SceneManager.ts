@@ -62,9 +62,15 @@ export class SceneManager {
     threeCanvas.style.left = '0';
     threeCanvas.style.width = '100%';
     threeCanvas.style.height = '100%';
-    threeCanvas.style.zIndex = '99';
+    threeCanvas.style.zIndex = '0';
     threeCanvas.style.pointerEvents = 'none';
-    document.body.appendChild(threeCanvas);
+
+    const container = document.getElementById('game-container');
+    if (container) {
+      container.insertBefore(threeCanvas, container.firstChild);
+    } else {
+      document.body.appendChild(threeCanvas);
+    }
 
 
     // Ensure camera projection is up to date

@@ -407,6 +407,7 @@ class GameCore {
 
   spawnDamageText(wx: number, wy: number, txt: string | number, color = '#fff', isCrit = false): void {
     const el = UI.spawnDamageText(wx, wy, txt, color, isCrit);
+    if (!el) return;
     this.damageTexts.push({ el, wx, wy, life: 50 });
   }
 

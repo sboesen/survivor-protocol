@@ -92,7 +92,7 @@ class UISystem {
     txt: string | number,
     color = '#fff',
     isCrit = false
-  ): HTMLElement {
+  ): HTMLElement | null {
     const el = document.createElement('div');
     el.className = 'dmg-text ' + (isCrit ? 'crit-text' : '');
     if (color === '#f00') el.classList.add('player-hit');
@@ -100,9 +100,12 @@ class UISystem {
     el.style.color = color;
 
     const layer = this.getEl('damage-layer');
-    if (layer) layer.appendChild(el);
+    if (layer) {
+      layer.appendChild(el);
+      return el;
+    }
 
-    return el;
+    return null;
   }
 
   updateDamageTexts(
