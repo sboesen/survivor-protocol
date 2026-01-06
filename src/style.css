@@ -368,33 +368,9 @@ canvas {
   line-height: 1.1;
 }
 
-.loot-detail {
-  width: min(420px, 90vw);
-  margin: 0 auto 14px;
-  background: rgba(0, 0, 0, 0.45);
-  border: 2px solid #374151;
-  padding: 10px;
-  font-size: 9px;
-  color: #e5e7eb;
-  text-align: left;
-}
-
-.loot-detail-title {
-  font-size: 10px;
-  color: #fbbf24;
-  margin-bottom: 4px;
-}
-
-.loot-detail-meta {
-  font-size: 8px;
+.loot-meta {
+  font-size: 7px;
   color: #9ca3af;
-  margin-bottom: 6px;
-}
-
-.loot-detail-stats {
-  display: grid;
-  gap: 2px;
-  font-size: 8px;
 }
 
 .loadout-tooltip {

@@ -1,6 +1,6 @@
 import { CHARACTERS } from '../data/characters';
 import { UPGRADES } from '../data/upgrades';
-import type { Item, ItemAffix } from '../items/types';
+import type { Item } from '../items/types';
 import { Utils } from '../utils';
 
 class UISystem {
@@ -185,8 +185,6 @@ class UISystem {
     const screen = this.getEl('loot-inventory-screen');
     const grid = this.getEl('loot-inventory-grid');
     const securedEl = this.getEl('loot-secure-slot');
-    const detailEl = this.getEl('loot-detail');
-
     if (screen) screen.classList.add('active');
     if (securedEl) {
       const securedItem = items.find(item => item.id === securedId);
@@ -196,68 +194,11 @@ class UISystem {
     if (!grid) return;
     grid.innerHTML = '';
 
-    const formatAffix = (affix: ItemAffix): string => {
-      const labels: Record<ItemAffix['type'], string> = {
-        flatDamage: 'Damage',
-        percentDamage: 'Damage',
-        areaFlat: 'Area',
-        areaPercent: 'Area',
-        cooldownReduction: 'Cooldown Reduction',
-        projectiles: 'Projectiles',
-        pierce: 'Pierce',
-        duration: 'Duration',
-        speed: 'Speed',
-        maxHp: 'Max HP',
-        armor: 'Armor',
-        hpRegen: 'HP Regen',
-        percentHealing: 'Healing',
-        magnet: 'Magnet',
-        luck: 'Luck',
-        percentGold: 'Gold',
-        pickupRadius: 'Pickup Radius',
-        percentXp: 'XP',
-        allStats: 'All Stats',
-      };
-      const sign = affix.value >= 0 ? '+' : '';
-      const value = affix.isPercent ? `${affix.value}%` : `${affix.value}`;
-      return `${sign}${value} ${labels[affix.type] ?? affix.type}`;
-    };
-
-    const renderDetail = (item: Item | null): void => {
-      if (!detailEl) return;
-      detailEl.innerHTML = '';
-      if (!item) {
-        detailEl.textContent = 'Select an item to inspect.';
-        return;
-      }
-      const title = document.createElement('div');
-      title.className = 'loot-detail-title';
-      title.textContent = item.name;
-      const meta = document.createElement('div');
-      meta.className = 'loot-detail-meta';
-      meta.textContent = `${item.rarity.toUpperCase()} ${item.type.toUpperCase()}`;
-      const stats = document.createElement('div');
-      stats.className = 'loot-detail-stats';
-      if (item.affixes.length === 0) {
-        stats.textContent = 'No affixes.';
-      } else {
-        item.affixes.forEach(affix => {
-          const line = document.createElement('div');
-          line.textContent = formatAffix(affix);
-          stats.appendChild(line);
-        });
-      }
-      detailEl.appendChild(title);
-      detailEl.appendChild(meta);
-      detailEl.appendChild(stats);
-    };
-
     if (items.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'loot-empty';
       empty.textContent = 'No loot collected.';
       grid.appendChild(empty);
-      renderDetail(null);
       return;
     }
 
@@ -285,18 +226,13 @@ class UISystem {
       button.innerHTML = `
         <span class="loot-icon">${typeIcon(item.type)}</span>
         <span class="loot-name">${item.name}</span>
+        <span class="loot-meta">${item.rarity.toUpperCase()} ${item.type.toUpperCase()}</span>
       `;
-      button.onmouseenter = () => renderDetail(item);
-      button.onfocus = () => renderDetail(item);
       button.onclick = () => {
         onSecure(item.id);
-        renderDetail(item);
       };
       grid.appendChild(button);
     });
-
-    const defaultItem = items.find(item => item.id === securedId) ?? items[0] ?? null;
-    renderDetail(defaultItem);
   }
 
   hideLootInventory(): void {
