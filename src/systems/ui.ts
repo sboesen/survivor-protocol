@@ -1,6 +1,7 @@
 import { CHARACTERS } from '../data/characters';
 import { UPGRADES } from '../data/upgrades';
 import type { Item, ItemAffix } from '../items/types';
+import { AFFIX_TIER_BRACKETS } from '../items/affixTables';
 import { Utils } from '../utils';
 
 class UISystem {
@@ -188,6 +189,7 @@ class UISystem {
     if (!grid || !revealBtn || !continueBtn) return;
 
     let revealed = false;
+    let confettiTriggered = false;
 
     const formatAffix = (affix: ItemAffix): string => {
       const labels: Record<ItemAffix['type'], string> = {
@@ -211,20 +213,31 @@ class UISystem {
         percentXp: 'XP',
         allStats: 'All Stats',
       };
+      const bracket = AFFIX_TIER_BRACKETS[affix.type]?.[affix.tier - 1];
       const sign = affix.value >= 0 ? '+' : '';
       const value = affix.isPercent ? `${affix.value}%` : `${affix.value}`;
-      return `${sign}${value} ${labels[affix.type] ?? affix.type}`;
+      const bracketSuffix = bracket
+        ? ` (${bracket.min}${affix.isPercent ? '%' : ''}-${bracket.max}${affix.isPercent ? '%' : ''})`
+        : '';
+      return `T${affix.tier} ${sign}${value} ${labels[affix.type] ?? affix.type}${bracketSuffix}`;
     };
 
     const hideTooltip = (): void => {
       if (!tooltip) return;
       tooltip.innerHTML = '';
+      tooltip.className = 'extract-tooltip';
       tooltip.style.display = 'none';
     };
 
     const showTooltip = (item: Item, event?: MouseEvent): void => {
       if (!tooltip) return;
       tooltip.innerHTML = '';
+      tooltip.className = 'extract-tooltip';
+      if (item.type === 'relic') {
+        tooltip.classList.add('tooltip-relic');
+      } else {
+        tooltip.classList.add(`tooltip-${item.rarity}`);
+      }
 
       const title = document.createElement('div');
       title.className = 'loadout-detail-title';
@@ -241,6 +254,7 @@ class UISystem {
       } else {
         item.affixes.forEach(affix => {
           const line = document.createElement('div');
+          line.className = `affix-line tier-${affix.tier}`;
           line.textContent = formatAffix(affix);
           stats.appendChild(line);
         });
@@ -268,11 +282,12 @@ class UISystem {
     };
 
     grid.innerHTML = '';
+    grid.classList.remove('revealing');
 
     const itemButtons: HTMLButtonElement[] = [];
     items.forEach((item, index) => {
       const button = document.createElement('button');
-      button.className = 'extract-item';
+      button.className = `extract-item rarity-${item.rarity} ${item.type === 'relic' ? 'type-relic' : ''}`;
       button.textContent = 'VEILED';
 
       button.onmouseenter = (event) => {
@@ -294,21 +309,66 @@ class UISystem {
       itemButtons[index] = button;
     });
 
+    continueBtn.disabled = true;
+    continueBtn.classList.add('btn-disabled');
+    revealBtn.disabled = false;
+    revealBtn.classList.remove('btn-disabled');
+
+    const spawnConfetti = (): void => {
+      const confettiLayer = this.getEl('extract-confetti');
+      if (!confettiLayer) return;
+      confettiLayer.innerHTML = '';
+
+      const colors = ['#fbbf24', '#f97316', '#60a5fa', '#a855f7', '#22c55e'];
+      for (let i = 0; i < 36; i++) {
+        const piece = document.createElement('div');
+        piece.className = 'confetti-piece';
+        const size = 4 + Math.random() * 6;
+        piece.style.width = `${size}px`;
+        piece.style.height = `${size * 1.6}px`;
+        piece.style.left = `${Math.random() * 100}%`;
+        piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+        piece.style.animationDelay = `${Math.random() * 0.3}s`;
+        confettiLayer.appendChild(piece);
+      }
+
+      window.setTimeout(() => {
+        confettiLayer.innerHTML = '';
+      }, 2000);
+    };
+
     revealBtn.onclick = () => {
       if (revealed) return;
       revealed = true;
       hideTooltip();
+      continueBtn.disabled = false;
+      continueBtn.classList.remove('btn-disabled');
+      revealBtn.disabled = true;
+      revealBtn.classList.add('btn-disabled');
+      grid.classList.add('revealing');
+
       itemButtons.forEach((button, index) => {
         const item = items[index];
         const delay = index * 80;
+        button.classList.add('unveiling');
         window.setTimeout(() => {
           button.classList.add('revealed');
           button.innerHTML = `
+            ${item.type === 'relic' ? '<span class="extract-badge">★</span>' : ''}
             <span class="extract-item-name">${item.name}</span>
             <span class="extract-item-meta">${item.rarity.toUpperCase()} ${item.type.toUpperCase()}</span>
           `;
+          button.classList.remove('unveiling');
         }, delay);
       });
+
+      if (!confettiTriggered) {
+        const hasGoodLoot = items.some(item => item.type === 'relic' || item.rarity === 'rare' || item.rarity === 'legendary');
+        if (hasGoodLoot) {
+          confettiTriggered = true;
+          spawnConfetti();
+        }
+      }
     };
 
     continueBtn.onclick = () => {
@@ -339,8 +399,7 @@ class UISystem {
     const securedEl = this.getEl('loot-secure-slot');
     if (screen) screen.classList.add('active');
     if (securedEl) {
-      const securedItem = items.find(item => item.id === securedId);
-      securedEl.textContent = securedItem ? `Secured: ${securedItem.name}` : 'Secured: None';
+      securedEl.textContent = securedId ? 'Secured: Veiled item' : 'Secured: None';
     }
 
     if (!grid) return;
@@ -373,9 +432,10 @@ class UISystem {
 
     items.forEach(item => {
       const button = document.createElement('button');
-      button.className = `loot-item loot-${item.rarity}`;
+      button.className = `loot-item rarity-${item.rarity} ${item.type === 'relic' ? 'type-relic' : ''}`;
       if (item.id === securedId) button.classList.add('secured');
       button.innerHTML = `
+        ${item.type === 'relic' ? '<span class="loot-badge">★</span>' : ''}
         <span class="loot-icon">${typeIcon(item.type)}</span>
         <span class="loot-name">${item.rarity.toUpperCase()} ${item.type.toUpperCase()}</span>
         <span class="loot-meta">VEILED</span>

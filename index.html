@@ -27,12 +27,13 @@
                     <span id="hud-gold" style="color:var(--gold)">💰 0</span>
                     <button class="loot-inv-btn" onclick="Game.toggleLootInventory()">LOOT [I]</button>
                 </div>
-                <div class="hud-row">
-                    <span id="hud-veiled">Veiled: 0</span>
-                    <button class="quit-btn" onclick="Game.quitRun()">ABORT</button>
-                </div>
+            <div class="hud-row">
+                <span id="hud-veiled">Veiled: 0</span>
+                <button class="quit-btn" onclick="Game.quitRun()">ABORT</button>
             </div>
+            <div id="debug-loot-indicator" class="debug-hud">DEBUG LOOT BOOST</div>
         </div>
+    </div>
 
         <!-- Mobile Ultimate Button -->
         <div id="ult-btn" class="ult-btn" onclick="Game.triggerUlt()">
@@ -89,6 +90,7 @@
             <button class="debug-action-btn" onclick="Menu.openSpriteViewer()">SPRITE VIEWER</button>
             <button class="debug-action-btn" onclick="Debug.addGold(5000)">ADD 5000 GOLD</button>
             <button class="debug-action-btn" onclick="Debug.unlockAll()">UNLOCK ALL PILOTS</button>
+            <button id="debug-loot-boost" class="debug-action-btn" onclick="Debug.toggleLootBoost()">LOOT BOOST: OFF</button>
             <button class="debug-action-btn" onclick="Debug.resetProgress()" style="border-color: #f00;">WIPE ALL DATA</button>
         </div>
         <button onclick="Menu.closeDebug()" style="margin-top:20px;">EXIT DEBUG</button>
@@ -154,6 +156,7 @@
         <h1>EXTRACTION</h1>
         <p style="font-size:10px; color:#aaa; margin-bottom:10px;">Click reveal to unveil your haul.</p>
         <div id="extract-grid" class="extract-grid"></div>
+        <div id="extract-confetti" class="extract-confetti"></div>
         <div style="display:flex; gap:12px; margin-top:16px;">
             <button id="extract-reveal-btn">REVEAL</button>
             <button id="extract-continue-btn">CONTINUE</button>

@@ -82,6 +82,23 @@ canvas {
   gap: 8px;
 }
 
+.debug-hud {
+  display: none;
+  font-size: 8px;
+  color: var(--debug);
+  border: 1px solid var(--debug);
+  background: rgba(99, 102, 241, 0.15);
+  padding: 4px 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  text-shadow: 2px 2px 0 #000;
+}
+
+.debug-hud.active {
+  display: inline-flex;
+  align-self: flex-end;
+}
+
 #hud-veiled {
   color: var(--rare);
 }
@@ -353,11 +370,59 @@ canvas {
   align-items: center;
   justify-content: center;
   gap: 4px;
+  position: relative;
 }
 
 .loot-item.secured {
   border-color: #fbbf24;
   box-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+}
+
+.loot-item.rarity-common {
+  border-color: #e5e7eb;
+}
+
+.loot-item.rarity-magic {
+  border-color: #60a5fa;
+}
+
+.loot-item.rarity-rare {
+  border-color: var(--rare);
+}
+
+.loot-item.rarity-legendary {
+  border-color: var(--gold);
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.2);
+}
+
+.loot-item.type-relic {
+  border-color: #f97316;
+  box-shadow: 0 0 8px rgba(249, 115, 22, 0.3);
+}
+
+.loot-item.rarity-common .loot-name,
+.loot-item.rarity-common .loot-meta {
+  color: #e5e7eb;
+}
+
+.loot-item.rarity-magic .loot-name,
+.loot-item.rarity-magic .loot-meta {
+  color: #60a5fa;
+}
+
+.loot-item.rarity-rare .loot-name,
+.loot-item.rarity-rare .loot-meta {
+  color: var(--rare);
+}
+
+.loot-item.rarity-legendary .loot-name,
+.loot-item.rarity-legendary .loot-meta {
+  color: var(--gold);
+}
+
+.loot-item.type-relic .loot-name,
+.loot-item.type-relic .loot-meta {
+  color: #f97316;
 }
 
 .loot-icon {
@@ -373,6 +438,19 @@ canvas {
   color: #9ca3af;
 }
 
+.loot-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(249, 115, 22, 0.2);
+  border: 1px solid #f97316;
+  color: #f97316;
+  font-size: 9px;
+  line-height: 12px;
+}
 .extract-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -381,6 +459,10 @@ canvas {
   max-height: 50vh;
   overflow-y: auto;
   margin-top: 10px;
+}
+
+.extract-grid.revealing .extract-item {
+  animation: unveil-warmup 0.45s ease-in-out;
 }
 
 .extract-item {
@@ -395,12 +477,64 @@ canvas {
   flex-direction: column;
   justify-content: center;
   gap: 4px;
+  position: relative;
+}
+
+.extract-item.unveiling {
+  animation: unveil-wiggle 0.25s ease-in-out;
 }
 
 .extract-item.revealed {
-  border-color: #fbbf24;
-  box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
   animation: unveil-pop 0.35s ease-out;
+}
+
+.extract-item.revealed.rarity-common {
+  border-color: #e5e7eb;
+}
+
+.extract-item.revealed.rarity-common .extract-item-name,
+.extract-item.revealed.rarity-common .extract-item-meta {
+  color: #e5e7eb;
+}
+
+.extract-item.revealed.rarity-magic {
+  border-color: #60a5fa;
+  box-shadow: 0 0 10px rgba(96, 165, 250, 0.3);
+}
+
+.extract-item.revealed.rarity-magic .extract-item-name,
+.extract-item.revealed.rarity-magic .extract-item-meta {
+  color: #60a5fa;
+}
+
+.extract-item.revealed.rarity-rare {
+  border-color: var(--rare);
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
+}
+
+.extract-item.revealed.rarity-rare .extract-item-name,
+.extract-item.revealed.rarity-rare .extract-item-meta {
+  color: var(--rare);
+}
+
+.extract-item.revealed.rarity-legendary {
+  border-color: var(--gold);
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.4);
+}
+
+.extract-item.revealed.rarity-legendary .extract-item-name,
+.extract-item.revealed.rarity-legendary .extract-item-meta {
+  color: var(--gold);
+}
+
+.extract-item.revealed.type-relic {
+  border-color: #f97316;
+  box-shadow: 0 0 12px rgba(249, 115, 22, 0.45);
+}
+
+.extract-item.revealed.type-relic .extract-item-name,
+.extract-item.revealed.type-relic .extract-item-meta {
+  color: #f97316;
 }
 
 .extract-item-name {
@@ -412,6 +546,40 @@ canvas {
   color: #9ca3af;
 }
 
+.extract-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: rgba(249, 115, 22, 0.2);
+  border: 1px solid #f97316;
+  color: #f97316;
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.extract-confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.confetti-piece {
+  position: absolute;
+  width: 6px;
+  height: 12px;
+  opacity: 0.9;
+  animation: confetti-fall 1.6s ease-out forwards;
+}
+
+.btn-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 .extract-tooltip {
   position: fixed;
   display: none;
@@ -419,14 +587,38 @@ canvas {
   min-width: 180px;
   max-width: 240px;
   background: rgba(0, 0, 0, 0.8);
-  border: 2px solid #fbbf24;
+  border: 2px solid #6b7280;
   padding: 10px;
-  font-size: 9px;
+  font-size: 10px;
   color: #e5e7eb;
   text-align: left;
   pointer-events: none;
   left: 0;
   top: 0;
+}
+
+.tooltip-neutral {
+  border-color: #6b7280;
+}
+
+.tooltip-common {
+  border-color: #e5e7eb;
+}
+
+.tooltip-magic {
+  border-color: #60a5fa;
+}
+
+.tooltip-rare {
+  border-color: var(--rare);
+}
+
+.tooltip-legendary {
+  border-color: var(--gold);
+}
+
+.tooltip-relic {
+  border-color: #f97316;
 }
 
 @keyframes unveil-pop {
@@ -440,6 +632,43 @@ canvas {
   }
 }
 
+@keyframes unveil-warmup {
+  0% {
+    transform: scale(1);
+    filter: brightness(0.7);
+  }
+  60% {
+    transform: scale(1.02);
+    filter: brightness(1.1);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+@keyframes unveil-wiggle {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  50% { transform: translateX(3px); }
+  75% { transform: translateX(-2px); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-10vh) rotate(0deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh) rotate(520deg);
+    opacity: 0;
+  }
+}
+
 .loadout-tooltip {
   position: fixed;
   display: none;
@@ -449,7 +678,7 @@ canvas {
   background: rgba(0, 0, 0, 0.75);
   border: 2px solid #6b7280;
   padding: 10px;
-  font-size: 9px;
+  font-size: 10px;
   color: #e5e7eb;
   text-align: left;
   pointer-events: none;
@@ -463,6 +692,26 @@ canvas {
   margin-bottom: 4px;
 }
 
+.tooltip-common .loadout-detail-title {
+  color: #e5e7eb;
+}
+
+.tooltip-magic .loadout-detail-title {
+  color: #60a5fa;
+}
+
+.tooltip-rare .loadout-detail-title {
+  color: var(--rare);
+}
+
+.tooltip-legendary .loadout-detail-title {
+  color: var(--gold);
+}
+
+.tooltip-relic .loadout-detail-title {
+  color: #f97316;
+}
+
 .loadout-detail-meta {
   font-size: 8px;
   color: #9ca3af;
@@ -472,7 +721,33 @@ canvas {
 .loadout-detail-stats {
   display: grid;
   gap: 2px;
-  font-size: 8px;
+  font-size: 9px;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+
+.affix-line {
+  color: #e5e7eb;
+}
+
+.affix-line.tier-1 {
+  color: #cbd5f5;
+}
+
+.affix-line.tier-2 {
+  color: #60a5fa;
+}
+
+.affix-line.tier-3 {
+  color: #c084fc;
+}
+
+.affix-line.tier-4 {
+  color: #fbbf24;
+}
+
+.affix-line.tier-5 {
+  color: #f97316;
 }
 
 .loot-empty {
@@ -561,6 +836,33 @@ canvas {
 .stash-slot.selected {
   border-color: #fbbf24;
   box-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+}
+
+.stash-slot.rarity-common,
+.loadout-slot.rarity-common {
+  border-color: #e5e7eb;
+}
+
+.stash-slot.rarity-magic,
+.loadout-slot.rarity-magic {
+  border-color: #60a5fa;
+}
+
+.stash-slot.rarity-rare,
+.loadout-slot.rarity-rare {
+  border-color: var(--rare);
+}
+
+.stash-slot.rarity-legendary,
+.loadout-slot.rarity-legendary {
+  border-color: var(--gold);
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.2);
+}
+
+.stash-slot.type-relic,
+.loadout-slot.type-relic {
+  border-color: #f97316;
+  box-shadow: 0 0 8px rgba(249, 115, 22, 0.25);
 }
 
 h1 {

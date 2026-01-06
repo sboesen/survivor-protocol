@@ -1,5 +1,6 @@
 import type { LoadoutData } from '../types';
 import type { Item, ItemAffix, StashSlot } from '../items/types';
+import { AFFIX_TIER_BRACKETS } from '../items/affixTables';
 import {
   LOADOUT_SLOT_LABELS,
   LOADOUT_SLOT_ORDER,
@@ -38,6 +39,8 @@ class LoadoutUISystem {
 
       if (slotItem) {
         cell.classList.add('filled');
+        cell.classList.add(`rarity-${slotItem.rarity}`);
+        if (slotItem.type === 'relic') cell.classList.add('type-relic');
       }
 
       const label = document.createElement('div');
@@ -81,6 +84,8 @@ class LoadoutUISystem {
 
       if (slot) {
         cell.classList.add('filled');
+        cell.classList.add(`rarity-${slot.rarity}`);
+        if (slot.type === 'relic') cell.classList.add('type-relic');
         cell.textContent = slot.name;
       }
 
@@ -91,6 +96,9 @@ class LoadoutUISystem {
       cell.onblur = () => this.hideTooltip(tooltip);
       cell.onclick = () => {
         this.handleStashClick(index, stash, loadout);
+      };
+      cell.ondblclick = () => {
+        this.handleStashDoubleClick(index, stash, loadout);
       };
 
       stashGrid.appendChild(cell);
@@ -121,9 +129,13 @@ class LoadoutUISystem {
       percentXp: 'XP',
       allStats: 'All Stats',
     };
+    const bracket = AFFIX_TIER_BRACKETS[affix.type]?.[affix.tier - 1];
     const sign = affix.value >= 0 ? '+' : '';
     const value = affix.isPercent ? `${affix.value}%` : `${affix.value}`;
-    return `${sign}${value} ${labels[affix.type] ?? affix.type}`;
+    const bracketSuffix = bracket
+      ? ` (${bracket.min}${affix.isPercent ? '%' : ''}-${bracket.max}${affix.isPercent ? '%' : ''})`
+      : '';
+    return `T${affix.tier} ${sign}${value} ${labels[affix.type] ?? affix.type}${bracketSuffix}`;
   }
 
   private populateDetail(detailEl: HTMLElement, item: Item): void {
@@ -143,6 +155,7 @@ class LoadoutUISystem {
     } else {
       item.affixes.forEach(affix => {
         const line = document.createElement('div');
+        line.className = `affix-line tier-${affix.tier}`;
         line.textContent = this.formatAffix(affix);
         stats.appendChild(line);
       });
@@ -194,6 +207,8 @@ class LoadoutUISystem {
     if (!tooltip) return;
 
     tooltip.innerHTML = '';
+    const item = this.resolveSelectionItem(selection, stash, loadout);
+    this.applyTooltipTheme(tooltip, item);
     this.renderDetail(tooltip, selection, stash, loadout);
     if (!tooltip.innerHTML) {
       this.hideTooltip(tooltip);
@@ -239,7 +254,32 @@ class LoadoutUISystem {
   private hideTooltip(tooltip: HTMLElement | null): void {
     if (!tooltip) return;
     tooltip.innerHTML = '';
+    tooltip.className = 'loadout-tooltip';
     tooltip.style.display = 'none';
+  }
+
+  private resolveSelectionItem(
+    selection: Selection,
+    stash: StashSlot[],
+    loadout: LoadoutData
+  ): Item | null {
+    if (selection.type === 'stash') {
+      return stash[selection.index] ?? null;
+    }
+    return loadout[selection.slot] ?? null;
+  }
+
+  private applyTooltipTheme(tooltip: HTMLElement, item: Item | null): void {
+    tooltip.className = 'loadout-tooltip';
+    if (!item) {
+      tooltip.classList.add('tooltip-neutral');
+      return;
+    }
+    if (item.type === 'relic') {
+      tooltip.classList.add('tooltip-relic');
+      return;
+    }
+    tooltip.classList.add(`tooltip-${item.rarity}`);
   }
 
   private handleStashClick(index: number, stash: StashSlot[], loadout: LoadoutData): void {
@@ -270,6 +310,21 @@ class LoadoutUISystem {
     const loadoutItem = loadout[this.selected.slot];
     loadout[this.selected.slot] = clickedItem ?? null;
     stash[index] = loadoutItem ?? null;
+    this.selected = null;
+    SaveData.save();
+    this.render(stash, loadout);
+  }
+
+  private handleStashDoubleClick(index: number, stash: StashSlot[], loadout: LoadoutData): void {
+    const item = stash[index];
+    if (!item) return;
+
+    const slotId = this.findAutoEquipSlot(item, loadout);
+    if (!slotId) return;
+
+    const targetItem = loadout[slotId];
+    loadout[slotId] = item;
+    stash[index] = targetItem ?? null;
     this.selected = null;
     SaveData.save();
     this.render(stash, loadout);
@@ -323,6 +378,13 @@ class LoadoutUISystem {
     this.selected = null;
     SaveData.save();
     this.render(stash, loadout);
+  }
+
+  private findAutoEquipSlot(item: Item, loadout: LoadoutData): LoadoutSlotId | null {
+    const compatible = LOADOUT_SLOT_ORDER.filter(slot => isSlotCompatible(slot, item));
+    if (compatible.length === 0) return null;
+    const emptySlot = compatible.find(slot => !loadout[slot]);
+    return emptySlot ?? compatible[0];
   }
 }
 

@@ -93,6 +93,7 @@ class GameCore {
   collectedLoot: Item[] = [];
   securedLootId: string | null = null;
   lootInventoryOpen = false;
+  debugLootBoost = false;
 
   input: InputState = {
     x: 0,
@@ -360,6 +361,10 @@ class GameCore {
     } else {
       UI.hideLootInventory();
     }
+  }
+
+  setDebugLootBoost(enabled: boolean): void {
+    this.debugLootBoost = enabled;
   }
 
   secureLoot(itemId: string): void {
@@ -1102,9 +1107,13 @@ class GameCore {
       this.loot.push(new Loot(e.x, e.y, lootType));
 
       const luck = this.player?.luck ?? 0;
-      if (shouldDropItem(e.type, luck, this.mins)) {
+      const forceDrop = this.debugLootBoost;
+      if (forceDrop || shouldDropItem(e.type, luck, this.mins)) {
         const itemType = rollItemType();
-        const item = ItemGenerator.generate({ itemType, luck });
+        const rollRelic = this.debugLootBoost && Math.random() < 0.1;
+        const finalItemType = rollRelic ? 'relic' : itemType;
+        const rarityBoost = rollRelic ? 3 : 0;
+        const item = ItemGenerator.generate({ itemType: finalItemType, luck, rarityBoost });
         this.loot.push(new Loot(e.x, e.y, 'orb', item));
       }
     }

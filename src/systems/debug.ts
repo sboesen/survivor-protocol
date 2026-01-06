@@ -4,6 +4,8 @@ import { CONFIG } from '../config';
 import { Game } from '../game';
 
 class DebugSystem {
+  private lootBoostEnabled = false;
+
   addGold(amt: number): void {
     SaveData.data.gold += amt;
     SaveData.save();
@@ -24,6 +26,20 @@ class DebugSystem {
     if (confirm('THIS WILL ERASE EVERYTHING! Continue?')) {
       localStorage.removeItem('survivor_protocol_v2');
       location.reload();
+    }
+  }
+
+  toggleLootBoost(): void {
+    this.lootBoostEnabled = !this.lootBoostEnabled;
+    Game.setDebugLootBoost(this.lootBoostEnabled);
+    const btn = document.getElementById('debug-loot-boost');
+    const indicator = document.getElementById('debug-loot-indicator');
+    if (btn) {
+      btn.textContent = this.lootBoostEnabled ? 'LOOT BOOST: ON' : 'LOOT BOOST: OFF';
+    }
+    if (indicator) {
+      if (this.lootBoostEnabled) indicator.classList.add('active');
+      else indicator.classList.remove('active');
     }
   }
 
