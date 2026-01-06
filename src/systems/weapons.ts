@@ -316,8 +316,8 @@ export function fireSpray(
   const isShieldBash = weaponId === 'shield_bash';
   const gasColor = isLighter ? '#ffcccc' : (isShieldBash ? '#8899aa' : '#33ff33');
   const pelletCount = isLighter ? 3 : (isShieldBash ? (w.pelletCount || 4) : (w.pelletCount || 5));
-  const spreadAmount = w.spread || (isLighter ? 0.25 : (isShieldBash ? 0.5 : 0.4));
-  const coneLength = w.coneLength || (isShieldBash ? 50 : (isLighter ? 60 : 60));
+  const spreadAmount = w.spread || (isLighter ? 0.6 : (isShieldBash ? 0.5 : 0.4));
+  const coneLength = w.coneLength || (isShieldBash ? 50 : (isLighter ? 110 : 60));
 
   return {
     fired: true,

@@ -12,6 +12,8 @@ import type { Obstacle } from '../../entities/obstacle';
 import type { Particle } from '../../entities/particle';
 import { bubbleVertexShader } from './water/shaders/bubbleVertex';
 import { bubbleFragmentShader } from './water/shaders/bubbleFragment';
+import { flameConeVertexShader } from './shaders/flame/FlameConeVertex';
+import { flameConeFragmentShader } from './shaders/flame/FlameConeFragment';
 
 /**
  * Main Three.js renderer for game entities.
@@ -30,7 +32,8 @@ export class ThreeRenderer {
   private projectileViews: WeakMap<Projectile, THREE.Object3D> = new WeakMap();
   private lootViews: WeakMap<Loot, THREE.Group> = new WeakMap();
   private fireballViews: WeakMap<FireballProjectile, THREE.Group> = new WeakMap();
-  private obstacleViews: WeakMap<Obstacle, THREE.Group> = new WeakMap();
+  private obstacleViews: Map<Obstacle, THREE.Group> = new Map();
+  private flameConeViews: Map<string, THREE.Mesh> = new Map(); // Keyed by weaponId/source
 
   // Keep track of active entities for cleanup
   private activeEnemies = new Set<Enemy>();
@@ -38,6 +41,7 @@ export class ThreeRenderer {
   private activeLoot = new Set<Loot>();
   private activeFireballs = new Set<FireballProjectile>();
   private activeObstacles = new Set<Obstacle>();
+  private activeFlameCones: Set<string> = new Set();
 
   // Player view
   private playerView: THREE.Group | null = null;
@@ -155,7 +159,8 @@ export class ThreeRenderer {
     obstacles: Obstacle[],
     width: number,
     height: number,
-    alpha = 1
+    alpha = 1,
+    aimAngle = 0
   ): void {
     if (!ThreeRenderer.enabled) return;
 
@@ -179,6 +184,9 @@ export class ThreeRenderer {
     this.renderFireballs(fireballs, alpha);
     this.renderParticles(particles, alpha);
     this.renderObstacles(obstacles);
+    if (player) {
+      this.renderFlameCones(player, alpha, aimAngle);
+    }
     this.renderIllumination(particles, fireballs, alpha);
 
     // Finally render the scene
@@ -1873,6 +1881,78 @@ void main() {
     } else {
       this.gridLines.geometry.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
       this.gridLines.geometry.attributes.position.needsUpdate = true;
+    }
+  }
+
+  private renderFlameCones(player: Player, alpha: number, aimAngle: number): void {
+    const lighter = player.weapons.find(w => w.id === 'lighter');
+    this.activeFlameCones.clear();
+
+    if (lighter && lighter.curCd > 0) {
+      const weaponId = 'player_lighter';
+      this.activeFlameCones.add(weaponId);
+
+      let view = this.flameConeViews.get(weaponId);
+      const intensity = 1.3;
+      const spread = (lighter.spread || 0.6) * 0.8; // Visual spread refined
+      const scaleValue = lighter.coneLength || 110;
+      const colorSource = new THREE.Color('#ff8844');
+      const colorCore = new THREE.Color('#ff4400');
+      const colorEdge = new THREE.Color('#661100');
+
+      if (!view) {
+        // Plane is (1, 1). We'll offset it so the bottom center is the pivot
+        const geometry = new THREE.PlaneGeometry(1, 1, 32, 32);
+        geometry.translate(0, 0.5, 0); // Pivot at bottom center
+
+        const material = new THREE.ShaderMaterial({
+          uniforms: {
+            uTime: { value: 0 },
+            uSpread: { value: spread },
+            uIntensity: { value: intensity },
+            uColorSource: { value: colorSource },
+            uColorCore: { value: colorCore },
+            uColorEdge: { value: colorEdge },
+          },
+          vertexShader: flameConeVertexShader,
+          fragmentShader: flameConeFragmentShader,
+          transparent: true,
+          depthTest: false,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+          side: THREE.DoubleSide
+        });
+        view = new THREE.Mesh(geometry, material);
+        view.frustumCulled = false;
+        view.renderOrder = 999;
+        this.sceneManager.addToScene(view);
+        this.flameConeViews.set(weaponId, view);
+      }
+
+      // Update position, rotation, and sync scale with coneLength
+      view.scale.set(scaleValue, scaleValue, 1);
+      const interp = this.getInterpolatedPosition(player, alpha);
+      const pos = this.cameraController.getWrappedRenderPosition(interp.x, interp.y);
+      view.position.set(pos.x, pos.y, 10); // Normal Z depth
+
+      // Orientation (aim angle)
+      view.rotation.z = aimAngle - Math.PI / 2;
+
+      // Uniforms
+      if (view.material instanceof THREE.ShaderMaterial) {
+        view.material.uniforms.uTime.value = performance.now() / 1000;
+        view.material.uniforms.uSpread.value = spread;
+        view.material.uniforms.uIntensity.value = intensity;
+      }
+      view.visible = true;
+    }
+
+    // Cleanup inactive flame cones
+    for (const [id, view] of this.flameConeViews.entries()) {
+      if (!this.activeFlameCones.has(id)) {
+        view.visible = false;
+        // Optionally dispose after a timeout
+      }
     }
   }
 

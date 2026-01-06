@@ -636,45 +636,26 @@ class GameCore {
           if (result.spray) {
             const { baseAngle, isLighter, gasColor, pelletCount, spreadAmount, coneLength } = result.spray;
 
-            // Spawn gas cloud particles (pepper spray and lighter)
-            for (let i = 0; i < (isLighter ? 10 : 6); i++) {
-              const dist = 10 + Math.random() * (isLighter ? 50 : 80);
-              let gasSpread = isLighter ? spreadAmount * 0.3 : spreadAmount;
-              if (isLighter) {
-                const distFactor = (dist - 10) / 50;
-                gasSpread = spreadAmount * (0.15 + distFactor * 0.3);
-              }
-              const spreadAngle = baseAngle + (Math.random() - 0.5) * gasSpread;
-              this.spawnParticles({
-                type: 'gas' as ParticleType,
-                x: p.x + Math.cos(spreadAngle) * dist + (Math.random() - 0.5) * 10,
-                y: p.y + Math.sin(spreadAngle) * dist + (Math.random() - 0.5) * 10,
-                size: isLighter ? 5 + Math.random() * 5 : 7 + Math.random() * 5,
-                vx: Math.cos(spreadAngle) * 0.3 + (Math.random() - 0.5) * 0.5,
-                vy: Math.sin(spreadAngle) * 0.3 + (Math.random() - 0.5) * 0.5,
-                color: gasColor
-              }, 1);
-            }
-
-            // Fire particles (lighter only)
-            if (isLighter) {
-              const fireCount = w.speedMult ? Math.floor(5 * w.speedMult) : 5;
-              const flowMult = w.speedMult || 1;
-              for (let i = 0; i < fireCount; i++) {
-                const dist = 15 + Math.random() * 30 * flowMult;
-                const spreadAngle = baseAngle + (Math.random() - 0.5) * 0.2;
-                const flowSpeed = (1 + Math.random() * 1.5) * flowMult;
-                const flowAngle = spreadAngle + (Math.random() - 0.5) * 0.3;
+            // Spawn gas cloud particles (pepper spray ONLY)
+            // Lighter now uses a unified high-fidelity shader cone
+            if (!isLighter) {
+              for (let i = 0; i < 6; i++) {
+                const dist = 10 + Math.random() * 80;
+                const gasSpread = spreadAmount;
+                const spreadAngle = baseAngle + (Math.random() - 0.5) * gasSpread;
                 this.spawnParticles({
-                  type: 'fire' as ParticleType,
-                  x: p.x + Math.cos(spreadAngle) * dist + (Math.random() - 0.5) * 8,
-                  y: p.y + Math.sin(spreadAngle) * dist + (Math.random() - 0.5) * 8,
-                  size: 2 + Math.random() * 2,
-                  vx: Math.cos(flowAngle) * flowSpeed,
-                  vy: Math.sin(flowAngle) * flowSpeed
+                  type: 'gas' as ParticleType,
+                  x: p.x + Math.cos(spreadAngle) * dist + (Math.random() - 0.5) * 10,
+                  y: p.y + Math.sin(spreadAngle) * dist + (Math.random() - 0.5) * 10,
+                  size: 7 + Math.random() * 5,
+                  vx: Math.cos(spreadAngle) * 0.3 + (Math.random() - 0.5) * 0.5,
+                  vy: Math.sin(spreadAngle) * 0.3 + (Math.random() - 0.5) * 0.5,
+                  color: gasColor
                 }, 1);
               }
             }
+
+            // Fire particles (DIBALED: Now handled by cinematic shader cone)
 
             // Damage pellets (pepper spray only)
             if (!isLighter) {
@@ -716,6 +697,11 @@ class GameCore {
                   if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
                   if (angleDiff < spreadAmount / 2) {
                     this.hitEnemy(e, dmg * 2, isCrit);
+                    // Add outward knockback to counteract "sucking" feel
+                    const kbAngle = Math.atan2(edy, edx);
+                    const newPos = applyKnockback(e, kbAngle, 4); // 4 units outward
+                    e.x = newPos.x;
+                    e.y = newPos.y;
                   }
                 }
               }
@@ -1096,7 +1082,8 @@ class GameCore {
       this.obstacles,
       window.innerWidth,
       window.innerHeight,
-      alpha
+      alpha,
+      this.input.aimAngle
     );
 
     // Render UI (health bar, joysticks)

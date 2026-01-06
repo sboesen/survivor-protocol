@@ -62,7 +62,7 @@ export class SceneManager {
     threeCanvas.style.left = '0';
     threeCanvas.style.width = '100%';
     threeCanvas.style.height = '100%';
-    threeCanvas.style.zIndex = '0';
+    threeCanvas.style.zIndex = '99';
     threeCanvas.style.pointerEvents = 'none';
     document.body.appendChild(threeCanvas);
 

@@ -170,11 +170,11 @@ export class Player extends Entity {
               if (w.level === 5) w.projectileCount = 2;
               break;
             case 'lighter':
-              // Level 2: +cone length, Level 3: +cone width, Level 4: fire particles travel farther, Level 5: +burn damage
-              if (w.level === 2) w.coneLength = 80;
-              if (w.level === 3) w.spread = 0.35;
-              if (w.level === 4) w.coneLength = 100;
-              if (w.level === 5) w.speedMult = 1.5; // Makes fire particles travel farther
+              // Level 2: +cone length, Level 3: +cone width, Level 4: fire particles travel even farther, Level 5: +burn damage
+              if (w.level === 2) w.coneLength = 150;
+              if (w.level === 3) w.spread = 1.8;
+              if (w.level === 4) w.coneLength = 200;
+              if (w.level === 5) w.speedMult = 2.0;
               break;
             case 'shield_bash':
               // Level 2: +range, Level 3: wider cone, Level 4: +knockback, Level 5: +damage and knockback
