@@ -43,8 +43,10 @@ export class ThreeRenderer {
   private activeObstacles = new Set<Obstacle>();
   private activeFlameCones: Set<string> = new Set();
 
-  // Player view
+  // Player view and aim indicator
   private playerView: THREE.Group | null = null;
+  private aimIndicator: THREE.Sprite | null = null;
+  private aimIndicatorTexture: THREE.CanvasTexture | null = null;
 
   // Particles are recreated each frame
   private particleViews: THREE.Points[] = [];
@@ -176,7 +178,7 @@ export class ThreeRenderer {
 
     // Render all entities
     if (player && interpPlayer) {
-      this.renderPlayer(player, interpPlayer.x, interpPlayer.y);
+      this.renderPlayer(player, interpPlayer.x, interpPlayer.y, aimAngle);
     }
     this.renderEnemies(enemies, alpha);
     this.renderProjectiles(projectiles, alpha);
@@ -245,7 +247,7 @@ export class ThreeRenderer {
     }
   }
 
-  private renderPlayer(player: Player | null, renderX: number, renderY: number): void {
+  private renderPlayer(player: Player | null, renderX: number, renderY: number, aimAngle: number): void {
     if (!player) return;
 
     if (!this.playerView) {
@@ -254,9 +256,61 @@ export class ThreeRenderer {
       this.sceneManager.addToScene(this.playerView);
     }
 
+    if (!this.aimIndicator) {
+      this.aimIndicatorTexture = this.createAimIndicatorTexture();
+      const material = new THREE.SpriteMaterial({
+        map: this.aimIndicatorTexture,
+        transparent: true,
+        opacity: 0.6,
+        depthTest: false,
+      });
+      this.aimIndicator = new THREE.Sprite(material);
+      // Brackets are smaller now (20% reduction from 30)
+      this.aimIndicator.scale.set(24, 24, 1);
+      this.sceneManager.addToScene(this.aimIndicator);
+    }
+
     const pos = this.cameraController.getWrappedRenderPosition(renderX, renderY);
     this.playerView.position.set(pos.x, pos.y, 10);
     this.playerView.visible = true;
+
+    // Update aim indicator position (offset further out) and rotation
+    const distance = 28;
+    this.aimIndicator.position.set(
+      pos.x + Math.cos(aimAngle) * distance,
+      pos.y + Math.sin(aimAngle) * distance,
+      11
+    );
+    this.aimIndicator.material.rotation = -aimAngle;
+    this.aimIndicator.visible = true;
+  }
+
+  private createAimIndicatorTexture(size: number = 64): THREE.CanvasTexture {
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return new THREE.CanvasTexture(canvas);
+
+    ctx.strokeStyle = '#22ff66'; // Subtle green
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // Draw > shape (centered in texture)
+    const margin = size * 0.25;
+    const width = size * 0.35;
+    const centerX = size / 2;
+    const centerY = size / 2;
+
+    ctx.beginPath();
+    ctx.moveTo(centerX - width / 2, margin);
+    ctx.lineTo(centerX + width / 2, centerY);
+    ctx.lineTo(centerX - width / 2, size - margin);
+    ctx.stroke();
+
+    const texture = new THREE.CanvasTexture(canvas);
+    return texture;
   }
 
   private renderEnemies(enemies: Enemy[], alpha: number): void {
@@ -2180,6 +2234,11 @@ void main() {
   dispose(): void {
     this.spriteManager.dispose();
     this.sceneManager.dispose();
+
+    if (this.aimIndicatorTexture) {
+      this.aimIndicatorTexture.dispose();
+      this.aimIndicatorTexture = null;
+    }
 
     // Clear grid lines
     if (this.gridLines) {
