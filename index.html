@@ -149,6 +149,17 @@
         <button onclick="Game.returnToMenu()">EXTRACT</button>
     </div>
 
+    <!-- Extraction Screen -->
+    <div id="extract-screen" class="screen">
+        <h1>EXTRACTION</h1>
+        <p style="font-size:10px; color:#aaa; margin-bottom:10px;">Click reveal to unveil your haul.</p>
+        <div id="extract-grid" class="extract-grid"></div>
+        <div style="display:flex; gap:12px; margin-top:16px;">
+            <button id="extract-reveal-btn">REVEAL</button>
+            <button id="extract-continue-btn">CONTINUE</button>
+        </div>
+    </div>
+
     <!-- Loot Inventory Screen -->
     <div id="loot-inventory-screen" class="screen">
         <h1>RUN LOOT</h1>
@@ -158,6 +169,7 @@
     </div>
 
     <div id="loadout-tooltip" class="loadout-tooltip"></div>
+    <div id="extract-tooltip" class="extract-tooltip"></div>
 </div>
 
 <script type="module" src="/src/main.ts"></script>

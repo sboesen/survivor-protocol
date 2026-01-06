@@ -1,6 +1,6 @@
 import { CHARACTERS } from '../data/characters';
 import { UPGRADES } from '../data/upgrades';
-import type { Item } from '../items/types';
+import type { Item, ItemAffix } from '../items/types';
 import { Utils } from '../utils';
 
 class UISystem {
@@ -177,6 +177,158 @@ class UISystem {
     if (screen) screen.classList.add('active');
   }
 
+  showExtractionScreen(items: Item[], onContinue: () => void): void {
+    const screen = this.getEl('extract-screen');
+    const grid = this.getEl('extract-grid');
+    const revealBtn = this.getEl('extract-reveal-btn') as HTMLButtonElement | null;
+    const continueBtn = this.getEl('extract-continue-btn') as HTMLButtonElement | null;
+    const tooltip = this.getEl('extract-tooltip');
+
+    if (screen) screen.classList.add('active');
+    if (!grid || !revealBtn || !continueBtn) return;
+
+    let revealed = false;
+
+    const formatAffix = (affix: ItemAffix): string => {
+      const labels: Record<ItemAffix['type'], string> = {
+        flatDamage: 'Damage',
+        percentDamage: 'Damage',
+        areaFlat: 'Area',
+        areaPercent: 'Area',
+        cooldownReduction: 'Cooldown Reduction',
+        projectiles: 'Projectiles',
+        pierce: 'Pierce',
+        duration: 'Duration',
+        speed: 'Speed',
+        maxHp: 'Max HP',
+        armor: 'Armor',
+        hpRegen: 'HP Regen',
+        percentHealing: 'Healing',
+        magnet: 'Magnet',
+        luck: 'Luck',
+        percentGold: 'Gold',
+        pickupRadius: 'Pickup Radius',
+        percentXp: 'XP',
+        allStats: 'All Stats',
+      };
+      const sign = affix.value >= 0 ? '+' : '';
+      const value = affix.isPercent ? `${affix.value}%` : `${affix.value}`;
+      return `${sign}${value} ${labels[affix.type] ?? affix.type}`;
+    };
+
+    const hideTooltip = (): void => {
+      if (!tooltip) return;
+      tooltip.innerHTML = '';
+      tooltip.style.display = 'none';
+    };
+
+    const showTooltip = (item: Item, event?: MouseEvent): void => {
+      if (!tooltip) return;
+      tooltip.innerHTML = '';
+
+      const title = document.createElement('div');
+      title.className = 'loadout-detail-title';
+      title.textContent = item.name;
+
+      const meta = document.createElement('div');
+      meta.className = 'loadout-detail-meta';
+      meta.textContent = `${item.rarity.toUpperCase()} ${item.type.toUpperCase()}`;
+
+      const stats = document.createElement('div');
+      stats.className = 'loadout-detail-stats';
+      if (item.affixes.length === 0) {
+        stats.textContent = 'No affixes.';
+      } else {
+        item.affixes.forEach(affix => {
+          const line = document.createElement('div');
+          line.textContent = formatAffix(affix);
+          stats.appendChild(line);
+        });
+      }
+
+      tooltip.appendChild(title);
+      tooltip.appendChild(meta);
+      tooltip.appendChild(stats);
+      tooltip.style.display = 'block';
+
+      if (event) {
+        const width = tooltip.offsetWidth;
+        const height = tooltip.offsetHeight;
+        let x = event.clientX + 12;
+        let y = event.clientY + 12;
+        const maxX = window.innerWidth - width - 8;
+        const maxY = window.innerHeight - height - 8;
+        if (x > maxX) x = maxX;
+        if (y > maxY) y = maxY;
+        if (x < 8) x = 8;
+        if (y < 8) y = 8;
+        tooltip.style.left = `${x}px`;
+        tooltip.style.top = `${y}px`;
+      }
+    };
+
+    grid.innerHTML = '';
+
+    const itemButtons: HTMLButtonElement[] = [];
+    items.forEach((item, index) => {
+      const button = document.createElement('button');
+      button.className = 'extract-item';
+      button.textContent = 'VEILED';
+
+      button.onmouseenter = (event) => {
+        if (!revealed) return;
+        showTooltip(item, event);
+      };
+      button.onmousemove = (event) => {
+        if (!revealed) return;
+        showTooltip(item, event);
+      };
+      button.onmouseleave = () => hideTooltip();
+      button.onfocus = () => {
+        if (!revealed) return;
+        showTooltip(item);
+      };
+      button.onblur = () => hideTooltip();
+
+      grid.appendChild(button);
+      itemButtons[index] = button;
+    });
+
+    revealBtn.onclick = () => {
+      if (revealed) return;
+      revealed = true;
+      hideTooltip();
+      itemButtons.forEach((button, index) => {
+        const item = items[index];
+        const delay = index * 80;
+        window.setTimeout(() => {
+          button.classList.add('revealed');
+          button.innerHTML = `
+            <span class="extract-item-name">${item.name}</span>
+            <span class="extract-item-meta">${item.rarity.toUpperCase()} ${item.type.toUpperCase()}</span>
+          `;
+        }, delay);
+      });
+    };
+
+    continueBtn.onclick = () => {
+      this.hideExtractionScreen();
+      onContinue();
+    };
+
+    hideTooltip();
+  }
+
+  hideExtractionScreen(): void {
+    const screen = this.getEl('extract-screen');
+    const tooltip = this.getEl('extract-tooltip');
+    if (screen) screen.classList.remove('active');
+    if (tooltip) {
+      tooltip.innerHTML = '';
+      tooltip.style.display = 'none';
+    }
+  }
+
   showLootInventory(
     items: Item[],
     securedId: string | null,
@@ -225,8 +377,8 @@ class UISystem {
       if (item.id === securedId) button.classList.add('secured');
       button.innerHTML = `
         <span class="loot-icon">${typeIcon(item.type)}</span>
-        <span class="loot-name">${item.name}</span>
-        <span class="loot-meta">${item.rarity.toUpperCase()} ${item.type.toUpperCase()}</span>
+        <span class="loot-name">${item.rarity.toUpperCase()} ${item.type.toUpperCase()}</span>
+        <span class="loot-meta">VEILED</span>
       `;
       button.onclick = () => {
         onSecure(item.id);

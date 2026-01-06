@@ -257,6 +257,7 @@ class GameCore {
     this.lootInventoryOpen = false;
     UI.updateVeiledCount(0);
     UI.hideLootInventory();
+    UI.hideExtractionScreen();
     // Clear any existing damage text DOM elements
     for (const dt of this.damageTexts) {
       dt.el.remove();
@@ -393,7 +394,11 @@ class GameCore {
     SaveData.data.gold += rewards.total;
     SaveData.save();
 
-    UI.showGameOverScreen(success, this.goldRun, this.mins, this.kills, this.bossKills);
+    if (success) {
+      UI.showExtractionScreen(itemsToStore, () => this.returnToMenu());
+    } else {
+      UI.showGameOverScreen(success, this.goldRun, this.mins, this.kills, this.bossKills);
+    }
   }
 
   returnToMenu(): void {
@@ -401,6 +406,7 @@ class GameCore {
     const menuScreen = document.getElementById('menu-screen');
 
     if (gameOverScreen) gameOverScreen.classList.remove('active');
+    UI.hideExtractionScreen();
     if (menuScreen) menuScreen.classList.add('active');
 
     Menu.renderCharSelect();
