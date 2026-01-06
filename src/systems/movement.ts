@@ -151,18 +151,22 @@ export function checkObstacleCollision(x: number, y: number, obstacles: Obstacle
     // Skip fountains (walkable)
     if (o.type === 'font') continue;
 
-    const dist = Math.hypot(x - o.x, y - o.y);
-    if (dist < 80) {
-      // Skip obstacles near world edge (prevents getting stuck on wrapped obstacles)
-      // But only skip if the obstacle itself is near the edge, not if we're just checking a position
-      const nearEdge = o.x > CONFIG.worldSize - 50 || o.x < 50 || o.y > CONFIG.worldSize - 50 || o.y < 50;
-      if (nearEdge) continue;
+    // Get wrapped relative distance (Shortest distance in toroidal world)
+    let dx = x - o.x;
+    let dy = y - o.y;
 
-      // AABB collision check with slight buffer
-      if (x > o.x - o.w / 2 - 8 && x < o.x + o.w / 2 + 8 &&
-          y > o.y - o.h / 2 - 8 && y < o.y + o.h / 2 + 8) {
-        return true;
-      }
+    if (dx > CONFIG.worldSize / 2) dx -= CONFIG.worldSize;
+    if (dx < -CONFIG.worldSize / 2) dx += CONFIG.worldSize;
+    if (dy > CONFIG.worldSize / 2) dy -= CONFIG.worldSize;
+    if (dy < -CONFIG.worldSize / 2) dy += CONFIG.worldSize;
+
+    // AABB collision check with slight buffer (8 units)
+    const margin = 8;
+    const halfW = o.w / 2 + margin;
+    const halfH = o.h / 2 + margin;
+
+    if (Math.abs(dx) < halfW && Math.abs(dy) < halfH) {
+      return true;
     }
   }
   return false;
