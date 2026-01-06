@@ -69,6 +69,23 @@ canvas {
   align-items: flex-start;
 }
 
+.hud-right {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.hud-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#hud-veiled {
+  color: var(--rare);
+}
+
 .xp-bar-container {
   position: absolute;
   top: 0;
@@ -273,6 +290,22 @@ canvas {
   margin-left: 10px;
 }
 
+.loot-inv-btn {
+  pointer-events: auto;
+  background: #4c1d95;
+  border: 2px solid #a855f7;
+  color: #fff;
+  padding: 6px 8px;
+  font-family: inherit;
+  font-size: 8px;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 #000;
+}
+
+.loot-inv-btn:hover {
+  background: #6d28d9;
+}
+
 .quit-btn:hover {
   background: #dc2626;
 }
@@ -296,6 +329,195 @@ canvas {
 
 .screen.active {
   display: flex;
+}
+
+.loot-inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  width: min(600px, 90vw);
+  max-height: 50vh;
+  overflow-y: auto;
+  margin-bottom: 20px;
+}
+
+.loot-item {
+  background: #111827;
+  border: 2px solid #374151;
+  color: #e5e7eb;
+  padding: 8px;
+  font-size: 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.loot-item.secured {
+  border-color: #fbbf24;
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+}
+
+.loot-icon {
+  font-size: 14px;
+}
+
+.loot-name {
+  line-height: 1.1;
+}
+
+.loot-detail {
+  width: min(420px, 90vw);
+  margin: 0 auto 14px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 2px solid #374151;
+  padding: 10px;
+  font-size: 9px;
+  color: #e5e7eb;
+  text-align: left;
+}
+
+.loot-detail-title {
+  font-size: 10px;
+  color: #fbbf24;
+  margin-bottom: 4px;
+}
+
+.loot-detail-meta {
+  font-size: 8px;
+  color: #9ca3af;
+  margin-bottom: 6px;
+}
+
+.loot-detail-stats {
+  display: grid;
+  gap: 2px;
+  font-size: 8px;
+}
+
+.loadout-tooltip {
+  position: fixed;
+  display: none;
+  z-index: 1500;
+  min-width: 180px;
+  max-width: 240px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 2px solid #6b7280;
+  padding: 10px;
+  font-size: 9px;
+  color: #e5e7eb;
+  text-align: left;
+  pointer-events: none;
+  left: 0;
+  top: 0;
+}
+
+.loadout-detail-title {
+  font-size: 10px;
+  color: #fbbf24;
+  margin-bottom: 4px;
+}
+
+.loadout-detail-meta {
+  font-size: 8px;
+  color: #9ca3af;
+  margin-bottom: 6px;
+}
+
+.loadout-detail-stats {
+  display: grid;
+  gap: 2px;
+  font-size: 8px;
+}
+
+.loot-empty {
+  grid-column: 1 / -1;
+  color: #9ca3af;
+  font-size: 10px;
+}
+
+.loadout-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  width: min(700px, 90vw);
+  margin-bottom: 20px;
+}
+
+.loadout-slot {
+  min-height: 56px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 2px solid #4c1d95;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 7px;
+  color: #9ca3af;
+  text-align: center;
+  padding: 4px;
+  gap: 4px;
+}
+
+.loadout-slot.filled {
+  color: #e5e7eb;
+  border-color: #6d28d9;
+}
+
+.loadout-slot.locked {
+  border-color: #4b5563;
+  color: #6b7280;
+}
+
+.loadout-slot.selected {
+  border-color: #fbbf24;
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+}
+
+.slot-label {
+  font-size: 7px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.slot-item {
+  font-size: 8px;
+}
+
+.stash-grid {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 6px;
+  width: min(700px, 90vw);
+  max-height: 60vh;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+
+.stash-slot {
+  min-height: 40px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 2px solid #444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 7px;
+  color: #9ca3af;
+  text-align: center;
+  padding: 4px;
+}
+
+.stash-slot.filled {
+  color: #e5e7eb;
+  border-color: #4b5563;
+}
+
+.stash-slot.selected {
+  border-color: #fbbf24;
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
 }
 
 h1 {

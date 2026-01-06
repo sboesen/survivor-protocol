@@ -1,4 +1,5 @@
 import type { SaveGameData } from '../types';
+import { Stash } from '../items/stash';
 
 // Map old character IDs to new fantasy-themed IDs
 const CHARACTER_MIGRATION: Record<string, string> = {
@@ -17,7 +18,17 @@ class SaveDataSystem {
     gold: 0,
     ownedChars: ['wizard'],
     selectedChar: 'wizard',
-    shop: { damage: 0, health: 0, speed: 0, magnet: 0 }
+    shop: { damage: 0, health: 0, speed: 0, magnet: 0 },
+    stash: new Stash().toJSON(),
+    loadout: {
+      relic: null,
+      weapon: null,
+      helm: null,
+      armor: null,
+      accessory1: null,
+      accessory2: null,
+      accessory3: null,
+    },
   };
 
   load(): void {
@@ -47,7 +58,17 @@ class SaveDataSystem {
             health: parsed.shop?.health ?? 0,
             speed: parsed.shop?.speed ?? 0,
             magnet: parsed.shop?.magnet ?? 0,
-          }
+          },
+          stash: Stash.fromJSON(parsed.stash).toJSON(),
+          loadout: {
+            relic: parsed.loadout?.relic ?? null,
+            weapon: parsed.loadout?.weapon ?? null,
+            helm: parsed.loadout?.helm ?? null,
+            armor: parsed.loadout?.armor ?? null,
+            accessory1: parsed.loadout?.accessory1 ?? null,
+            accessory2: parsed.loadout?.accessory2 ?? null,
+            accessory3: parsed.loadout?.accessory3 ?? null,
+          },
         };
 
         // Ensure selectedChar is in ownedChars

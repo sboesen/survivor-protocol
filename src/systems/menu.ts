@@ -3,6 +3,7 @@ import { SaveData } from './saveData';
 import { GachaAnim } from './gacha';
 import { SHOP_ITEMS } from '../data/shop';
 import { SpriteViewer } from './spriteViewer';
+import { LoadoutUI } from './loadoutUI';
 
 class MenuSystem {
   renderCharSelect(): void {
@@ -94,6 +95,26 @@ class MenuSystem {
 
     if (shopScreen) shopScreen.classList.remove('active');
     if (menuScreen) menuScreen.classList.add('active');
+  }
+
+  openStash(): void {
+    const menuScreen = document.getElementById('menu-screen');
+    const stashScreen = document.getElementById('stash-screen');
+
+    if (menuScreen) menuScreen.classList.remove('active');
+    if (stashScreen) stashScreen.classList.add('active');
+
+    LoadoutUI.render(SaveData.data.stash, SaveData.data.loadout);
+  }
+
+  closeStash(): void {
+    const menuScreen = document.getElementById('menu-screen');
+    const stashScreen = document.getElementById('stash-screen');
+
+    if (stashScreen) stashScreen.classList.remove('active');
+    if (menuScreen) menuScreen.classList.add('active');
+
+    this.renderCharSelect();
   }
 
   openGacha(): void {

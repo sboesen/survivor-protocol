@@ -56,6 +56,11 @@ import { Loot } from './entities/loot';
 import { Obstacle } from './entities/obstacle';
 import { Particle, type ParticleSpawnConfig, type ParticleType } from './entities/particle';
 import type { InputState, DamageText } from './types';
+import { ItemGenerator } from './items/generator';
+import type { Item } from './items/types';
+import { rollItemType, shouldDropItem } from './items/drops';
+import { Stash } from './items/stash';
+import { ItemStats } from './items/stats';
 
 class GameCore {
   canvas: HTMLCanvasElement | null = null;
@@ -85,6 +90,9 @@ class GameCore {
   obstacles: Obstacle[] = [];
   damageTexts: DamageText[] = [];
   particles: Particle[] = [];
+  collectedLoot: Item[] = [];
+  securedLootId: string | null = null;
+  lootInventoryOpen = false;
 
   input: InputState = {
     x: 0,
@@ -111,6 +119,7 @@ class GameCore {
     window.onkeydown = (e) => {
       this.input.keys[e.key] = true;
       if (e.key.toLowerCase() === 'z') this.triggerUlt();
+      if (e.key.toLowerCase() === 'i') this.toggleLootInventory();
     };
     window.onkeyup = (e) => {
       this.input.keys[e.key] = false;
@@ -227,19 +236,27 @@ class GameCore {
     const char = CHARACTERS[SaveData.data.selectedChar];
     if (!char) return;
 
+    const loadoutStats = ItemStats.calculate(SaveData.data.loadout);
+
     this.player = new Player(
       char.id,
       char.hpMod,
       char.spdMod,
       char.weapon,
       char.ult,
-      SaveData.data.shop
+      SaveData.data.shop,
+      loadoutStats
     );
 
     this.enemies = [];
     this.projectiles = [];
     this.fireballs = [];
     this.loot = [];
+    this.collectedLoot = [];
+    this.securedLootId = null;
+    this.lootInventoryOpen = false;
+    UI.updateVeiledCount(0);
+    UI.hideLootInventory();
     // Clear any existing damage text DOM elements
     for (const dt of this.damageTexts) {
       dt.el.remove();
@@ -330,8 +347,31 @@ class GameCore {
     this.gameOver(true);
   }
 
+  toggleLootInventory(): void {
+    if (!this.active || !this.player) return;
+    if (this.paused && !this.lootInventoryOpen) return;
+
+    this.lootInventoryOpen = !this.lootInventoryOpen;
+    this.paused = this.lootInventoryOpen;
+
+    if (this.lootInventoryOpen) {
+      UI.showLootInventory(this.collectedLoot, this.securedLootId, (itemId) => this.secureLoot(itemId));
+    } else {
+      UI.hideLootInventory();
+    }
+  }
+
+  secureLoot(itemId: string): void {
+    this.securedLootId = itemId;
+    if (this.lootInventoryOpen) {
+      UI.showLootInventory(this.collectedLoot, this.securedLootId, (nextId) => this.secureLoot(nextId));
+    }
+  }
+
   gameOver(success = false): void {
     this.active = false;
+    this.lootInventoryOpen = false;
+    UI.hideLootInventory();
 
     const rewards = calculateGameOverRewards({
       goldRun: this.goldRun,
@@ -339,6 +379,16 @@ class GameCore {
       kills: this.kills,
       bossKills: this.bossKills,
     });
+
+    const stash = Stash.fromJSON(SaveData.data.stash);
+    const securedItem = this.collectedLoot.find(item => item.id === this.securedLootId) ?? null;
+    const itemsToStore = success
+      ? this.collectedLoot
+      : (securedItem ? [securedItem] : []);
+    itemsToStore.forEach(item => {
+      stash.addItem(item);
+    });
+    SaveData.data.stash = stash.toJSON();
 
     SaveData.data.gold += rewards.total;
     SaveData.save();
@@ -520,7 +570,7 @@ class GameCore {
         );
       }
 
-      const damageResult = calculateWeaponDamage(w.baseDmg, p.dmgMult, p.critChance);
+      const damageResult = calculateWeaponDamage(w.baseDmg + p.flatDamage, p.dmgMult, p.critChance);
       const dmg = damageResult.damage;
       const isCrit = damageResult.isCrit;
 
@@ -949,6 +999,13 @@ class GameCore {
         if (canCollectLoot(l.x, l.y, p.x, p.y, 20)) {
           l.marked = true;
 
+          if (l.type === 'orb' && l.item) {
+            this.collectedLoot.push(l.item);
+            UI.updateVeiledCount(this.collectedLoot.length);
+            this.spawnDamageText(p.x, p.y, '+LOOT', '#facc15');
+            return;
+          }
+
           const effect = calculateLootEffect(l.type, l.val, p.hp, p.maxHp);
           if (effect.message) {
             this.spawnDamageText(p.x, p.y, effect.message, effect.color || '#fff');
@@ -1037,6 +1094,13 @@ class GameCore {
       // Drop loot
       const lootType = calculateLootDrop(e.type);
       this.loot.push(new Loot(e.x, e.y, lootType));
+
+      const luck = this.player?.luck ?? 0;
+      if (shouldDropItem(e.type, luck, this.mins)) {
+        const itemType = rollItemType();
+        const item = ItemGenerator.generate({ itemType, luck });
+        this.loot.push(new Loot(e.x, e.y, 'orb', item));
+      }
     }
   }
 

@@ -1,4 +1,5 @@
 // Core type definitions for Survivor Protocol
+import type { Item } from '../items/types';
 
 export interface Config {
   worldSize: number;
@@ -96,6 +97,18 @@ export interface SaveGameData {
   ownedChars: string[];
   selectedChar: string;
   shop: ShopUpgrades;
+  stash: Array<Item | null>;
+  loadout: LoadoutData;
+}
+
+export interface LoadoutData {
+  relic: Item | null;
+  weapon: Item | null;
+  helm: Item | null;
+  armor: Item | null;
+  accessory1: Item | null;
+  accessory2: Item | null;
+  accessory3: Item | null;
 }
 
 export interface ShopUpgrades {

@@ -21,6 +21,18 @@ const createLocalStorage = (): Storage => {
   } as Storage;
 };
 
+const createEmptyStash = () => Array.from({ length: 200 }, () => null);
+
+const createEmptyLoadout = () => ({
+  relic: null,
+  weapon: null,
+  helm: null,
+  armor: null,
+  accessory1: null,
+  accessory2: null,
+  accessory3: null,
+});
+
 describe('SaveData', () => {
   const STORAGE_KEY = 'survivor_protocol_v2';
   let originalLocalStorage: Storage | undefined;
@@ -37,7 +49,9 @@ describe('SaveData', () => {
       gold: 0,
       ownedChars: ['wizard'],
       selectedChar: 'wizard',
-      shop: { damage: 0, health: 0, speed: 0, magnet: 0 }
+      shop: { damage: 0, health: 0, speed: 0, magnet: 0 },
+      stash: createEmptyStash(),
+      loadout: createEmptyLoadout(),
     };
   });
 
@@ -59,6 +73,7 @@ describe('SaveData', () => {
       expect(SaveData.data.shop.health).toBe(0);
       expect(SaveData.data.shop.speed).toBe(0);
       expect(SaveData.data.shop.magnet).toBe(0);
+      expect(SaveData.data.stash.length).toBe(200);
     });
 
     it('should have wizard unlocked by default', () => {
@@ -252,7 +267,9 @@ describe('SaveData', () => {
         gold: 1000,
         ownedChars: ['paladin', 'rogue'],
         selectedChar: 'paladin',
-        shop: { damage: 3, health: 2, speed: 1, magnet: 1 }
+        shop: { damage: 3, health: 2, speed: 1, magnet: 1 },
+        stash: createEmptyStash(),
+        loadout: createEmptyLoadout(),
       };
       SaveData.save();
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -284,7 +301,9 @@ describe('SaveData', () => {
         gold: 2500,
         ownedChars: ['paladin', 'rogue', 'knight', 'berserker'],
         selectedChar: 'knight',
-        shop: { damage: 5, health: 3, speed: 2, magnet: 4 }
+        shop: { damage: 5, health: 3, speed: 2, magnet: 4 },
+        stash: createEmptyStash(),
+        loadout: createEmptyLoadout(),
       };
 
       SaveData.data = originalData;
@@ -295,7 +314,9 @@ describe('SaveData', () => {
         gold: 0,
         ownedChars: ['wizard'],
         selectedChar: 'wizard',
-        shop: { damage: 0, health: 0, speed: 0, magnet: 0 }
+        shop: { damage: 0, health: 0, speed: 0, magnet: 0 },
+        stash: createEmptyStash(),
+        loadout: createEmptyLoadout(),
       };
       SaveData.load();
 
@@ -311,7 +332,9 @@ describe('SaveData', () => {
         gold: 100,
         ownedChars: ['paladin'],
         selectedChar: 'paladin',
-        shop: { damage: 1, health: 0, speed: 0, magnet: 0 }
+        shop: { damage: 1, health: 0, speed: 0, magnet: 0 },
+        stash: createEmptyStash(),
+        loadout: createEmptyLoadout(),
       };
       SaveData.save();
 
@@ -331,7 +354,9 @@ describe('SaveData', () => {
         gold: 10000,
         ownedChars: ['wizard'],
         selectedChar: 'wizard',
-        shop: { damage: 5, health: 5, speed: 3, magnet: 3 }
+        shop: { damage: 5, health: 5, speed: 3, magnet: 3 },
+        stash: createEmptyStash(),
+        loadout: createEmptyLoadout(),
       };
       SaveData.save();
       SaveData.load();
@@ -347,7 +372,9 @@ describe('SaveData', () => {
         gold: 0,
         ownedChars: ['wizard'],
         selectedChar: 'wizard',
-        shop: { damage: 0, health: 0, speed: 0, magnet: 0 }
+        shop: { damage: 0, health: 0, speed: 0, magnet: 0 },
+        stash: createEmptyStash(),
+        loadout: createEmptyLoadout(),
       };
       SaveData.save();
       SaveData.load();

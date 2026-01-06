@@ -22,9 +22,15 @@
                 <div style="margin-top:5px"><span id="hud-timer">00:00</span> <span style="color:#666">|</span> Kills: <span id="hud-kills">0</span></div>
                 <div style="margin-top:2px;font-size:11px;color:#888">Particles: <span id="hud-particles">0</span> <span style="color:#666">|</span> Enemies: <span id="hud-enemies">0</span></div>
             </div>
-            <div style="display:flex; align-items:center;">
-                <span id="hud-gold" style="color:var(--gold)">💰 0</span>
-                <button class="quit-btn" onclick="Game.quitRun()">ABORT</button>
+            <div class="hud-right">
+                <div class="hud-row">
+                    <span id="hud-gold" style="color:var(--gold)">💰 0</span>
+                    <button class="loot-inv-btn" onclick="Game.toggleLootInventory()">LOOT [I]</button>
+                </div>
+                <div class="hud-row">
+                    <span id="hud-veiled">Veiled: 0</span>
+                    <button class="quit-btn" onclick="Game.quitRun()">ABORT</button>
+                </div>
             </div>
         </div>
 
@@ -71,6 +77,7 @@
         <div style="margin-top:10px;">
             <button onclick="Menu.openGacha()">SUMMON HERO (500G)</button>
             <button onclick="Menu.openShop()">ITEM UPGRADES</button>
+            <button onclick="Menu.openStash()">STASH</button>
         </div>
         <button class="debug-btn-toggle" onclick="Menu.openDebug()">[ DEBUG MENU ]</button>
     </div>
@@ -107,6 +114,15 @@
         <button onclick="Menu.closeShop()" style="margin-top:20px;">BACK</button>
     </div>
 
+    <!-- Stash Screen -->
+    <div id="stash-screen" class="screen">
+        <h1>LOADOUT</h1>
+        <div id="loadout-grid" class="loadout-grid"></div>
+        <h2>STASH</h2>
+        <div id="stash-grid" class="stash-grid"></div>
+        <button onclick="Menu.closeStash()" style="margin-top:20px;">BACK</button>
+    </div>
+
     <!-- Sprite Viewer Screen -->
     <div id="sprite-viewer-screen" class="screen">
         <h1 style="color:var(--debug)">SPRITE VIEWER</h1>
@@ -132,6 +148,17 @@
         </div>
         <button onclick="Game.returnToMenu()">EXTRACT</button>
     </div>
+
+    <!-- Loot Inventory Screen -->
+    <div id="loot-inventory-screen" class="screen">
+        <h1>RUN LOOT</h1>
+        <p id="loot-secure-slot" style="color:#aaa; font-size:10px; margin-bottom:10px;">Secured: None</p>
+        <div id="loot-detail" class="loot-detail">Select an item to inspect.</div>
+        <div id="loot-inventory-grid" class="loot-inventory-grid"></div>
+        <button onclick="Game.toggleLootInventory()">RESUME</button>
+    </div>
+
+    <div id="loadout-tooltip" class="loadout-tooltip"></div>
 </div>
 
 <script type="module" src="/src/main.ts"></script>

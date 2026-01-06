@@ -1,6 +1,7 @@
 import { CONFIG } from '../config';
 import type { CanvasContext } from '../types';
 import type { Weapon, WeaponType, ItemType, UpgradeType } from '../types';
+import { createEmptyStats, type StatBlock } from '../items/stats';
 import { Entity, type ScreenPosition } from './entity';
 import { Renderer } from '../systems/renderer';
 
@@ -20,8 +21,13 @@ export class Player extends Entity {
   speed: number;
   pickupRange: number;
   dmgMult: number;
+  flatDamage: number;
   critChance: number;
   items: PlayerItems;
+  luck: number;
+  armor: number;
+  hpRegen: number;
+  loadoutStats: StatBlock;
   xp: number;
   level: number;
   nextXp: number;
@@ -39,18 +45,33 @@ export class Player extends Entity {
     spdMod: number,
     weapon: WeaponType,
     ult: string,
-    shopUpgrades: { health: number; speed: number; magnet: number; damage: number }
+    shopUpgrades: { health: number; speed: number; magnet: number; damage: number },
+    loadoutStats: StatBlock = createEmptyStats()
   ) {
     super(CONFIG.worldSize / 2, CONFIG.worldSize / 2, 12, CONFIG.colors.player);
 
     this.charId = charId;
-    this.maxHp = (100 + (shopUpgrades.health * 20)) * hpMod;
+    const baseHp = (100 + (shopUpgrades.health * 20)) * hpMod;
+    const baseSpeed = (7.5 * (1 + (shopUpgrades.speed * 0.05))) * spdMod;
+    const basePickup = 60 * (1 + (shopUpgrades.magnet * 0.2));
+    const baseDmgMult = 1 + (shopUpgrades.damage * 0.1);
+
+    this.loadoutStats = loadoutStats;
+    this.maxHp = baseHp * (1 + loadoutStats.allStats) + loadoutStats.maxHp;
     this.hp = this.maxHp;
-    this.speed = (7.5 * (1 + (shopUpgrades.speed * 0.05))) * spdMod;
-    this.pickupRange = 60 * (1 + (shopUpgrades.magnet * 0.2));
-    this.dmgMult = 1 + (shopUpgrades.damage * 0.1);
+    this.speed = baseSpeed * (1 + loadoutStats.allStats) + loadoutStats.speed;
+    this.pickupRange = basePickup * (1 + loadoutStats.allStats) + loadoutStats.magnet + loadoutStats.pickupRadius;
+    this.dmgMult = baseDmgMult + loadoutStats.percentDamage + loadoutStats.allStats;
+    this.flatDamage = loadoutStats.flatDamage;
     this.critChance = 0;
-    this.items = { pierce: 0, cooldown: 0, projectile: 0 };
+    this.items = {
+      pierce: loadoutStats.pierce,
+      cooldown: loadoutStats.cooldownReduction,
+      projectile: loadoutStats.projectiles,
+    };
+    this.luck = loadoutStats.luck;
+    this.armor = loadoutStats.armor;
+    this.hpRegen = loadoutStats.hpRegen;
     this.xp = 0;
     this.level = 1;
     this.nextXp = 5;

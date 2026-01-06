@@ -14,7 +14,7 @@
 │   ┌──────────────┐    ┌───────────┐    ┌─────────────────────────────────┐ │
 │   │ Enemy Death  │───▶│   Drop    │    │  ┌─────────┐    ┌─────────────┐  │ │
 │   │              │    │  Check    │    │  │ Stash   │◀──▶│  Loadout    │  │ │
-│   └──────────────┘    └─────┬─────┘    │  │ (50)    │    │ (6 slots)   │  │ │
+│   └──────────────┘    └─────┬─────┘    │  │ (200)   │    │ (7 slots)   │  │ │
 │                             │          │  └────┬────┘    └──────┬──────┘  │ │
 │                             ▼          │       │                │         │ │
 │                     ┌─────────────┐   │       │                │         │ │
@@ -60,19 +60,56 @@
 
 ## The Math: How Loot Generation Works
 
-### Rarity Roll (First Gate)
+### Rarity Roll (First Gate - Non-Relic Items)
 
 When a drop occurs, roll against this table:
 
 | Rarity | Base Weight | Luck Factor | Effective Weight (0 Luck) | Effective Weight (100 Luck) |
 |--------|-------------|-------------|--------------------------|----------------------------|
-| Common | 600 | 1x | 60.0% | 60.0% |
-| Magic | 300 | 1.2x | 30.0% | 31.6% |
-| Rare | 90 | 1.5x | 9.0% | 11.3% |
-| Legendary | 10 | 2x | 1.0% | 1.7% |
-| **Relic** | 1 (per class) | 3x | 0.1% (if match) | 0.27% |
+| Common | 600 | 0x | 60.0% | 39.6% |
+| Magic | 300 | 1.2x | 30.0% | 43.6% |
+| Rare | 90 | 1.5x | 9.0% | 14.9% |
+| Legendary | 10 | 2x | 1.0% | 2.0% |
 
 **Formula**: `adjustedWeight = baseWeight × (1 + luck/100 × luckFactor)`
+
+Luck only scales Magic+ tiers (Common uses `luckFactor = 0`) so luck meaningfully shifts weight upward.
+
+### Relic Gate (Separate from Rarity)
+
+Relic rolls are a separate gate and do **not** use the normal rarity table.
+
+**Non-boss enemies:**
+1. Roll relic chance (scaled by luck).
+2. If success, generate a relic; if fail, proceed to the normal rarity roll above.
+
+Relic roll chances (non-boss, all use `× (1 + luck/100)`):
+| Enemy Type | Base Relic Chance | Notes |
+|------------|------------------|-------|
+| Basic | 0.1% | Replaces normal drop on success |
+| Elite | 2% | In addition to guaranteed elite drop |
+
+Bosses skip this gate and use Boss Relic Drops (see Phase 7).
+
+Relics always match the run's **attuned class** (defaults to current character).
+Attunement = which class's relic pool is active for the run (default selected character, map selection can override).
+
+TODO (MVP): Attunement defaults to selected character for now (debug-friendly); revisit later.
+
+### Global Relic Drop Table (Attuned Class Pool)
+
+Each relic in a class pool has a weight tier. This is the D2-style rarity within a pool.
+
+| Tier | Weight | Intent |
+|------|--------|--------|
+| Common | 100 | Baseline |
+| Uncommon | 40 | Noticeably rarer |
+| Rare | 15 | Chase |
+| Chase | 5 | Ultra chase |
+
+**Boss bonus:** when a boss rolls a relic, multiply weights for Rare and Chase tiers by 2x (Common/Uncommon unchanged).
+
+Relics are always legendary-tier; rarity is handled by weights within the relic pool.
 
 ### Affix Count (Second Gate)
 
@@ -84,7 +121,8 @@ Once rarity is determined, roll for number of affixes:
 | Magic | 1 | 2 | 50% each |
 | Rare | 3 | 4 | 60% (3), 40% (4) |
 | Legendary | 5 | 6 | 70% (5), 30% (6) |
-| **Relic** | 1 unique + 2-3 | 1 unique + 2-3 | Always 1 unique, 2-3 standard |
+
+Relics bypass this table: they always have 1 unique effect + 2-3 implicits.
 
 ### Affix Selection (Third Gate)
 
@@ -109,18 +147,19 @@ Each affix has 5 tiers. Roll 1-5 with weights:
 - T5: 2% (god tier)
 
 **Legendary items** get +1 to minimum tier roll (can't roll T1).
+**Corrupted items** (gambler-only) use Legendary tier rules for positive affixes; the drawback affix does not roll tiers.
 
 ### Drop Chance (Per Enemy)
 
 ```typescript
 dropChance = baseChance × (1 + luck/200) × timeMultiplier
 
-timeMultiplier = 1 + (minutesElapsed / 10)  // +10% per minute
+timeMultiplier = 1 + (min(minutesElapsed, 20) / 10)  // +10% per minute, capped at +200%
 
 // Examples:
 // Basic enemy at 0 min, 0 luck: 5% × 1.0 × 1.0 = 5%
 // Basic enemy at 10 min, 50 luck: 5% × 1.25 × 2.0 = 12.5%
-// Basic enemy at 30 min, 100 luck: 5% × 1.5 × 4.0 = 30%
+// Basic enemy at 30 min, 100 luck: 5% × 1.5 × 3.0 = 22.5% (cap reached)
 ```
 
 | Enemy Type | Base Drop Chance | Guaranteed? |
@@ -128,18 +167,13 @@ timeMultiplier = 1 + (minutesElapsed / 10)  // +10% per minute
 | Basic | 5% | No |
 | Fast/Bat | 3% | No |
 | Elite | 100% | Yes (Magic+) |
-| Boss | N/A | Yes (Rare+ + 2-3 Magic) |
+| Boss | N/A | Yes (Rare+ + 2-3 Magic, plus relic from boss rules) |
 
-**Relic Drops:**
-- When a relic drops, it's **always for the current character** (no wasted drops)
-- Elites: 2% chance for relic (if playing that class)
-- Bosses: 10% chance for relic (guaranteed to be playable class)
-- Base enemies: 0.1% × (1 + luck/100) chance for class relic
-
-**Relic Tiers:**
-- **Common Relics** (weaker, drop more often): ~5% from elites, 25% from bosses
-- **Legendary Relics** (god tier, the ones listed above): Current rare rates
-- This gives players smaller progression goals while hunting for the best ones
+**Relic Drops (Summary):**
+- Relic roll is separate for non-boss enemies; bosses use Boss Relic Drops (Phase 7).
+- Basics replace the normal drop on relic success; elites add a relic on top of their guaranteed drop.
+- Relics are always for the run's **attuned class** (defaults to current character).
+- Relic selection uses the Global Relic Drop Table weights (bosses get a Rare/Chase weight bonus).
 
 ---
 
@@ -163,17 +197,30 @@ export interface RelicDefinition {
   name: string;
   classId: string;
   icon: string;
+  weightTier: RelicWeightTier;
 
   // Fixed unique effect
-  uniqueEffect: {
-    name: string;
-    description: string;
-    onHit?: (game: Game, target: Enemy, rolledValue: number) => void;
-  };
+  uniqueEffects: RelicEffect[];
 
   // Implicit stats with min-max rolls
-  implicts: ImplicitStat[];
+  implicits: ImplicitStat[];
 }
+
+export type RelicTrigger =
+  | "passive"
+  | "onHit"
+  | "onKill"
+  | "onPickup"
+  | "onTimer"
+  | "onExtract";
+
+export interface RelicEffect {
+  name: string;
+  description: string;
+  trigger: RelicTrigger;
+}
+
+export type RelicWeightTier = "common" | "uncommon" | "rare" | "chase";
 
 export interface ImplicitStat {
   type: AffixType;
@@ -185,9 +232,12 @@ export interface ImplicitStat {
 // When relic drops, each implicit rolls a value:
 export interface RelicInstance extends Item {
   // The actual rolled values
-  rolledImplicts: { type: AffixType; value: number }[];
+  rolledImplicits: { type: AffixType; value: number }[];
 }
 ```
+
+Reminder: update the relic effect schema with values/duration/cooldowns and handler hooks before implementation.
+TODO (MVP): Decide if relic unique effects are active in Phase 4 or if MVP only applies implicits.
 
 ## Relic Display Format
 
@@ -197,10 +247,10 @@ When hovering a relic, show:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ 20-Sided Die                              LEGENDARY     │
+│ Arcane Die                                LEGENDARY     │
 │ ────────────────────────────────────────────────────── │
 │                                                         │
-│ UNIQUE: Nat 20                                          │
+│ UNIQUE: Fate Roll                                       │
 │ 5% chance to deal 10x damage                            │
 │                                                         │
 │ +52% Fire Damage (40-60)                               │
@@ -227,61 +277,61 @@ Format: `+rolledValue statName (min-max)`
 
 ## Relics: Class-Specific Unique Items
 
-Relics are **legendary-tier** drops with unique affixes not available on random gear. Each character has their own relic pool. Only that character can equip their relics.
+Relics are **legendary-tier** drops with unique affixes not available on random gear. Each character has their own relic pool, and each relic is tagged with a weight tier (Common/Uncommon/Rare/Chase) from the Global Relic Drop Table. Only that character can equip their relics.
 
-### Dungeon Master Relics
-| Name | Unique Effect | Implicit Rolls (min-max) |
-|------|---------------|-------------------------|
-| **20-Sided Die** | 5% chance for 10x damage on any attack | +40-60% Fire Damage, +2-4 Pierce, +2-4 burn dmg/sec, 3-7% crit chance |
-| **Player's Handbook** | Fireballs chain to 3 nearby enemies | +20-40% Fire Damage, +10-30% Area, +1-2 Projectiles |
-| **DM Screen** | +100% luck, but -20% damage | +80-120% Luck, -15-25% Damage, +20-40% Gold |
-| **Miniature** | Summons a tiny dragon ally that shoots fireballs | +10-20% Fire Damage, ally deals 5-15 damage/shot, +50-100% ally duration |
-| **Natural 20** | Crits double your projectile count for 5 seconds | +2-5% Crit Chance, +30-50% Crit Damage, 5-10s duration |
+### Wizard Relics
+| Name | Unique Effect | Implicit Rolls (min-max) | Weight Tier |
+|------|---------------|--------------------------|-------------|
+| **Arcane Die** | 5% chance for 10x damage on any attack | +40-60% Fire Damage, +2-4 Pierce, +2-4 burn dmg/sec, 3-7% crit chance | Chase |
+| **Grimoire of Chains** | Fireballs chain to 3 nearby enemies | +20-40% Fire Damage, +10-30% Area, +1-2 Projectiles | Common |
+| **Warding Screen** | +100% luck, but -20% damage | +80-120% Luck, -15-25% Damage, +20-40% Gold | Rare |
+| **Familiar Figurine** | Summons a tiny dragon ally that shoots fireballs | +10-20% Fire Damage, ally deals 5-15 damage/shot, +50-100% ally duration | Common |
+| **Critical Convergence** | Crits double your projectile count for 5 seconds | +2-5% Crit Chance, +30-50% Crit Damage, 5-10s duration | Uncommon |
 
-### Janitor Relics
-| Name | Unique Effect | Implicit Rolls (min-max) |
-|------|---------------|-------------------------|
-| **Wet Floor Sign** | Bubble aura leaves slowing trail on ground | +20-40% Bubble Area, 20-40% slow for 2-3s, +5-10 Speed |
-| **Master Key** | Unlock chests without killing elite guardians | +30-50% Gold, chests drop 1-2 extra items |
-| **Mop & Bucket** | Bubble stream +50% area, bubbles split on pop | +30-50% Bubble Area, splits into 2-3 mini-bubbles |
-| **Janitor's Ring** | Bubbles heal you for 1 HP per pop | +1-2 HP per pop, +10-20% Bubble Duration |
-| **Cleaning Supplies** | Kill 5 enemies in 3 seconds = gain shield for 10s | +50-100 shield amount, 8-12s shield duration |
+### Paladin Relics
+| Name | Unique Effect | Implicit Rolls (min-max) | Weight Tier |
+|------|---------------|--------------------------|-------------|
+| **Consecrated Banner** | Aura leaves slowing consecrated trail on ground | +20-40% Aura Area, 20-40% slow for 2-3s, +5-10 Speed | Common |
+| **Reliquary Key** | Unlock chests without killing elite guardians | +30-50% Gold, chests drop 1-2 extra items | Chase |
+| **Sanctified Flail** | Smite stream +50% area, bolts split on hit | +30-50% Smite Area, splits into 2-3 bolts | Rare |
+| **Paladin's Ring** | Auras heal you for 1 HP per hit | +1-2 HP per hit, +10-20% Aura Duration | Common |
+| **Aegis Oath** | Kill 5 enemies in 3 seconds = gain shield for 10s | +50-100 shield amount, 8-12s shield duration | Uncommon |
 
-### Skater Relics
-| Name | Unique Effect | Implicit Rolls (min-max) |
-|------|---------------|-------------------------|
-| **Thrashed Deck** | CDs bounce 2 extra times, +1 pierce | +2-3 extra bounces, +1-2 Pierce, +10-20% Damage |
-| **Skate Park Key** | +30% speed, knockback enemies you pass through | +25-40% Speed, +50-100 knockback force |
-| **Graffiti Can** | CDs leave damaging paint trail (lasts 5 seconds) | +8-12s trail duration, +5-10 trail damage/sec |
-| **Boombox** | CDs emit damaging pulse every second | +8-15 pulse damage, 0.8-1.2s pulse interval |
-| **Ollie Record** | Double jump (ult activates twice) | +40-80% Ult Duration, +50-100% Ult Area |
+### Rogue Relics
+| Name | Unique Effect | Implicit Rolls (min-max) | Weight Tier |
+|------|---------------|--------------------------|-------------|
+| **Shadow Chakram** | Thrown blades bounce 2 extra times, +1 pierce | +2-3 extra bounces, +1-2 Pierce, +10-20% Damage | Chase |
+| **Nightstep Boots** | +30% speed, knockback enemies you pass through | +25-40% Speed, +50-100 knockback force | Common |
+| **Venom Vial** | Thrown blades leave damaging poison trail (lasts 5 seconds) | +8-12s trail duration, +5-10 trail damage/sec | Common |
+| **Cloak of Knives** | Emit damaging pulse every second | +8-15 pulse damage, 0.8-1.2s pulse interval | Uncommon |
+| **Second Shadow** | Double dash (ult activates twice) | +40-80% Ult Duration, +50-100% Ult Area | Rare |
 
-### Mall Cop Relics
-| Name | Unique Effect | Implicit Rolls (min-max) |
-|------|---------------|-------------------------|
-| **Taser** | Pepper spray chains to 2 nearby enemies | +2-3 chains, 10-20% chain damage falloff |
-| **Badge of Authority** | +50% armor, elites drop 2 items instead of 1 | +40-60 Armor, 15-25% chance for extra elite drop |
-| **Walkie-Talkie** | Every 60 seconds, spawn a decoy that distracts enemies | +50-80 decoy HP, 50-70s cooldown |
-| **Donut Box** | Kill streak (5 kills in 3s) heals you for 25 HP | +20-40 heal amount, 4-6 kills, 3-5s window |
-| **Break Room** | Standing still for 3 seconds regenerates HP | +3-6 HP/sec, 2-3s still time required |
+### Knight Relics
+| Name | Unique Effect | Implicit Rolls (min-max) | Weight Tier |
+|------|---------------|--------------------------|-------------|
+| **Chain Smite** | Primary attack chains to 2 nearby enemies | +2-3 chains, 10-20% chain damage falloff | Rare |
+| **Royal Crest** | +50% armor, elites drop 2 items instead of 1 | +40-60 Armor, 15-25% chance for extra elite drop | Chase |
+| **Squire's Banner** | Every 60 seconds, spawn a decoy that distracts enemies | +50-80 decoy HP, 50-70s cooldown | Uncommon |
+| **Battle Rations** | Kill streak (5 kills in 3s) heals you for 25 HP | +20-40 heal amount, 4-6 kills, 3-5s window | Common |
+| **Knight's Rest** | Standing still for 3 seconds regenerates HP | +3-6 HP/sec, 2-3s still time required | Common |
 
-### Chef Relics
-| Name | Unique Effect | Implicit Rolls (min-max) |
-|------|---------------|-------------------------|
-| **Spatula** | Frying pan attacks apply "Burning" for 3 seconds | +8-12 burn damage/sec, 2-4s burn duration |
-| **Chef's Hat** | Grease Fire ult +50% area, leaves fire trail | +40-60% Ult Area, fire deals 5-10 dmg/sec |
-| **Deep Fryer** | Enemies killed by Frying Pan explode | +40-80 explosion damage, +60-100% explosion Area |
-| **Menu Special** | +100% gold, food items heal 2x | +80-120% Gold, +80-120% food healing |
-| **Secret Recipe** | Combining 3 food items grants random buff for 60s | +50-80s buff duration, +10-20% to all stats during buff |
+### Pyromancer Relics
+| Name | Unique Effect | Implicit Rolls (min-max) | Weight Tier |
+|------|---------------|--------------------------|-------------|
+| **Cinder Brand** | Attacks apply "Burning" for 3 seconds | +8-12 burn damage/sec, 2-4s burn duration | Common |
+| **Pyromancer's Hood** | Grease Fire ult +50% area, leaves fire trail | +40-60% Ult Area, fire deals 5-10 dmg/sec | Uncommon |
+| **Inferno Core** | Enemies killed by fire explode | +40-80 explosion damage, +60-100% explosion Area | Rare |
+| **Ember Feast** | +100% gold, food items heal 2x | +80-120% Gold, +80-120% food healing | Common |
+| **Forbidden Formula** | Combining 3 food items grants random buff for 60s | +50-80s buff duration, +10-20% to all stats during buff | Chase |
 
-### Teenager Relics
-| Name | Unique Effect | Implicit Rolls (min-max) |
-|------|---------------|-------------------------|
-| **Vape Pen** | Lighter cone +50% length, passes through enemies | +40-60% cone length, +1-2 Pierce |
-| **Smartphone** | Take selfie - gain shield for 5s (30s cooldown) | +4-8s shield duration, 25-35s cooldown, +50-100 shield |
-| **Skateboard** | +100% speed, deal contact damage (15 dmg) | +80-120% Speed, +12-20 contact damage |
-| **Energy Drink** | +25% attack speed, lose 1 HP/sec | +20-30% atk speed, -0.8-1.2 HP/sec |
-| **Vape Cloud** | Ult now creates poison cloud (20 dmg/sec, 10s) | +15-25 poison dmg/sec, +8-12s cloud duration |
+### Berserker Relics
+| Name | Unique Effect | Implicit Rolls (min-max) | Weight Tier |
+|------|---------------|--------------------------|-------------|
+| **Blood Howl** | Cleave cone +50% length, passes through enemies | +40-60% cleave length, +1-2 Pierce | Common |
+| **War Cry** | Gain shield for 5s (30s cooldown) | +4-8s shield duration, 25-35s cooldown, +50-100 shield | Common |
+| **Rampage Greaves** | +100% speed, deal contact damage (15 dmg) | +80-120% Speed, +12-20 contact damage | Chase |
+| **Rage Draught** | +25% attack speed, lose 1 HP/sec | +20-30% atk speed, -0.8-1.2 HP/sec | Rare |
+| **Bloodsmoke** | Ult now creates blood cloud (20 dmg/sec, 10s) | +15-25 blood dmg/sec, +8-12s cloud duration | Uncommon |
 
 ---
 
@@ -294,7 +344,8 @@ Relics are **legendary-tier** drops with unique affixes not available on random 
 | +Damage | 1-5 | 100 | Common |
 | +%Damage | 1-5 | 80 | Common |
 | +Area | 1-3 | 60 | Uncommon |
-| +%Cooldown | 1-5 | 70 | Common |
+| +%Area | 1-3 | 40 | Uncommon |
+| Cooldown Reduction % | 1-5 | 70 | Common |
 | +Projectiles | 1-2 | 15 | Rare (very powerful) |
 | +Pierce | 1-3 | 30 | Uncommon |
 | +Duration | 1-4 | 40 | For aura weapons |
@@ -320,7 +371,7 @@ Relics are **legendary-tier** drops with unique affixes not available on random 
 | +Speed | 1-5 | 80 | Common |
 | +Pickup Radius | 1-3 | 40 | Uncommon |
 | +%XP | 1-3 | 35 | Uncommon |
-| +%Cooldown | 1-4 | 45 | Uncommon |
+| Cooldown Reduction % | 1-4 | 45 | Uncommon |
 
 ### Universal Affixes (Any Slot)
 
@@ -350,7 +401,7 @@ Each character starts with **3 basic items** (Common/Magic tier):
 
 These are intentionally weak but functional. Players immediately understand how gear works.
 
-Example DM starter loadout:
+Example Wizard starter loadout:
 ```
 [RELIC]  (empty)
 [HELM]   (empty)
@@ -364,10 +415,10 @@ Example DM starter loadout:
 #### Guaranteed First Relic
 On first successful extraction:
 - Guaranteed 1 relic drop (always for your character)
-- **Poor roll** - minimum or near-minimum on all implicts
+- **Poor roll** - minimum or near-minimum on all implicits
 - Teaches players what relics are AND that rolls vary
 
-Example: "Got 20-Sided Die with 42% Fire Damage (40-60)" - player sees the range, wants better.
+Example: "Got Arcane Die with 42% Fire Damage (40-60)" - player sees the range, wants better.
 
 #### First-Run Guidance
 - Popup on first loot orb drop: "Collect loot orbs! Items reveal after extraction."
@@ -425,12 +476,13 @@ Example: "Got 20-Sided Die with 42% Fire Damage (40-60)" - player sees the range
 **Implementation:**
 1. Implement `LootDrop.dropChance(enemy, luck, time)`:
    - Base 5% for basic enemies
-   - Time scaling: +10% per minute
+   - Time scaling: +10% per minute, capped after 20 minutes
    - Luck scaling: up to +50% bonus
 2. Integrate drops into `Enemy.die()`:
    - Roll drop chance
    - If success, generate veiled item
    - Spawn loot orb at death position
+   - TODO (MVP): Attunement source is selected character for now; revisit later.
 3. Create `LootOrb` entity:
    - Similar to XP gem but purple/gold color
    - Magnet collection logic
@@ -519,7 +571,7 @@ Example: "Got 20-Sided Die with 42% Fire Damage (40-60)" - player sees the range
    ```typescript
    // When firing weapon
    const damage = (weapon.damage + stats.flatDamage) * (1 + stats.percentDamage);
-   const cooldown = weapon.cooldown * (1 - stats.percentCooldown);
+   const cooldown = weapon.cooldown * (1 - stats.cooldownReduction);
    ```
 5. Create loadout UI:
    - Left: Character paper doll
@@ -531,7 +583,766 @@ Example: "Got 20-Sided Die with 42% Fire Damage (40-60)" - player sees the range
 
 ---
 
+### Design Inspiration: Inventory & Merchant UI (Reference)
+
+Use this as visual/interaction inspiration for the loadout + stash screen and the merchant stretch feature. The sample includes hover tooltips, drag/drop, and a two-tab character/merchant layout; adapt to the 7-slot equipment layout and current item types.
+
+```tsx
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Shield, Sword, Shirt, Hexagon, Footprints, Hand, Circle, Ghost,
+  Crown, Anchor, Zap, Skull, Info, X, Book, Flame, Star, Cross, 
+  HelpCircle, Coins, Store, User
+} from 'lucide-react';
+
+/**
+ * --- DATA & CONSTANTS ---
+ */
+
+const RARITY = {
+  NORMAL: { color: 'text-neutral-300', border: 'border-neutral-600', bg: 'bg-neutral-900', label: 'Base' },
+  EVOLVED: { color: 'text-red-500', border: 'border-red-600', bg: 'bg-red-900/30', label: 'Evolved' },
+  RELIC: { color: 'text-yellow-300', border: 'border-yellow-500', bg: 'bg-yellow-900/30', label: 'Relic' },
+  ARCANAS: { color: 'text-purple-400', border: 'border-purple-600', bg: 'bg-purple-900/40', label: 'Arcana' },
+};
+
+const ITEM_TYPES = {
+  HELM: 'helm',
+  ARMOR: 'armor',
+  WEAPON: 'weapon',
+  OFFHAND: 'offhand',
+  ACCESSORY: 'accessory', 
+};
+
+// Define valid item types for each equipment slot
+const EQUIPMENT_SLOTS = {
+  head: [ITEM_TYPES.HELM],
+  body: [ITEM_TYPES.ARMOR],
+  mainHand: [ITEM_TYPES.WEAPON], 
+  offHand: [ITEM_TYPES.OFFHAND], 
+  accessory1: [ITEM_TYPES.ACCESSORY],
+  accessory2: [ITEM_TYPES.ACCESSORY],
+  accessory3: [ITEM_TYPES.ACCESSORY],
+  accessory4: [ITEM_TYPES.ACCESSORY],
+  accessory5: [ITEM_TYPES.ACCESSORY],
+  accessory6: [ITEM_TYPES.ACCESSORY],
+};
+
+const INITIAL_ITEMS = [
+  {
+    id: 'item-1',
+    name: 'Vampire Killer',
+    type: ITEM_TYPES.WEAPON,
+    rarity: RARITY.NORMAL,
+    icon: Sword,
+    stats: [
+      { label: '+10 Base Damage', color: 'red' },
+      { label: 'Passes through enemies', color: 'red' },
+    ],
+    baseStats: { label: 'Level 8', color: 'white' }
+  },
+  {
+    id: 'item-2',
+    name: 'King Bible',
+    type: ITEM_TYPES.OFFHAND,
+    rarity: RARITY.NORMAL,
+    icon: Book,
+    stats: [
+      { label: '+40% Area', color: 'green' },
+      { label: '+30% Speed', color: 'green' },
+      { label: 'Orbits Character', color: 'gray' },
+    ],
+    baseStats: { label: 'Level 5', color: 'white' }
+  },
+  {
+    id: 'item-3',
+    name: 'Crimson Shroud',
+    type: ITEM_TYPES.ARMOR,
+    rarity: RARITY.EVOLVED,
+    icon: Shirt,
+    stats: [
+      { label: 'Caps incoming damage at 10', color: 'yellow' },
+      { label: 'Retaliates on hit', color: 'red' },
+    ],
+    baseStats: { label: 'Evolution', color: 'purple' }
+  },
+  {
+    id: 'item-4',
+    name: 'Spinach',
+    type: ITEM_TYPES.ACCESSORY,
+    rarity: RARITY.NORMAL,
+    icon: Flame,
+    stats: [
+      { label: '+50% Might', color: 'red' },
+    ],
+    baseStats: { label: 'Passive', color: 'gray' }
+  },
+];
+
+const GAMBLE_STOCK = [
+  { type: ITEM_TYPES.WEAPON, icon: Sword, cost: 500, label: 'Mystery Weapon' },
+  { type: ITEM_TYPES.ARMOR, icon: Shirt, cost: 800, label: 'Mystery Armor' },
+  { type: ITEM_TYPES.HELM, icon: Skull, cost: 600, label: 'Mystery Mask' },
+  { type: ITEM_TYPES.OFFHAND, icon: Book, cost: 400, label: 'Mystery Tome' },
+  { type: ITEM_TYPES.ACCESSORY, icon: Circle, cost: 300, label: 'Mystery Relic' },
+  { type: ITEM_TYPES.ACCESSORY, icon: Flame, cost: 1200, label: 'Mystery Arcana' },
+];
+
+/**
+ * --- HELPERS ---
+ */
+const generateRandomItem = (baseType) => {
+  const isRare = Math.random() > 0.7;
+  const isEvolved = Math.random() > 0.95;
+  
+  let rarity = RARITY.NORMAL;
+  if (isRare) rarity = RARITY.RELIC;
+  if (isEvolved) rarity = RARITY.EVOLVED;
+
+  const names = {
+    [ITEM_TYPES.WEAPON]: ['Whip', 'Wand', 'Knife', 'Axe', 'Cross'],
+    [ITEM_TYPES.ARMOR]: ['Armor', 'Robe', 'Plate', 'Suit'],
+    [ITEM_TYPES.HELM]: ['Mask', 'Visor', 'Hood'],
+    [ITEM_TYPES.OFFHAND]: ['Tome', 'Orb', 'Shield'],
+    [ITEM_TYPES.ACCESSORY]: ['Ring', 'Clover', 'Gauntlet', 'Wings', 'Attractorb'],
+  };
+
+  const pool = names[baseType] || ['Item'];
+  const name = pool[Math.floor(Math.random() * pool.length)];
+
+  return {
+    id: `rnd-${Date.now()}-${Math.random()}`,
+    name: `${rarity !== RARITY.NORMAL ? 'Golden ' : ''}${name}`,
+    type: baseType,
+    rarity: rarity,
+    icon: GAMBLE_STOCK.find(s => s.type === baseType).icon,
+    stats: [
+      { label: 'Random Stat', color: 'blue' },
+      isRare ? { label: 'Bonus Luck', color: 'yellow' } : null
+    ].filter(Boolean),
+    baseStats: { label: 'Gambled', color: 'white' }
+  };
+};
+
+/**
+ * --- COMPONENTS ---
+ */
+
+const MobileItemDetail = ({ item, onClose, isGamble, onBuy }) => {
+  if (!item) return null;
+  
+  const showBaseStats = item.baseStats && item.baseStats.label !== item.rarity?.label;
+
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-[100] bg-[#1a0f1f] border-t-2 border-[#6d28d9] shadow-[0_-5px_20px_rgba(0,0,0,0.8)] p-4 animate-slide-up pb-8 font-serif">
+      <div className="flex justify-between items-start mb-2">
+         <h3 className={`text-xl font-bold uppercase ${isGamble ? 'text-yellow-400' : item.rarity?.color}`}>
+            {isGamble ? 'Unidentified' : item.name}
+         </h3>
+         <button onClick={onClose} className="p-2 bg-neutral-800 rounded-full text-white"><X size={16} /></button>
+      </div>
+
+      {isGamble ? (
+        <>
+          <p className="text-neutral-400 mb-4 italic">The properties of this item are unknown.</p>
+          <div className="flex items-center gap-2 text-yellow-400 font-bold text-xl mb-4">
+            <Coins size={20} />
+            <span>{item.cost}</span>
+          </div>
+          <button 
+            onClick={onBuy}
+            className="w-full py-3 bg-red-900 border-2 border-red-600 text-white font-creepster text-xl tracking-widest hover:bg-red-800 active:scale-95 transition-all"
+          >
+            GAMBLE
+          </button>
+        </>
+      ) : (
+        <>
+          <p className={`text-sm ${item.rarity.label === 'Base' ? 'text-neutral-400' : item.rarity.color} mb-2`}>
+            {item.rarity.label} {item.type.toUpperCase()}
+          </p>
+          {showBaseStats && (
+            <p className="text-white text-sm mb-2 font-bold">{item.baseStats.label}</p>
+          )}
+          <div className="space-y-1">
+            {item.stats.map((stat, idx) => (
+              <p key={idx} className={`text-sm font-bold`} style={{ color: stat.color === 'red' ? '#ef4444' : stat.color === 'green' ? '#22c55e' : stat.color === 'blue' ? '#3b82f6' : stat.color === 'yellow' ? '#eab308' : '#a3a3a3' }}>
+                {stat.label}
+              </p>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+const DesktopTooltip = ({ item, position, isGamble }) => {
+  if (!item) return null;
+
+  return (
+    <div 
+      className="fixed z-[100] w-64 bg-[#1a0f1f] border-2 border-[#6d28d9] p-3 text-center shadow-xl font-serif pointer-events-none"
+      style={{ left: position.x + 15, top: position.y + 15 }}
+    >
+      {isGamble ? (
+        <>
+          <div className="font-bold text-lg mb-1 uppercase tracking-widest text-yellow-400">Unidentified</div>
+          <div className="text-xs uppercase mb-2 text-neutral-400">{item.label}</div>
+          <div className="text-white text-sm mb-2 border-t border-white/10 pt-2 flex items-center justify-center gap-1">
+             <Coins size={14} className="text-yellow-400" />
+             <span className="text-yellow-400">{item.cost} Gold</span>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className={`font-bold text-lg mb-1 uppercase tracking-widest ${item.rarity.color}`}>{item.name}</div>
+          <div className={`text-xs uppercase mb-2 ${item.rarity.color}`}>
+            {item.rarity.label} {item.type}
+          </div>
+          {item.baseStats && item.baseStats.label !== item.rarity.label && (
+            <div className="text-white text-sm mb-2 border-b border-white/10 pb-2">{item.baseStats.label}</div>
+          )}
+          <div className="space-y-1">
+            {item.stats.map((stat, idx) => (
+              <div key={idx} className="text-sm font-bold shadow-black drop-shadow-md" 
+                   style={{ color: stat.color === 'red' ? '#ef4444' : stat.color === 'green' ? '#22c55e' : stat.color === 'blue' ? '#3b82f6' : stat.color === 'yellow' ? '#eab308' : stat.color === 'cyan' ? '#06b6d4' : '#d4d4d4' }}>
+                {stat.label}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+const ItemIcon = ({ item, isDragging, isGamble }) => {
+  const Icon = item.icon;
+  // If gambling, use a neutral color until revealed
+  const colorClass = isGamble ? 'text-neutral-500' : item.rarity.color;
+  const borderClass = isGamble ? 'border-neutral-700' : item.rarity.border;
+
+  return (
+    <div className={`
+      w-full h-full flex items-center justify-center relative
+      ${isDragging ? 'opacity-30' : 'opacity-100'}
+    `}>
+      <Icon 
+        size={24} 
+        className={`${colorClass} drop-shadow-md filter`} 
+        style={{ filter: isGamble ? 'grayscale(0.8)' : 'drop-shadow(0px 0px 4px rgba(0,0,0,1))' }}
+      />
+      {/* Rarity Border */}
+      <div className={`absolute inset-0 border-2 ${borderClass} opacity-50 rounded-sm pointer-events-none`}></div>
+      
+      {/* Gamble Question Mark Overlay */}
+      {isGamble && (
+        <div className="absolute -top-1 -right-1 bg-[#1a0f1f] rounded-full border border-neutral-600">
+           <HelpCircle size={14} className="text-yellow-400" />
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default function VampireSurvivorsInventory() {
+  const [inventory, setInventory] = useState(Array(40).fill(null));
+  const [equipment, setEquipment] = useState({
+    head: null, accessory1: null, body: null, mainHand: null, 
+    offHand: null, accessory5: null, accessory2: null, accessory3: null, 
+    accessory4: null, accessory6: null,
+  });
+  
+  const [gold, setGold] = useState(42069);
+  const [view, setView] = useState('character'); // 'character' | 'gamble'
+
+  const [selectedItem, setSelectedItem] = useState(null); // { item, type, id, isGamble: bool }
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
+  const [isMobile, setIsMobile] = useState(false);
+  const [lastTap, setLastTap] = useState({ time: 0, type: null, id: null });
+
+  const [dragState, setDragState] = useState({
+    isDragging: false, item: null, sourceType: null, sourceId: null, x: 0, y: 0, startX: 0, startY: 0
+  });
+
+  useEffect(() => {
+    const newInv = [...inventory];
+    INITIAL_ITEMS.forEach((item, idx) => {
+      if (idx < newInv.length) newInv[idx] = item;
+    });
+    setInventory(newInv);
+    const checkMobile = () => setIsMobile(window.innerWidth < 1024);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // --- LOGIC: GAMBLE ---
+
+  const handleBuyItem = (gambleItem) => {
+    if (gold < gambleItem.cost) {
+      alert("Not enough gold!"); // Simple feedback
+      return;
+    }
+
+    // Find empty slot
+    const emptyIdx = inventory.findIndex(i => i === null);
+    if (emptyIdx === -1) {
+      alert("Inventory full!");
+      return;
+    }
+
+    const newItem = generateRandomItem(gambleItem.type);
+    
+    // Update State
+    setGold(prev => prev - gambleItem.cost);
+    setInventory(prev => {
+      const next = [...prev];
+      next[emptyIdx] = newItem;
+      return next;
+    });
+    setSelectedItem(null);
+  };
+
+  // --- LOGIC: INVENTORY ---
+
+  const getItemAt = (type, id) => {
+    if (type === 'inventory') return inventory[id];
+    if (type === 'equipment') return equipment[id];
+    return null;
+  };
+
+  const setItemAt = (type, id, item) => {
+    if (type === 'inventory') {
+      setInventory(prev => {
+        const next = [...prev];
+        next[id] = item;
+        return next;
+      });
+    } else {
+      setEquipment(prev => ({ ...prev, [id]: item }));
+    }
+  };
+
+  const moveItem = (sourceType, sourceId, targetType, targetId) => {
+    const sourceItem = getItemAt(sourceType, sourceId);
+    const targetItem = getItemAt(targetType, targetId);
+
+    if (targetType === 'equipment') {
+      const allowed = EQUIPMENT_SLOTS[targetId];
+      if (!allowed || !allowed.includes(sourceItem.type)) return false; 
+    }
+
+    setItemAt(sourceType, sourceId, targetItem);
+    setItemAt(targetType, targetId, sourceItem);
+    setSelectedItem(null);
+    return true;
+  };
+
+  const handleAutoEquip = (type, id) => {
+    if (type === 'inventory') {
+      const item = inventory[id];
+      if (!item) return;
+      const compatibleSlots = Object.keys(EQUIPMENT_SLOTS).filter(slotKey => {
+        return EQUIPMENT_SLOTS[slotKey].includes(item.type);
+      });
+      if (compatibleSlots.length === 0) return;
+      const emptySlot = compatibleSlots.find(slotKey => equipment[slotKey] === null);
+      if (emptySlot) moveItem('inventory', id, 'equipment', emptySlot);
+      else moveItem('inventory', id, 'equipment', compatibleSlots[0]);
+
+    } else if (type === 'equipment') {
+      const item = equipment[id];
+      if (!item) return;
+      const emptyInvIndex = inventory.findIndex(i => i === null);
+      if (emptyInvIndex !== -1) moveItem('equipment', id, 'inventory', emptyInvIndex);
+    }
+  };
+
+  // --- INTERACTION ---
+
+  const handlePointerDown = (e, type, id, gambleItem = null) => {
+    if (e.button !== 0 && e.button !== undefined) return;
+
+    // Handle Gamble Click
+    if (type === 'gamble') {
+       if (isMobile) {
+         setSelectedItem({ item: gambleItem, isGamble: true });
+       } else {
+         handleBuyItem(gambleItem);
+       }
+       return;
+    }
+
+    const item = getItemAt(type, id);
+
+    // Double Tap
+    const now = Date.now();
+    if (now - lastTap.time < 300 && lastTap.type === type && lastTap.id === id) {
+      handleAutoEquip(type, id);
+      setLastTap({ time: 0, type: null, id: null });
+      return;
+    }
+    setLastTap({ time: now, type, id });
+
+    if (!item) {
+      if (selectedItem && !selectedItem.isGamble) {
+         moveItem(selectedItem.sourceType, selectedItem.sourceId, type, id);
+      }
+      return;
+    }
+    
+    setDragState({
+      isDragging: false, item, sourceType: type, sourceId: id, x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY
+    });
+    setSelectedItem({ item, sourceType: type, sourceId: id, isGamble: false });
+  };
+
+  const handlePointerMove = (e) => {
+    if (!dragState.item) {
+      setCursorPos({ x: e.clientX, y: e.clientY });
+      return;
+    }
+    const dx = Math.abs(e.clientX - dragState.startX);
+    const dy = Math.abs(e.clientY - dragState.startY);
+    if (!dragState.isDragging && (dx > 5 || dy > 5)) {
+       setDragState(prev => ({ ...prev, isDragging: true }));
+    }
+    if (dragState.isDragging) {
+      setDragState(prev => ({ ...prev, x: e.clientX, y: e.clientY }));
+    }
+  };
+
+  const handlePointerUp = (e) => {
+    if (dragState.isDragging) {
+      const elements = document.elementsFromPoint(e.clientX, e.clientY);
+      const slotElement = elements.find(el => el.dataset.slotId);
+      if (slotElement) {
+        const targetType = slotElement.dataset.slotType;
+        const targetId = slotElement.dataset.slotId;
+        const finalTargetId = targetType === 'inventory' ? parseInt(targetId) : targetId;
+        moveItem(dragState.sourceType, dragState.sourceId, targetType, finalTargetId);
+      }
+    }
+    setDragState(prev => ({ ...prev, isDragging: false, item: null }));
+  };
+
+  const handlePointerCancel = () => {
+    setDragState(prev => ({ ...prev, isDragging: false, item: null }));
+  };
+
+  useEffect(() => {
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerCancel);
+    const preventScroll = (e) => { if (dragState.isDragging) e.preventDefault(); };
+    document.addEventListener('touchmove', preventScroll, { passive: false });
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerCancel);
+      document.removeEventListener('touchmove', preventScroll);
+    };
+  }, [dragState.isDragging]);
+
+  // --- SUB-COMPONENTS ---
+
+  const Slot = ({ type, id, allowedIcon: AllowedIcon, className }) => {
+    const item = getItemAt(type, id);
+    const isSelected = selectedItem && selectedItem.sourceType === type && selectedItem.sourceId === id;
+    
+    // Highlight logic
+    const activeItem = dragState.item || (selectedItem && !selectedItem.isGamble ? selectedItem.item : null);
+    let isCompatible = false;
+    
+    if (activeItem) {
+      const isSelf = (dragState.isDragging && dragState.sourceType === type && dragState.sourceId === id) ||
+                     (selectedItem && selectedItem.sourceType === type && selectedItem.sourceId === id);
+      if (!isSelf) {
+        if (type === 'inventory') isCompatible = true; 
+        else {
+          const allowed = EQUIPMENT_SLOTS[id];
+          isCompatible = allowed && allowed.includes(activeItem.type);
+        }
+      }
+    }
+
+    return (
+      <div
+        data-slot-type={type}
+        data-slot-id={id}
+        onPointerDown={(e) => handlePointerDown(e, type, id)}
+        className={`
+          relative flex items-center justify-center 
+          border-2 transition-all duration-150
+          ${className}
+          ${isSelected ? 'border-purple-400 bg-purple-900/60 shadow-[0_0_15px_rgba(168,85,247,0.5)] z-20' : ''}
+          ${!isSelected && isCompatible && type === 'equipment' ? 'border-green-500 bg-green-900/30 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.3)]' : ''}
+          ${!isSelected && isCompatible && type === 'inventory' ? 'border-neutral-500 bg-white/5' : ''}
+          ${!isSelected && !isCompatible ? 'border-[#444] bg-black/40' : ''}
+          ${!item && AllowedIcon ? 'text-neutral-700' : ''}
+          touch-pan-y select-none
+        `}
+      >
+        {!item && AllowedIcon && <AllowedIcon size={20} className="opacity-40" />}
+        {item && <ItemIcon item={item} isDragging={dragState.item === item && dragState.isDragging} />}
+      </div>
+    );
+  };
+
+  const GambleSlot = ({ gambleItem }) => {
+    // If mobile, checking selection. If desktop, hover handled by tooltip
+    const isSelected = selectedItem && selectedItem.isGamble && selectedItem.item === gambleItem;
+
+    return (
+      <div 
+        onPointerDown={(e) => handlePointerDown(e, 'gamble', null, gambleItem)}
+        className={`
+           relative w-16 h-16 bg-[#0f0514] border-2 cursor-pointer transition-all
+           flex items-center justify-center hover:bg-white/5
+           ${isSelected ? 'border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.3)]' : 'border-[#444]'}
+        `}
+        onMouseEnter={() => !isMobile && setCursorPos({ x: cursorPos.x, y: cursorPos.y })} // Trigger tooltip update
+      >
+        <ItemIcon item={gambleItem} isGamble={true} />
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-[#120816] text-neutral-200 font-sans selection:bg-purple-900 flex flex-col overflow-hidden">
+      
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Creepster&family=VT323&display=swap');
+        .font-creepster { font-family: 'Creepster', cursive; }
+        .font-pixel { font-family: 'VT323', monospace; }
+        .font-serif { font-family: 'VT323', monospace; font-size: 1.1rem; }
+        @keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .animate-slide-up { animation: slide-up 0.3s ease-out; }
+      `}</style>
+
+      {/* --- TOOLTIPS --- */}
+      {isMobile && selectedItem && (
+        <MobileItemDetail 
+          item={selectedItem.item} 
+          isGamble={selectedItem.isGamble}
+          onBuy={() => handleBuyItem(selectedItem.item)}
+          onClose={() => setSelectedItem(null)} 
+        />
+      )}
+      {!isMobile && (
+        <DesktopTooltip 
+          item={selectedItem?.item || dragState.item || (document.querySelector(':hover')?.className?.includes('cursor-pointer') ? null : null)} 
+          position={cursorPos} 
+        />
+      )}
+      
+      {/* Hacky way to show tooltip on hover for gamble items since we used custom pointer events for logic */}
+      {!isMobile && !dragState.isDragging && (
+         <div className="fixed inset-0 pointer-events-none z-[50]">
+            {/* We render tooltip based on hovered element manually detected via state in a real app, 
+                but for this demo we'll use a simpler approach:
+                Pass hover state from GambleSlots up? Or just trust the hover logic above?
+                Actually, let's reuse the existing hoveredItem pattern if we were dragging, 
+                but here we just duplicate the tooltip logic inside the map for simplicity 
+                or use a state for 'hoveredGambleItem'.
+            */}
+         </div>
+      )}
+      
+      {/* We need a dedicated hover state for gamble items on desktop because they aren't 'selected' or 'dragged' */}
+      {!isMobile && (
+        <DesktopGambleHoverListener setCursorPos={setCursorPos} />
+      )}
+
+      {/* --- GHOST DRAG ITEM --- */}
+      {dragState.isDragging && dragState.item && (
+        <div 
+          className="fixed pointer-events-none z-[9999] opacity-80"
+          style={{ left: dragState.x, top: dragState.y, transform: 'translate(-50%, -50%)', width: '48px', height: '48px' }}
+        >
+          <ItemIcon item={dragState.item} isDragging={false} />
+        </div>
+      )}
+
+      {/* --- MAIN LAYOUT --- */}
+      <div className="flex-1 flex flex-col lg:flex-row max-w-6xl mx-auto w-full lg:p-8 gap-4 lg:gap-8">
+        
+        {/* === LEFT PANEL: SWITCHABLE === */}
+        <div className="flex-none lg:w-[420px] bg-[#1e1024] border-2 border-[#581c87] flex flex-col relative overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.5)]">
+          
+          {/* HEADER WITH TABS */}
+          <div className="bg-[#2e1065] flex items-center border-b border-[#581c87]">
+             <button 
+                onClick={() => setView('character')}
+                className={`flex-1 p-3 flex items-center justify-center gap-2 font-pixel text-xl transition-colors
+                  ${view === 'character' ? 'bg-[#4c1d95] text-white' : 'text-neutral-400 hover:bg-[#3b0764]'}
+                `}
+             >
+                <User size={18} /> CHARACTER
+             </button>
+             <div className="w-[1px] h-8 bg-[#581c87]"></div>
+             <button 
+                onClick={() => setView('gamble')}
+                className={`flex-1 p-3 flex items-center justify-center gap-2 font-pixel text-xl transition-colors
+                  ${view === 'gamble' ? 'bg-[#4c1d95] text-yellow-400' : 'text-neutral-400 hover:bg-[#3b0764]'}
+                `}
+             >
+                <Store size={18} /> MERCHANT
+             </button>
+          </div>
+
+          {/* CONTENT AREA */}
+          <div className="flex-1 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] p-4 flex flex-col items-center justify-center min-h-[400px]">
+            
+            {view === 'character' ? (
+              /* --- CHARACTER VIEW --- */
+              <>
+                <div className="absolute top-16 right-4 text-right">
+                   <h2 className="text-red-500 font-creepster text-2xl tracking-widest drop-shadow-[0_2px_0_rgba(0,0,0,1)]">ANTONIO</h2>
+                   <div className="text-lg text-neutral-300 font-pixel">LVL 99</div>
+                </div>
+
+                <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
+                   <Ghost size={200} />
+                </div>
+
+                <div className="relative z-10 w-full max-w-[320px] flex flex-col gap-4 py-4 mt-8">
+                  {/* Row 1: Helm */}
+                  <div className="flex justify-center">
+                    <Slot type="equipment" id="head" allowedIcon={Skull} className="w-16 h-16 rounded-sm bg-[#0f0514]/80" />
+                  </div>
+                  {/* Row 2: Weapons & Body */}
+                  <div className="flex justify-between items-start">
+                     <div className="flex flex-col items-center gap-1">
+                       <span className="text-xs font-pixel text-red-400">WEAPON</span>
+                       <Slot type="equipment" id="mainHand" allowedIcon={Sword} className="w-20 h-24 rounded-sm bg-[#0f0514]/80 border-red-900/40" />
+                     </div>
+                     <div className="flex flex-col items-center gap-2 mt-2">
+                        <Slot type="equipment" id="accessory1" allowedIcon={Circle} className="w-10 h-10 rounded-full border-[#444] bg-[#0f0514]/80" />
+                        <Slot type="equipment" id="body" allowedIcon={Shirt} className="w-20 h-24 rounded-sm bg-[#0f0514]/80" />
+                     </div>
+                     <div className="flex flex-col items-center gap-1">
+                       <span className="text-xs font-pixel text-blue-400">OFFHAND</span>
+                       <Slot type="equipment" id="offHand" allowedIcon={Book} className="w-20 h-24 rounded-sm bg-[#0f0514]/80 border-blue-900/40" />
+                     </div>
+                  </div>
+                  {/* Row 3: Accessories */}
+                  <div className="flex justify-between items-center px-2">
+                     <Slot type="equipment" id="accessory5" allowedIcon={Circle} className="w-16 h-16 rounded-full bg-[#0f0514]/80" />
+                     <div className="flex gap-2">
+                        <Slot type="equipment" id="accessory2" allowedIcon={Circle} className="w-8 h-8 rounded-full bg-[#0f0514]/80" />
+                        <Slot type="equipment" id="accessory3" allowedIcon={Circle} className="w-8 h-8 rounded-full bg-[#0f0514]/80" />
+                        <Slot type="equipment" id="accessory4" allowedIcon={Circle} className="w-8 h-8 rounded-full bg-[#0f0514]/80" />
+                     </div>
+                     <Slot type="equipment" id="accessory6" allowedIcon={Circle} className="w-16 h-16 rounded-full bg-[#0f0514]/80" />
+                  </div>
+                </div>
+              </>
+            ) : (
+              /* --- MERCHANT/GAMBLE VIEW --- */
+              <div className="w-full h-full flex flex-col">
+                 <div className="text-center mb-6">
+                    <h3 className="font-creepster text-yellow-500 text-3xl tracking-widest drop-shadow-md">Gheed's Wagon</h3>
+                    <p className="font-pixel text-neutral-400 text-sm">"I promise... no refunds."</p>
+                 </div>
+                 
+                 <div className="flex-1 grid grid-cols-3 gap-6 p-4 place-items-center bg-black/20 rounded-lg border border-[#333]">
+                    {GAMBLE_STOCK.map((item, idx) => (
+                      <HoverGambleWrapper key={idx} item={item}>
+                        <GambleSlot gambleItem={item} />
+                      </HoverGambleWrapper>
+                    ))}
+                 </div>
+
+                 <div className="mt-4 p-3 bg-black/40 border border-[#333] rounded text-center">
+                    <p className="text-xs text-neutral-500 font-pixel">Click to gamble (Gold will be deducted)</p>
+                 </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+
+        {/* === RIGHT: COLLECTION (INVENTORY) === */}
+        <div className="flex-1 bg-[#1e1024] border-2 border-[#581c87] flex flex-col shadow-[0_0_30px_rgba(0,0,0,0.5)] min-h-[400px]">
+          <div className="bg-[#2e1065] p-3 border-b border-[#581c87] flex justify-between">
+            <h2 className="text-neutral-300 font-creepster text-2xl tracking-widest drop-shadow-[0_2px_0_rgba(0,0,0,0.5)]">COLLECTION</h2>
+            <div className="flex items-center gap-2 text-yellow-400 text-xl font-pixel">
+               <span>{gold.toLocaleString()}</span>
+               <span className="text-sm">GOLD</span>
+            </div>
+          </div>
+
+          <div className="flex-1 bg-[#120816] p-4 flex flex-col items-center overflow-y-auto">
+            <div className="bg-[#0a050c] p-2 border border-[#333] rounded shadow-inner">
+               <div className="grid grid-cols-5 md:grid-cols-10 gap-1">
+                 {inventory.map((_, index) => (
+                   <Slot key={index} type="inventory" id={index} className="w-12 h-12 md:w-14 md:h-14 bg-[#160b1b]" />
+                 ))}
+               </div>
+            </div>
+          </div>
+
+          {/* STATS FOOTER */}
+          <div className="p-3 border-t border-[#581c87] bg-[#1a0b21] grid grid-cols-4 gap-4 text-sm font-pixel text-neutral-400">
+             <div className="flex flex-col items-center"><span className="text-red-500 text-lg">MIGHT</span><span>+145%</span></div>
+             <div className="flex flex-col items-center"><span className="text-blue-400 text-lg">COOLDOWN</span><span>-35%</span></div>
+             <div className="flex flex-col items-center"><span className="text-green-400 text-lg">AREA</span><span>+60%</span></div>
+             <div className="flex flex-col items-center"><span className="text-yellow-400 text-lg">LUCK</span><span>+20%</span></div>
+             <div className="flex flex-col items-center"><span className="text-purple-400 text-lg">SPEED</span><span>+50%</span></div>
+             <div className="flex flex-col items-center"><span className="text-cyan-400 text-lg">AMOUNT</span><span>+1</span></div>
+             <div className="flex flex-col items-center"><span className="text-orange-400 text-lg">GREED</span><span>+100%</span></div>
+             <div className="flex flex-col items-center"><span className="text-pink-400 text-lg">REVIVAL</span><span>+1</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+// Helper to handle Hover state for Gamble Items on Desktop
+const HoverGambleWrapper = ({ children, item }) => {
+  const [hover, setHover] = useState(false);
+  const [pos, setPos] = useState({x:0, y:0});
+
+  const handleMove = (e) => {
+    setPos({ x: e.clientX, y: e.clientY });
+  };
+
+  return (
+    <>
+      <div 
+        onMouseEnter={() => setHover(true)} 
+        onMouseLeave={() => setHover(false)}
+        onMouseMove={handleMove}
+      >
+        {children}
+      </div>
+      {hover && !('ontouchstart' in window) && (
+        <DesktopTooltip item={item} position={pos} isGamble={true} />
+      )}
+    </>
+  );
+};
+
+// Component to handle global hover logic for regular items if needed
+const DesktopGambleHoverListener = ({ setCursorPos }) => {
+   useEffect(() => {
+     const handleMove = (e) => setCursorPos({ x: e.clientX, y: e.clientY });
+     window.addEventListener('mousemove', handleMove);
+     return () => window.removeEventListener('mousemove', handleMove);
+   }, []);
+   return null;
+}
+```
+
+---
+
 ### Phase 5: The Gambler (Trader)
+Stretch feature after core phases (post Phase 8).
 
 **Files Created:**
 - `src/systems/gambler.ts` - Gambling mechanic
@@ -547,7 +1358,7 @@ Pay gold to get a veiled item with boosted rarity chances:
 | Mystery Weapon | 500 | Common: 30%, Magic: 50%, Rare: 18%, Legendary: 2% |
 | Mystery Armor | 800 | Common: 30%, Magic: 50%, Rare: 18%, Legendary: 2% |
 | Mystery Accessory | 400 | Common: 30%, Magic: 50%, Rare: 18%, Legendary: 2% |
-| Cursed Item | 1000 | Rare: 40%, Legendary: 10%, Corrupted: 50% |
+| Corrupted Item | 1000 | Rare: 40%, Legendary: 10%, Corrupted: 50% |
 
 #### Corrupted Items
 New rarity with powerful affixes AND drawbacks:
@@ -568,6 +1379,8 @@ Examples:
 - "Greed's Embrace": +200% Gold, -25% Speed, Take 25% more damage
 - "Phasing Boots": +100% Speed, Cannot deal damage
 - "Vampire's Hunger": +50% Lifesteal, Lose 1 HP/sec
+
+Corrupted items are gambler-only drops and use Legendary affix count rules plus one drawback affix.
 
 #### Gambler UI
 - New tab in menu (Character / Merchant)
@@ -654,7 +1467,6 @@ Add an empty affix slot to an item (fills immediately with random affix):
 |-------|----|----|----|----|-----|
 | +Damage | 2 | 5 | 10 | 18 | 30 |
 | +Area | 10 | 25 | 50 | - | - |
-| -Cooldown (s) | -0.2 | -0.4 | -0.6 | -0.9 | -1.2 |
 | +Projectiles | +1 | +1 | +2 | - | - |
 | +Pierce | +1 | +2 | +3 | - | - |
 | +Duration | +1s | +2s | +3s | +4s | - |
@@ -671,7 +1483,7 @@ Add an empty affix slot to an item (fills immediately with random affix):
 |-------|----|----|----|----|-----|
 | +%Damage | 10% | 20% | 35% | 50% | 75% |
 | +%Area | 15% | 30% | 50% | - | - |
-| +%Cooldown | -10% | -18% | -28% | -40% | -55% |
+| Cooldown Reduction % | 10% | 18% | 28% | 40% | 55% |
 | +%Healing | 15% | 30% | 50% | - | - |
 | +%Gold | 20% | 40% | 75% | 120% | - |
 | +%XP | 15% | 30% | 50% | - | - |
@@ -688,6 +1500,8 @@ Add an empty affix slot to an item (fills immediately with random affix):
 | Rare | #eab308 | #facc15 | #713f12/30 | Rare |
 | Legendary | #f97316 | #fb923c | #7c2d12/30 | Legendary |
 | Corrupted | #dc2626 | #ef4444 | #450a0a/40 | Corrupted |
+
+Corrupted items are gambler-only and do not appear in normal drops.
 
 ---
 
@@ -744,20 +1558,21 @@ Add an empty affix slot to an item (fills immediately with random affix):
 **Features:**
 
 #### Boss-Specific Relic Pools
-Each boss drops relics from their specific pool:
+Each boss drops relics from their specific pool. Map selection defaults to the current character's class; players can opt into off-class farming by selecting another class's boss. Relic weights apply within the pool. As new classes are added, attach their relic pool to an existing boss or introduce a new boss.
 
 | Boss | Theme | Relic Pool | Classes |
 |------|-------|------------|---------|
-| **Dragon Lord** | Castle/Dungeon | 20-Sided Die, DM Screen, Natural 20, Miniature | DM |
-| **Giant Janitor Bot** | Mall/Food Court | Wet Floor Sign, Master Key, Mop & Bucket, Janitor's Ring | Janitor |
-| **Security Chief** | Mall Security Office | Taser, Badge of Authority, Walkie-Talkie, Donut Box | Mall Cop |
-| **Skater Gang Leader** | Parking Lot | Thrashed Deck, Graffiti Can, Boombox, Ollie Record | Skater |
-| **Rat King** | Kitchen/Backrooms | Spatula, Deep Fryer, Chef's Hat, Menu Special | Chef |
-| **Posse of Teens** | Arcade | Vape Pen, Smartphone, Skateboard, Energy Drink | Teenager |
+| **Dragon Lord** | Castle/Dungeon | Arcane Die, Grimoire of Chains, Warding Screen, Familiar Figurine, Critical Convergence | Wizard |
+| **Giant Custodian Bot** | Mall/Food Court | Consecrated Banner, Reliquary Key, Sanctified Flail, Paladin's Ring, Aegis Oath | Paladin |
+| **Security Chief** | Mall Security Office | Chain Smite, Royal Crest, Squire's Banner, Battle Rations, Knight's Rest | Knight |
+| **Street Gang Leader** | Parking Lot | Shadow Chakram, Nightstep Boots, Venom Vial, Cloak of Knives, Second Shadow | Rogue |
+| **Rat King** | Kitchen/Backrooms | Cinder Brand, Pyromancer's Hood, Inferno Core, Ember Feast, Forbidden Formula | Pyromancer |
+| **Street Posse** | Arcade | Blood Howl, War Cry, Rampage Greaves, Rage Draught, Bloodsmoke | Berserker |
 
 **Drop logic:**
-- Boss always drops 1 relic from their pool (random which)
-- With map modifiers: can drop 2+ relics
+- Boss always drops 1 relic from their pool using the boss-weighted table (Rare/Chase boosted).
+- Boss also drops 2-3 normal items (Rare+ + 2-3 Magic baseline).
+- With map modifiers: can drop 2+ relics (extra rolls from the same pool).
 - Same relic can drop multiple times (chase for better rolls)
 
 #### Map Modifiers (Atlas Style)
@@ -774,25 +1589,26 @@ Before starting a run, select modifiers:
 | **Chaos** | Random enemy types, boss drops 2 relics, elite spawn rate +50% (300g) |
 
 #### Reward Scaling by Stacks
-| Modifiers | Rarity Boost | Relic Chance | Boss Drops |
-|-----------|--------------|--------------|------------|
-| 0 | Base | 0.1% | 1 item |
-| 1 | +1 tier | 2x | 1-2 items |
-| 2+ | +2 tiers | 3x | 2-3 items, guaranteed relic |
+| Modifiers | Rarity Boost | Bonus Relic Roll (Boss) | Boss Drops |
+|-----------|--------------|--------------------------|------------|
+| 0 | Base | 0% | 1 relic + 2-3 items |
+| 1 | +1 tier | 20% | 1-2 relics |
+| 2+ | +2 tiers | 50% | 2-3 relics |
 
 #### Map Selection UI
 - Grid of available maps/bosses
+- Defaults to current class; toggle to show other classes for alt farming
 - Shows: boss name, relic pool, best modifier strategies
 - Click map → select modifiers → start run
 
 **Example flow:**
 ```
-1. "I need 20-Sided Die for my DM"
-2. Select Dragon Lord map
-3. Add: Bloodlust + Chaos (3x relic chance!)
+1. "I need Arcane Die for my Wizard"
+2. Select Dragon Lord map (Wizard boss pool)
+3. Add: Bloodlust + Chaos (50% bonus relic roll!)
 4. Swap loadout: +%HP, Armor, Regen (survival focus)
 5. Run → Extract with 2 relics!
-6. "Got 20-Sided Die with 57% Fire Damage - nice!"
+6. "Got Arcane Die with 57% Fire Damage - nice!"
 7. Repeat for god roll (60%)
 ```
 
