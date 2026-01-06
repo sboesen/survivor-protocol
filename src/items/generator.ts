@@ -10,24 +10,24 @@ import {
 import type { AffixDefinition, GenerateOptions, Item, ItemAffix, ItemRarity, ItemType } from './types';
 
 const NAME_BASES: Record<ItemType, string[]> = {
-  weapon: ['Blade', 'Axe', 'Scepter', 'Bow', 'Dagger'],
-  helm: ['Helm', 'Visor', 'Hood', 'Crown'],
-  armor: ['Cuirass', 'Robe', 'Plate', 'Tunic'],
-  accessory: ['Ring', 'Amulet', 'Charm', 'Talisman'],
+  weapon: ['Blade', 'Axe', 'Scepter', 'Bow', 'Dagger', 'Glaive', 'Scythe', 'Reaver', 'Dirk', 'Halberd'],
+  helm: ['Helm', 'Visor', 'Hood', 'Crown', 'Mask', 'Cowl', 'Visage'],
+  armor: ['Cuirass', 'Robe', 'Plate', 'Tunic', 'Hauberk', 'Mantle', 'Carapace'],
+  accessory: ['Ring', 'Amulet', 'Charm', 'Talisman', 'Sigil', 'Idol', 'Totem'],
 };
 
 const PREFIXES: Record<ItemRarity, string[]> = {
-  common: ['Plain', 'Worn', 'Simple'],
-  magic: ['Mystic', 'Gleaming', 'Enchanted'],
-  rare: ['Vicious', 'Royal', 'Grim'],
-  legendary: ['Mythic', 'Ancient', 'Legendary'],
+  common: ['Plain', 'Worn', 'Simple', 'Dusty', 'Tarnished', 'Faded'],
+  magic: ['Mystic', 'Gleaming', 'Enchanted', 'Starforged', 'Runed', 'Whispering'],
+  rare: ['Vicious', 'Royal', 'Grim', 'Bloodstained', 'Voidtouched', 'Graveborn'],
+  legendary: ['Mythic', 'Ancient', 'Legendary', 'Doomsworn', 'Eclipse', 'Godsplit'],
 };
 
 const SUFFIXES: Record<ItemRarity, string[]> = {
-  common: ['of Sparks', 'of Dust', 'of Echoes'],
-  magic: ['of Embers', 'of Frost', 'of Insight'],
-  rare: ['of Ruin', 'of Valor', 'of Shadows'],
-  legendary: ['of the Phoenix', 'of Eternity', 'of the Void'],
+  common: ['of Sparks', 'of Dust', 'of Echoes', 'of Cinders', 'of Bones', 'of Smoke'],
+  magic: ['of Embers', 'of Frost', 'of Insight', 'of Storms', 'of Whispers', 'of Ashes'],
+  rare: ['of Ruin', 'of Valor', 'of Shadows', 'of the Maw', 'of the Pit', 'of the Eclipse'],
+  legendary: ['of the Phoenix', 'of Eternity', 'of the Void', 'of the Titan', 'of the Abyss', 'of the Blood Moon'],
 };
 
 function pickWeightedIndex(weights: number[], random: () => number): number {
