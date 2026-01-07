@@ -86,7 +86,7 @@ function createSpreadProjectiles(
       vx: Math.cos(angle + spreadAngle) * speed,
       vy: Math.sin(angle + spreadAngle) * speed,
       radius: spriteId ? 5 : (config.radius || 5),
-      color: spriteId ? 'transparent' : (config.color || '#0ff'),
+      color: spriteId ? '#4a4' : (config.color || '#0ff'),
       dmg: config.dmg,
       duration: config.duration || 60,
       pierce: config.pierce || 1,

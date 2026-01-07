@@ -474,7 +474,7 @@ class GameCore {
               projData.vx,
               projData.vy,
               5,
-              'transparent',
+              '#4a4',
               projData.damage,
               duration,
               projData.pierce,
