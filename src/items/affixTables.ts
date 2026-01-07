@@ -1,4 +1,4 @@
-import type { AffixDefinition, ItemRarity, ItemType } from './types';
+import type { AffixDefinition, AffixType, ItemRarity, ItemType } from './types';
 
 export const RARITY_ORDER: ItemRarity[] = ['common', 'magic', 'rare', 'legendary'];
 
@@ -47,6 +47,26 @@ const affixValues = {
   allStats: [5, 10, 15, null, null],
 } as const satisfies Record<string, Array<number | null>>;
 
+const buildTierBrackets = (tiers: Array<number | null>): Array<{ min: number; max: number } | null> => {
+  return tiers.map((value, idx) => {
+    if (value === null) return null;
+    let prev = 0;
+    for (let i = idx - 1; i >= 0; i--) {
+      const candidate = tiers[i];
+      if (typeof candidate === 'number') {
+        prev = candidate;
+        break;
+      }
+    }
+    const min = idx === 0 ? 0 : prev;
+    return { min, max: value };
+  });
+};
+
+export const AFFIX_TIER_BRACKETS = Object.fromEntries(
+  Object.entries(affixValues).map(([key, tiers]) => [key, buildTierBrackets(tiers)])
+) as Record<AffixType, Array<{ min: number; max: number } | null>>;
+
 export const UNIVERSAL_AFFIXES: AffixDefinition[] = [
   { type: 'allStats', weight: 5, tiers: [...affixValues.allStats], isPercent: true },
 ];
@@ -85,5 +105,15 @@ export const AFFIX_POOLS: Record<ItemType, AffixDefinition[]> = {
     { type: 'pickupRadius', weight: 40, tiers: [...affixValues.pickupRadius] },
     { type: 'percentXp', weight: 35, tiers: [...affixValues.percentXp], isPercent: true },
     { type: 'cooldownReduction', weight: 45, tiers: [...affixValues.cooldownReduction], isPercent: true },
+  ],
+  relic: [
+    { type: 'flatDamage', weight: 100, tiers: [...affixValues.flatDamage] },
+    { type: 'percentDamage', weight: 80, tiers: [...affixValues.percentDamage], isPercent: true },
+    { type: 'projectiles', weight: 15, tiers: [...affixValues.projectiles] },
+    { type: 'pierce', weight: 30, tiers: [...affixValues.pierce] },
+    { type: 'maxHp', weight: 80, tiers: [...affixValues.maxHp] },
+    { type: 'luck', weight: 60, tiers: [...affixValues.luck], isPercent: true },
+    { type: 'percentGold', weight: 40, tiers: [...affixValues.percentGold], isPercent: true },
+    { type: 'cooldownReduction', weight: 40, tiers: [...affixValues.cooldownReduction], isPercent: true },
   ],
 };
