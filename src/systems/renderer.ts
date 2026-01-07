@@ -78,7 +78,7 @@ class RendererSystem {
   getLoadedImage(spriteId: string): HTMLImageElement {
     if (!this.imageCache.has(spriteId)) {
       const img = new Image();
-      img.src = `/assets/sprites/${spriteId}.png`;
+      img.src = `/src/assets/sprites/${spriteId}.png`;
       this.imageCache.set(spriteId, img);
     }
     return this.imageCache.get(spriteId)!;
