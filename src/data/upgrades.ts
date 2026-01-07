@@ -12,5 +12,6 @@ export const UPGRADES: Upgrades = {
   scope: { name: 'Good Aim', type: 'Item', desc: '+15% Crit Chance (3x Dmg)', crit: 15 },
   damage: { name: 'Energy Drink', type: 'Item', desc: '+20% Base Damage', damageMult: 0.2 },
   cooldown: { name: 'Caffeine', type: 'Item', desc: '-10% Weapon Cooldown', cooldownMult: 0.1 },
-  projectile: { name: 'Extra Ammo', type: 'Item', desc: '+1 Projectile for all weapons', projectileCount: 1 }
+  projectile: { name: 'Extra Ammo', type: 'Item', desc: '+1 Projectile for all weapons', projectileCount: 1 },
+  projectileSpeed: { name: 'Swift Arrows', type: 'Item', desc: '+20% projectile speed (all weapons)' }
 };

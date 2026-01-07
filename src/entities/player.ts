@@ -9,6 +9,7 @@ export interface PlayerItems {
   pierce: number;
   cooldown: number;
   projectile: number;
+  projectileSpeed: number;
 }
 
 export interface PlayerInventory {
@@ -31,6 +32,7 @@ export class Player extends Entity {
   areaPercent: number;
   durationBonus: number;
   healMult: number;
+  ricochetDamageBonus: number;
   goldMult: number;
   xpMult: number;
   loadoutStats: StatBlock;
@@ -74,7 +76,9 @@ export class Player extends Entity {
       pierce: loadoutStats.pierce,
       cooldown: loadoutStats.cooldownReduction,
       projectile: loadoutStats.projectiles,
+      projectileSpeed: loadoutStats.projectileSpeed,
     };
+    this.ricochetDamageBonus = loadoutStats.ricochetDamage;
     this.luck = loadoutStats.luck;
     this.armor = loadoutStats.armor;
     this.hpRegen = loadoutStats.hpRegen;
@@ -115,7 +119,7 @@ export class Player extends Entity {
   }
 
   addUpgrade(id: UpgradeType): void {
-    const items: ItemType[] = ['pierce', 'damage', 'cooldown', 'scope', 'projectile'];
+    const items: ItemType[] = ['pierce', 'damage', 'cooldown', 'scope', 'projectile', 'projectileSpeed'];
 
     if (items.includes(id as ItemType)) {
       switch (id) {
@@ -124,6 +128,7 @@ export class Player extends Entity {
         case 'cooldown': this.items.cooldown += 0.1; break;
         case 'scope': this.critChance += 0.15; break;
         case 'projectile': this.items.projectile++; break;
+        case 'projectileSpeed': this.items.projectileSpeed += 0.2; break;
       }
       this.inventory[id] = (this.inventory[id] || 0) + 1;
     } else {
@@ -151,7 +156,7 @@ export class Player extends Entity {
             weapon = { id: 'shield_bash', cd: 25, dmg: 25, type: 'cleave', curCd: 0, level: 1, baseDmg: 25, coneLength: 60, coneWidth: 0.6, knockback: 8 };
             break;
           case 'bow':
-            weapon = { id: 'bow', cd: 30, dmg: 8, type: 'nearest', curCd: 0, level: 1, baseDmg: 8 };
+            weapon = { id: 'bow', cd: 30, dmg: 8, type: 'nearest', curCd: 0, level: 1, baseDmg: 8, bounces: 0 };
             break;
           default:
             weapon = { id: 'bubble_stream', cd: 60, dmg: 12, type: 'bubble', curCd: 0, level: 1, baseDmg: 12 };
@@ -189,10 +194,13 @@ export class Player extends Entity {
               if (w.level === 5) w.projectileCount = 3;
               break;
             case 'bow':
-              // Level 2: +1 arrow, Level 3: +speed, Level 4: pierce, Level 5: +2 arrows
+              // Level 2: +1 arrow, Level 3: +speed, Level 4: pierce, Level 5: ricochet
               if (w.level === 2) w.projectileCount = 2;
               if (w.level === 3) w.speedMult = 1.3;
-              if (w.level === 5) w.projectileCount = 3;
+              if (w.level === 5) {
+                w.projectileCount = 3;
+                w.bounces = 1;
+              }
               break;
             case 'fireball':
               // Level 2: +explosion radius, Level 3: +duration, Level 4: trail damage, Level 5: +1 fireball

@@ -203,6 +203,7 @@ class UISystem {
         pierce: 'Pierce',
         duration: 'Duration',
         speed: 'Speed',
+        projectileSpeed: 'Projectile Speed',
         maxHp: 'Max HP',
         armor: 'Armor',
         hpRegen: 'HP Regen',
@@ -213,6 +214,7 @@ class UISystem {
         pickupRadius: 'Pickup Radius',
         percentXp: 'XP',
         allStats: 'All Stats',
+        ricochetDamage: 'Ricochet Damage',
       };
       const bracket = AFFIX_TIER_BRACKETS[affix.type]?.[affix.tier - 1];
       const sign = affix.value >= 0 ? '+' : '';
@@ -234,6 +236,7 @@ class UISystem {
         pierce: 'Pierce',
         duration: 'Duration',
         speed: 'Speed',
+        projectileSpeed: 'Projectile Speed',
         maxHp: 'Max HP',
         armor: 'Armor',
         hpRegen: 'HP Regen',
@@ -244,6 +247,7 @@ class UISystem {
         pickupRadius: 'Pickup Radius',
         percentXp: 'XP',
         allStats: 'All Stats',
+        ricochetDamage: 'Ricochet Damage',
       };
       const sign = affix.value >= 0 ? '+' : '';
       const value = affix.isPercent ? `${affix.value}%` : `${affix.value}`;

@@ -12,6 +12,7 @@ export type AffixType =
   | 'pierce'
   | 'duration'
   | 'speed'
+  | 'projectileSpeed'
   | 'maxHp'
   | 'armor'
   | 'hpRegen'
@@ -21,7 +22,8 @@ export type AffixType =
   | 'percentGold'
   | 'pickupRadius'
   | 'percentXp'
-  | 'allStats';
+  | 'allStats'
+  | 'ricochetDamage';
 
 export interface AffixDefinition {
   type: AffixType;

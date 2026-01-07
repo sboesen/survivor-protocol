@@ -36,7 +36,7 @@ export interface Character {
 }
 
 export type WeaponType = 'bubble_stream' | 'frying_pan' | 'thrown_cds' | 'fireball' | 'lighter' | 'shield_bash' | 'bow';
-export type ItemType = 'pierce' | 'scope' | 'damage' | 'cooldown' | 'projectile';
+export type ItemType = 'pierce' | 'scope' | 'damage' | 'cooldown' | 'projectile' | 'projectileSpeed';
 export type UpgradeType = WeaponType | ItemType;
 
 export interface Upgrade {

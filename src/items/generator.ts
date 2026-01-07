@@ -35,6 +35,7 @@ const PREFIX_AFFIX_NAMES: Record<AffixType, string[]> = {
   pierce: ['Piercing', 'Skewering', 'Impaling'],
   duration: ['Lingering', 'Enduring', 'Lasting'],
   speed: ['Rapid', 'Fleet', 'Rush'],
+  projectileSpeed: ['Swift', 'Quick', 'Speedy'],
   maxHp: ['Stalwart', 'Stout', 'Hale'],
   armor: ['Bulwark', 'Ironclad', 'Steeled'],
   hpRegen: ['Vigorous', 'Mending', 'Vital'],
@@ -45,6 +46,7 @@ const PREFIX_AFFIX_NAMES: Record<AffixType, string[]> = {
   pickupRadius: ['Reach', 'Longhand', 'Grasping'],
   percentXp: ['Learned', 'Sage', 'Studious'],
   allStats: ['Exalted', 'Omni', 'Balanced'],
+  ricochetDamage: ['Bouncing', 'Ricocheting', 'Rebounding'],
 };
 
 const SUFFIX_AFFIX_NAMES: Record<AffixType, string[]> = {
@@ -57,6 +59,7 @@ const SUFFIX_AFFIX_NAMES: Record<AffixType, string[]> = {
   pierce: ['of Penetration', 'of the Spear', 'of Skewers'],
   duration: ['of Persistence', 'of Echoes', 'of the Long Night'],
   speed: ['of Swiftness', 'of the Gale', 'of Quickstep'],
+  projectileSpeed: ['of Velocity', 'of Haste', 'of Gale'],
   maxHp: ['of the Ox', 'of the Mountain', 'of the Colossus'],
   armor: ['of the Bastion', 'of the Ward', 'of the Citadel'],
   hpRegen: ['of Renewal', 'of the Grove', 'of the Spring'],
@@ -67,6 +70,7 @@ const SUFFIX_AFFIX_NAMES: Record<AffixType, string[]> = {
   pickupRadius: ['of Reach', 'of the Hook', 'of the Hand'],
   percentXp: ['of Wisdom', 'of the Scholar', 'of Insight'],
   allStats: ['of Balance', 'of the Trinity', 'of the Whole'],
+  ricochetDamage: ['of Rebound', 'of Ricochet', 'of Reflection'],
 };
 
 type RolledAffix = { affix: ItemAffix; weight: number };

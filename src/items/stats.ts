@@ -11,6 +11,7 @@ export interface StatBlock {
   pierce: number;
   duration: number;
   speed: number;
+  projectileSpeed: number;
   maxHp: number;
   armor: number;
   hpRegen: number;
@@ -21,6 +22,7 @@ export interface StatBlock {
   pickupRadius: number;
   percentXp: number;
   allStats: number;
+  ricochetDamage: number;
 }
 
 const EMPTY_STATS: StatBlock = {
@@ -33,6 +35,7 @@ const EMPTY_STATS: StatBlock = {
   pierce: 0,
   duration: 0,
   speed: 0,
+  projectileSpeed: 0,
   maxHp: 0,
   armor: 0,
   hpRegen: 0,
@@ -43,6 +46,7 @@ const EMPTY_STATS: StatBlock = {
   pickupRadius: 0,
   percentXp: 0,
   allStats: 0,
+  ricochetDamage: 0,
 };
 
 export function createEmptyStats(): StatBlock {
@@ -78,6 +82,9 @@ function applyAffix(stats: StatBlock, affix: ItemAffix): void {
     case 'speed':
       stats.speed += affix.value;
       break;
+    case 'projectileSpeed':
+      stats.projectileSpeed += affix.value / 100;
+      break;
     case 'maxHp':
       stats.maxHp += affix.value;
       break;
@@ -107,6 +114,9 @@ function applyAffix(stats: StatBlock, affix: ItemAffix): void {
       break;
     case 'allStats':
       stats.allStats += affix.value / 100;
+      break;
+    case 'ricochetDamage':
+      stats.ricochetDamage += affix.value;
       break;
   }
 }

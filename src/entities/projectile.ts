@@ -2,6 +2,8 @@ import { CONFIG } from '../config';
 import type { CanvasContext } from '../types';
 import { Entity, type ScreenPosition } from './entity';
 import { Renderer } from '../systems/renderer';
+import type { Enemy } from './enemy';
+import { calculateWrappedDistance } from '../systems/targeting';
 
 export class Projectile extends Entity {
   vx: number;
@@ -27,6 +29,8 @@ export class Projectile extends Entity {
   homingTarget?: any; // Target to home in on (Enemy instance)
   homingSpeed?: number; // How fast projectile turns toward target
   homingStrength?: number; // How strongly projectile steers (0-1)
+  bounces?: number; // Number of ricochets remaining
+  ricochetCount?: number; // Number of times this projectile has ricocheted
 
   constructor(
     x: number,
@@ -63,7 +67,7 @@ export class Projectile extends Entity {
 
   update(): void {
     this.age++;
-  
+
     if (this.isBubble) {
       // Wavy motion: add perpendicular sine wave
       const perpX = -this.baseVy;
@@ -72,7 +76,7 @@ export class Projectile extends Entity {
       this.vx = this.baseVx + perpX * wobbleAmount * 0.1;
       this.vy = this.baseVy + perpY * wobbleAmount * 0.1;
     }
-  
+
     // Apply homing if target is set
     if (this.homingTarget && !this.homingTarget.marked) {
       const homingResult = updateHomingVelocity(
@@ -87,15 +91,15 @@ export class Projectile extends Entity {
       this.vx = homingResult.vx;
       this.vy = homingResult.vy;
     }
-  
+
     this.x = (this.x + this.vx + CONFIG.worldSize) % CONFIG.worldSize;
     this.y = (this.y + this.vy + CONFIG.worldSize) % CONFIG.worldSize;
-  
+
     if (this.isArc) {
       this.vy += 0.25;
       this.rot += 0.3;
     }
-  
+
     this.dur--;
     if (this.dur <= 0) this.marked = true;
   }
@@ -104,25 +108,24 @@ export class Projectile extends Entity {
     const { sx, sy } = pos;
     ctx.save();
     ctx.translate(sx, sy);
-    
+
     // Calculate rotation for sprite projectiles based on velocity
     let rotation = 0;
     if (this.isArc) {
       rotation = this.rot;
     } else if (this.spriteId) {
+      // Preserve existing arrow rotation logic: Math.atan2(this.vy, this.vx) + Math.PI / 4
       rotation = Math.atan2(this.vy, this.vx) + Math.PI / 4;
     }
-    if (rotation !== 0) ctx.rotate(rotation); 
-  
+    if (rotation !== 0) ctx.rotate(rotation);
+
     // Fade out near end of life
     const alpha = this.dur < 5 ? this.dur / 5 : 1;
     ctx.globalAlpha = alpha;
-  
+
     // Draw sprite if specified - check this FIRST before other conditions
     if (this.spriteId) {
-      console.log('[Projectile] Drawing sprite:', this.spriteId);
       const img = Renderer.getLoadedImage(this.spriteId);
-      console.log('[Projectile] Image:', img, 'src:', img?.src, 'complete:', img?.complete);
       ctx.drawImage(
         img,
         -8, -8, 16, 16
@@ -211,16 +214,16 @@ function updateHomingVelocity(
   if (!target || target.marked) {
     return { vx, vy };
   }
-  
+
   const dx = target.x - x;
   const dy = target.y - y;
-  
+
   const angle = Math.atan2(dy, dx);
   const speed = Math.hypot(vx, vy);
-  
+
   const turnAmount = homingSpeed * homingStrength;
   const newAngle = lerpAngle(angle, Math.atan2(vy, vx), turnAmount);
-  
+
   return {
     vx: Math.cos(newAngle) * speed,
     vy: Math.sin(newAngle) * speed,
@@ -239,4 +242,38 @@ function lerpAngle(target: number, current: number, t: number): number {
   const diff = target - current;
   const normalized = ((diff + Math.PI) % (Math.PI * 2)) - Math.PI;
   return current + normalized * t;
+}
+
+/**
+ * Find a ricochet target for a projectile.
+ * Returns nearest enemy not in hit list.
+ *
+ * @param enemies - Array of enemies to search
+ * @param fromX - Projectile X position
+ * @param fromY - Projectile Y position
+ * @param hitList - List of enemies already hit by this projectile
+ * @param maxDist - Maximum search distance for ricochet target
+ * @returns Enemy to ricochet to, or null if no valid target
+ */
+export function findRicochetTarget(
+  enemies: Enemy[],
+  fromX: number,
+  fromY: number,
+  hitList: Entity[],
+  maxDist: number
+): Enemy | null {
+  let nearest: Enemy | null = null;
+  let minDist = maxDist;
+
+  for (const e of enemies) {
+    if (e.marked || hitList.includes(e)) continue;
+
+    const dist = calculateWrappedDistance(fromX, fromY, e.x, e.y);
+    if (dist < minDist) {
+      minDist = dist;
+      nearest = e;
+    }
+  }
+
+  return nearest;
 }

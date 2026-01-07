@@ -71,13 +71,15 @@ function createSpreadProjectiles(
     splits?: boolean;
     explodeRadius?: number;
     knockback?: number;
+    bounces?: number;
   },
   homingTarget?: any,
-  spriteId?: string
+  spriteId?: string,
+  projectileSpeedMult: number = 1
 ): ProjectileData[] {
   const projectiles: ProjectileData[] = [];
-  const speed = baseSpeed * (speedMult || 1);
-  
+  const speed = baseSpeed * (speedMult || 1) * projectileSpeedMult;
+
   for (let i = 0; i < count; i++) {
     const spreadAngle = (i - (count - 1)) / 2 * spread;
     const proj: ProjectileData = {
@@ -96,6 +98,7 @@ function createSpreadProjectiles(
       splits: config.splits,
       explodeRadius: config.explodeRadius,
       knockback: config.knockback,
+      bounces: config.bounces,
     };
     if (homingTarget) {
       proj.homingTarget = homingTarget;
@@ -131,6 +134,7 @@ export interface ProjectileData {
   knockback?: number;
   homingTarget?: any; // Optional target for homing projectiles
   spriteId?: string; // Optional sprite ID for rendering
+  bounces?: number; // Number of ricochets for this projectile
 }
 
 export interface FireballData {
@@ -183,7 +187,8 @@ export function fireNearest(
   dmg: number,
   isCrit: boolean,
   pierce: number,
-  projectileBonus: number = 0
+  projectileBonus: number = 0,
+  projectileSpeedMult: number = 1
 ): WeaponFireResult {
   const target = findTarget(enemies, p.x, p.y, 400);
   
@@ -207,9 +212,11 @@ export function fireNearest(
       duration: 60,
       pierce,
       isCrit,
+      bounces: w.bounces,
     },
     undefined,
-    isBow ? 'weapons/arrow' : undefined
+    isBow ? 'weapons/arrow' : undefined,
+    projectileSpeedMult
   );
   
   return {
@@ -228,7 +235,8 @@ export function fireBubble(
   dmg: number,
   isCrit: boolean,
   pierce: number,
-  projectileBonus: number = 0
+  projectileBonus: number = 0,
+  projectileSpeedMult: number = 1
 ): WeaponFireResult {
   const target = findTarget(enemies, p.x, p.y, 400);
  
@@ -253,7 +261,10 @@ export function fireBubble(
       isCrit,
       isBubble: true,
       splits: w.splits,
-    }
+    },
+    undefined,
+    undefined,
+    projectileSpeedMult
   );
  
   return { fired: true, projectiles };
@@ -271,10 +282,11 @@ export function fireFacing(
   dmg: number,
   isCrit: boolean,
   pierce: number,
-  projectileBonus: number = 0
+  projectileBonus: number = 0,
+  projectileSpeedMult: number = 1
 ): WeaponFireResult {
   const angle = aimAngle ?? Math.atan2(lastDy || 0, lastDx || 1);
-  const speed = 10 * (w.speedMult || 1);
+  const speed = 10 * (w.speedMult || 1) * projectileSpeedMult;
   const count = (w.projectileCount || 1) + projectileBonus;
 
   const projectiles: ProjectileData[] = [];
@@ -346,15 +358,16 @@ export function fireFireball(
   dmg: number,
   isCrit: boolean,
   pierce: number,
-  projectileBonus: number = 0
-): WeaponFireResult {
+  projectileBonus: number = 0,
+  projectileSpeedMult: number = 1
+ ): WeaponFireResult {
   const { enemy: near } = findNearestEnemy(enemies, p.x, p.y, 400);
 
   if (!near) {
     return { fired: false };
   }
 
-  const speed = 6 * (w.speedMult || 1);
+  const speed = 6 * (w.speedMult || 1) * projectileSpeedMult;
   const duration = 90 * (w.speedMult || 1);
   const count = (w.projectileCount || 1) + projectileBonus;
 
@@ -555,19 +568,20 @@ export function fireWeapon(
   lastDy: number | undefined,
   aimAngle: number | undefined,
   frameCount: number,
-  projectileBonus: number = 0
+  projectileBonus: number = 0,
+  projectileSpeedMult: number = 1
 ): WeaponFireResult {
   switch (weaponType) {
     case 'nearest':
-      return fireNearest(p, enemies, w, dmg, isCrit, pierce, projectileBonus);
+      return fireNearest(p, enemies, w, dmg, isCrit, pierce, projectileBonus, projectileSpeedMult);
     case 'bubble':
-      return fireBubble(p, enemies, w, dmg, isCrit, pierce, projectileBonus);
+      return fireBubble(p, enemies, w, dmg, isCrit, pierce, projectileBonus, projectileSpeedMult);
     case 'facing':
-      return fireFacing(p, lastDx, lastDy, aimAngle, w, dmg, isCrit, pierce, projectileBonus);
+      return fireFacing(p, lastDx, lastDy, aimAngle, w, dmg, isCrit, pierce, projectileBonus, projectileSpeedMult);
     case 'arc':
       return fireArc(p, w, dmg, isCrit, pierce, projectileBonus);
     case 'fireball':
-      return fireFireball(p, enemies, w, dmg, isCrit, pierce, projectileBonus);
+      return fireFireball(p, enemies, w, dmg, isCrit, pierce, projectileBonus, projectileSpeedMult);
     case 'spray':
       return fireSpray(p, lastDx, lastDy, aimAngle, w, weaponId);
     case 'cleave':

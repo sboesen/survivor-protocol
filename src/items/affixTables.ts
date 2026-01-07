@@ -35,6 +35,7 @@ const affixValues = {
   pierce: [1, 2, 3, null, null],
   duration: [1, 2, 3, 4, null],
   speed: [5, 10, 18, 30, 50],
+  projectileSpeed: [5, 10, 18, 30, 50],
   maxHp: [10, 25, 50, 100, 200],
   armor: [1, 2, 4, null, null],
   hpRegen: [0.5, 1, 2, 4, null],
@@ -45,6 +46,7 @@ const affixValues = {
   pickupRadius: [5, 10, 20, null, null],
   percentXp: [15, 30, 50, null, null],
   allStats: [5, 10, 15, null, null],
+  ricochetDamage: [10, 20, 35, 50, 75],
 } as const satisfies Record<string, Array<number | null>>;
 
 const buildTierBrackets = (tiers: Array<number | null>): Array<{ min: number; max: number } | null> => {
@@ -100,6 +102,8 @@ export const AFFIX_POOLS: Record<ItemType, AffixDefinition[]> = {
     { type: 'pierce', weight: 30, tiers: [...affixValues.pierce] },
     { type: 'duration', weight: 40, tiers: [...affixValues.duration] },
     { type: 'speed', weight: 50, tiers: [...affixValues.speed] },
+    { type: 'projectileSpeed', weight: 50, tiers: [...affixValues.projectileSpeed], isPercent: true },
+    { type: 'ricochetDamage', weight: 40, tiers: [...affixValues.ricochetDamage], isPercent: true },
   ],
   helm: [
     { type: 'maxHp', weight: 100, tiers: [...affixValues.maxHp] },
@@ -123,6 +127,8 @@ export const AFFIX_POOLS: Record<ItemType, AffixDefinition[]> = {
     { type: 'pickupRadius', weight: 40, tiers: [...affixValues.pickupRadius] },
     { type: 'percentXp', weight: 35, tiers: [...affixValues.percentXp], isPercent: true },
     { type: 'cooldownReduction', weight: 45, tiers: [...affixValues.cooldownReduction], isPercent: true },
+    { type: 'projectileSpeed', weight: 40, tiers: [...affixValues.projectileSpeed], isPercent: true },
+    { type: 'ricochetDamage', weight: 30, tiers: [...affixValues.ricochetDamage], isPercent: true },
   ],
   relic: [
     { type: 'flatDamage', weight: 100, tiers: [...affixValues.flatDamage] },
@@ -133,5 +139,7 @@ export const AFFIX_POOLS: Record<ItemType, AffixDefinition[]> = {
     { type: 'luck', weight: 60, tiers: [...affixValues.luck], isPercent: true },
     { type: 'percentGold', weight: 40, tiers: [...affixValues.percentGold], isPercent: true },
     { type: 'cooldownReduction', weight: 40, tiers: [...affixValues.cooldownReduction], isPercent: true },
+    { type: 'projectileSpeed', weight: 45, tiers: [...affixValues.projectileSpeed], isPercent: true },
+    { type: 'ricochetDamage', weight: 35, tiers: [...affixValues.ricochetDamage], isPercent: true },
   ],
 };

@@ -49,7 +49,7 @@ import {
 import { threeRenderer } from './renderer/three';
 import { Player } from './entities/player';
 import { Enemy } from './entities/enemy';
-import { Projectile } from './entities/projectile';
+import { Projectile, findRicochetTarget } from './entities/projectile';
 import { FireballProjectile } from './entities/fireballProjectile';
 import { Loot } from './entities/loot';
 import { Obstacle } from './entities/obstacle';
@@ -624,10 +624,11 @@ class GameCore {
       const damageResult = calculateWeaponDamage(w.baseDmg + p.flatDamage, p.dmgMult, p.critChance);
       const dmg = damageResult.damage;
       const isCrit = damageResult.isCrit;
+      const projectileSpeedMult = 1 + (p.items.projectileSpeed || 0);
 
       // Handle aura separately (returns early)
       if (w.type === 'aura' && w.area) {
-        const result = fireWeapon('aura', w.id, { x: p.x, y: p.y }, this.enemies, w, dmg, isCrit, 1 + p.items.pierce, this.input.lastDx, this.input.lastDy, this.input.aimAngle, this.frames, p.items.projectile);
+        const result = fireWeapon('aura', w.id, { x: p.x, y: p.y }, this.enemies, w, dmg, isCrit, 1 + p.items.pierce, this.input.lastDx, this.input.lastDy, this.input.aimAngle, this.frames, p.items.projectile, projectileSpeedMult);
         if (result.fired && result.auraDamage) {
           p.auraAttackFrame = 0;
           const auraArea = applyAreaBonus(result.auraDamage.area, p.areaFlat, p.areaPercent);
@@ -641,7 +642,7 @@ class GameCore {
       }
 
       if (w.curCd <= 0) {
-        const result = fireWeapon(w.type, w.id, { x: p.x, y: p.y }, this.enemies, w, dmg, isCrit, 1 + p.items.pierce, this.input.lastDx, this.input.lastDy, this.input.aimAngle, this.frames, p.items.projectile);
+        const result = fireWeapon(w.type, w.id, { x: p.x, y: p.y }, this.enemies, w, dmg, isCrit, 1 + p.items.pierce, this.input.lastDx, this.input.lastDy, this.input.aimAngle, this.frames, p.items.projectile, projectileSpeedMult);
 
         if (result.fired) {
           // Create projectiles from result data
@@ -672,10 +673,13 @@ class GameCore {
               }
               if (projData.knockback) proj.knockback = projData.knockback;
               if (projData.spriteId) {
-                console.log('[Game] Setting spriteId on projectile:', projData.spriteId);
                 (proj as any).spriteId = projData.spriteId;
               }
               if (projData.homingTarget) (proj as any).homingTarget = projData.homingTarget;
+              if (projData.bounces) {
+                proj.bounces = projData.bounces;
+                proj.ricochetCount = 0;
+              }
               this.projectiles.push(proj);
             }
           }
@@ -778,7 +782,7 @@ class GameCore {
               for (let i = 0; i < pelletCount; i++) {
                 const spread = (Math.random() - 0.5) * spreadAmount;
                 const angle = baseAngle + spread;
-                const speed = 6 + Math.random() * 2;
+                const speed = (6 + Math.random() * 2) * (1 + (p.items.projectileSpeed || 0));
                 const proj = new Projectile(
                   p.x,
                   p.y,
@@ -923,7 +927,11 @@ class GameCore {
           if (proj.hitList.includes(e) || sharedHitList.includes(e)) continue;
 
           if (Utils.getDist(proj.x, proj.y, e.x, e.y) < proj.radius + e.radius) {
-            this.hitEnemy(e, proj.dmg, proj.isCrit);
+            // Calculate ricochet damage: 50% base + affix bonus
+            const ricochetMult = (proj.ricochetCount || 0) > 0
+              ? 0.5 + (p.ricochetDamageBonus || 0)
+              : 1;
+            this.hitEnemy(e, proj.dmg * ricochetMult, proj.isCrit);
             proj.hitList.push(e);
             sharedHitList.push(e); // Mark as hit for all subsequent projectiles of this weapon
 
@@ -975,6 +983,28 @@ class GameCore {
               const newPos = applyKnockback(e, kbAngle, proj.knockback);
               e.x = newPos.x;
               e.y = newPos.y;
+            }
+
+            // Ricochet - if projectile has bounces, redirect to new target
+            if (proj.bounces && proj.bounces > 0) {
+              const nextTarget = findRicochetTarget(this.enemies, proj.x, proj.y, proj.hitList, 300);
+              if (nextTarget) {
+                proj.bounces--;
+                proj.ricochetCount = (proj.ricochetCount || 0) + 1;
+                proj.hitList.push(nextTarget);
+                sharedHitList.push(nextTarget);
+
+                // Spawn spark particles on ricochet
+                this.spawnParticles({ type: 'spark' as ParticleType, x: proj.x, y: proj.y }, 5);
+
+                // Redirect to new target, preserving speed
+                const speed = Math.hypot(proj.vx, proj.vy);
+                const newAngle = Math.atan2(nextTarget.y - proj.y, nextTarget.x - proj.x);
+                proj.vx = Math.cos(newAngle) * speed;
+                proj.vy = Math.sin(newAngle) * speed;
+
+                continue; // Skip pierce decrement and marking - projectile continues
+              }
             }
 
             proj.pierce--;
