@@ -1632,7 +1632,7 @@ void main() {
             float alpha = (1.0 - smoothstep(0.0, 1.0, dist));
   if (alpha < 0.01) discard;
 
-  const float progress = 1.0 - vLife;
+  float progress = 1.0 - vLife;
 
             // Dynamic color shift: White -> Yellow -> Orange -> Red
             vec3 fireColor;
