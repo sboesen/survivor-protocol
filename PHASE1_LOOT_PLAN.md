@@ -1625,6 +1625,76 @@ Before starting a run, select modifiers:
 
 ---
 
+## Affix Min/Max Gap Fix
+
+### Problem Analysis
+
+The `buildTierBrackets()` function creates affix ranges, but when consecutive tier values differ by 1, the `min` calculation rounds up to equal `max`, eliminating RNG.
+
+**Current affix tiers with no variance**:
+```
+projectiles: [1, 2, 3, null, null]  →  All 3 tiers fixed
+pierce:     [1, 2, 3, null, null]  →  All 3 tiers fixed
+duration:   [1, 2, 3, 4, null]    →  All 4 tiers fixed
+armor:      [1, 2, 4, null, null]  →  Tiers 1-2 fixed
+```
+
+**Code location**: `src/items/affixTables.ts:50-81`
+
+### Proposed Solution
+
+**Option A: Increase tier value gaps** (Recommended)
+```typescript
+const affixValues = {
+  projectiles: [1, 3, 5, null, null],  // Was [1, 2, 3]
+  pierce: [1, 3, 5, null, null],     // Was [1, 2, 3]
+  duration: [1, 3, 5, 7, null],      // Was [1, 2, 3, 4]
+  armor: [1, 3, 6, null, null],      // Was [1, 2, 4]
+}
+```
+
+**Benefits**:
+- Simple data change, no code changes
+- Creates meaningful chase (T1 projectiles=1, T3=5 is 400% increase)
+- Clear progression between tiers
+
+**Option B: Adjust min calculation formula**
+```typescript
+// Current: min = round((prev + step) * factor)
+// Proposed: min = round((prev + (max - prev) * 0.4))
+// Example for T2 with max=2, prev=1:
+// min = round((1 + (2 - 1) * 0.4)) = round(1.4) = 1
+// Range: 1-2 (50% variance)
+```
+
+**Benefits**:
+- Keeps tier values small/integers
+- Adds variance without power creep
+- More granular rolling
+
+**Recommendation**: Use Option A for projectiles/pierce/duration (they should scale dramatically), Option B for armor (keep values low).
+
+### Impact Assessment
+
+**Current state** (bad):
+- +Projectiles always exact value by tier
+- No "god roll" chase
+- Relics with "2-4 Pierce" have same visual impact as fixed 3 Pierce
+
+**Fixed state** (good):
+- +1 Projectiles T1 → +4-5 Projectiles T3 (chase for perfect rolls)
+- Same Pierce values but visible range in tooltips
+- Relics feel more impactful with wider implicit ranges
+
+### Implementation Steps
+
+1. Update `affixValues` in `src/items/affixTables.ts`
+2. Run tests to verify `buildTierBrackets()` creates ranges
+3. Update tooltips to show ranges: "+52% Fire Damage (40-60)"
+4. Balance check: Test with high-tier affixes to ensure power levels aren't broken
+
+---
+
 ## Open Questions
 
 1. **Level Requirements**: Should items have "Requires Level X"?
@@ -1643,3 +1713,306 @@ Before starting a run, select modifiers:
 
 5. **Corrupted Item Drawbacks**: Can they be removed?
    - Proposal: No - that's the price of power. Maybe late-game "Purify" crafting option (very expensive)
+
+---
+
+## Implementation Status & Gaps
+
+### ✅ Implemented (Phase 1-4)
+- Item generation with rarity rolls and affix counts
+- Random affix selection from item type pools
+- Tier rolling with min/max ranges
+- Stash system (200 slots)
+- Loadout system (7 slots including relic slot)
+- Veiled item drops from enemies
+- Basic item tooltips
+- Save/load persistence
+
+### ❌ Critical Gaps
+
+#### Relic System (MASSIVE GAP)
+**Current state**: Relics are just a differently-named random item type with no special behavior.
+
+**Missing components**:
+
+1. **No `RelicDefinition` data structure**
+   - Need interface: `{ id, name, classId, icon, weightTier, uniqueEffects, implicits }`
+   - Need 6 classes × 5 relics = 30 relic definitions
+   - Relic effect triggers not implemented (onHit, onKill, passive, onPickup, onTimer, onExtract)
+
+2. **No class-specific filtering**
+   - Relics currently can be equipped by any character
+   - Need: `relic.classId === player.selectedCharacter.id`
+   - Need: Class-specific relic pools in data
+
+3. **No weight tier system for relics**
+   - Currently uses normal rarity (common/magic/rare/legendary)
+   - Design requires: Common/Uncommon/Rare/Chase weights (100/40/15/5)
+   - Boss bonus: Rare/Chase weights ×2
+
+4. **No unique effect system**
+   - Design: Fixed effects + random implicit stat rolls
+   - Current: Fully random affixes (no fixed effects at all)
+   - Need: Effect handlers in game loop (check triggers, apply effects)
+
+5. **No implicit stat rolling**
+   - Design: Each relic has 2-3 fixed implicit types with min-max ranges
+   - Current: Random affix selection from pool
+   - Need: `RolledImplicits: { type, value, min, max }[]` on relic instances
+
+6. **Relic drop logic is placeholder**
+   - Current: Only drops when `debugLootBoost` is true with 10% chance
+   - Design: 0.1% (basic), 2% (elite), boss-specific pools
+   - Missing: Class attunement system (which class's relics drop?)
+
+7. **No boss-specific relic pools**
+   - Phase 7 plan: Each boss has specific relic pool for their class
+   - Missing: Boss definitions, relic pool mapping, map selection UI
+   - Missing: Map modifiers that boost relic drop rates
+
+#### Affix System Issues
+
+1. **12/72 affix tiers have no RNG**
+   - `projectiles`: All 3 tiers fixed (1, 2, 3)
+   - `pierce`: All 3 tiers fixed (1, 2, 3)
+   - `duration`: All 4 tiers fixed (1, 2, 3, 4)
+   - `armor`: Tiers 1-2 fixed (1, 2)
+   - Root cause: `buildTierBrackets()` rounds min to equal max when gap is 1
+   - Impact: No chase for perfect rolls on these stats
+
+**Technical breakdown**:
+```typescript
+// Current affix values:
+projectiles: [1, 2, 3, null, null]
+pierce: [1, 2, 3, null, null]
+duration: [1, 2, 3, 4, null]
+
+// buildTierBrackets() calculation for Tier 2 (value=2):
+// min = round((1 + 1) * 1) = 2 = max (NO RANGE!)
+```
+
+2. **Fix options**:
+   - Increase tier value gaps: projectiles: [1, 3, 5] instead of [1, 2, 3]
+   - Adjust min calculation: use `min = prev + (max - prev) * 0.4` instead of `+1`
+   - Accept deterministic: Some affixes (projectiles, duration) are intentionally fixed per tier
+
+#### Missing Systems
+
+1. **No extraction zones** - Design has 5min and 10min extraction triggers
+2. **No secure slot** - Design has Tarkov-style slot for protecting one item
+3. **No gambler merchant** - Phase 5 stretch feature
+4. **No crafting/scrap** - Phase 6 stretch feature
+5. **No map modifiers** - Phase 7 endgame feature
+6. **No boss fights** - Phase 7 endgame feature
+7. **No first-run guidance** - Phase 0 onboarding feature
+8. **No starter gear** - Phase 0 feature
+
+### Implementation Priority
+
+**HIGH PRIORITY** (Core mechanics broken):
+1. Implement proper relic data structure and class-specific pools
+2. Implement unique effect system with triggers
+3. Fix affix min/max gaps for projectiles/pierce/duration
+4. Implement proper relic drop rates (0.1%/2%) without debug flag
+
+---
+
+## Relic Implementation Plan
+
+### Phase R1: Core Relic Data (1-2 days)
+**Files to create**:
+- `src/data/relics.ts` - All 30 relic definitions
+- `src/types/relics.ts` - Relic-specific types
+
+**Data structure**:
+```typescript
+export interface RelicDefinition {
+  id: string;
+  name: string;
+  classId: string;
+  icon: string;
+  weightTier: 'common' | 'uncommon' | 'rare' | 'chase';
+  uniqueEffects: RelicEffect[];
+  implicits: Array<{
+    type: AffixType;
+    min: number;
+    max: number;
+    isPercent?: boolean;
+  }>;
+}
+
+export type RelicTrigger =
+  | 'passive'
+  | 'onHit'
+  | 'onKill'
+  | 'onPickup'
+  | 'onTimer'
+  | 'onExtract';
+
+export interface RelicEffect {
+  id: string;
+  name: string;
+  description: string;
+  trigger: RelicTrigger;
+  value?: number;  // For numeric effects
+  duration?: number;  // For timed effects
+}
+```
+
+**Wizard relics** (5 total):
+- Arcane Die (chase): 5% chance for 10x damage
+- Grimoire of Chains (common): Fireballs chain to 3 enemies
+- Warding Screen (rare): +100% luck, -20% damage
+- Familiar Figurine (common): Summons dragon ally
+- Critical Convergence (uncommon): Crits double projectile count
+
+Repeat for Paladin, Rogue, Knight, Pyromancer, Berserker (25 more relics).
+
+### Phase R2: Relic Generation (1 day)
+**Files to modify**:
+- `src/items/generator.ts` - Add `generateRelic(classId)` method
+
+**Changes**:
+1. Filter relic pool by `classId`
+2. Weighted random selection from pool (using weight tiers)
+3. Apply boss bonus (Rare/Chase ×2 weights) if boss drop
+4. Roll each implicit's value within min-max range
+5. Return `RelicInstance` with fixed unique effects + rolled implicits
+
+```typescript
+export class ItemGenerator {
+  static generateRelic(options: {
+    classId: string;
+    isBoss?: boolean;
+    random?: () => number;
+  }): Item {
+    const pool = RELIC_POOLS[options.classId];
+    const selectedRelic = this.rollWeightedRelic(pool, options.isBoss);
+    const rolledImplicits = selectedRelic.implicits.map(implicit =>
+      Utils.rand(implicit.min, implicit.max)
+    );
+    return {
+      id: createId(),
+      name: selectedRelic.name,
+      type: 'relic',
+      rarity: 'legendary',  // Display rarity; weightTier controls drop rate
+      affixes: [],  // Relics use implicits instead
+      rolledImplicits: rolledImplicits,
+      uniqueEffects: selectedRelic.uniqueEffects
+    };
+  }
+}
+```
+
+### Phase R3: Effect System (2-3 days)
+**Files to create**:
+- `src/systems/relicEffects.ts` - Effect handlers
+
+**Architecture**:
+```typescript
+export class RelicEffectHandler {
+  static onHit(player: Player, enemy: Enemy, relic: Item) {
+    relic.uniqueEffects.forEach(effect => {
+      if (effect.trigger === 'onHit') {
+        // Apply effect
+        if (effect.id === 'arcane_die') {
+          if (Math.random() < 0.05) {
+            const hitDamage = player.dmgMult;  // Placeholder for current hit damage
+            enemy.hp -= hitDamage * 10;  // 10x damage
+          }
+        }
+      }
+    });
+  }
+
+  static passive(player: Player, relic: Item) {
+    // Apply passive buffs (luck, etc.)
+    relic.uniqueEffects.forEach(effect => {
+      if (effect.id === 'warding_screen') {
+        player.luck += effect.value ?? 100;
+        player.damageMult -= 0.2;
+      }
+    });
+  }
+}
+```
+
+**Hook points in Game loop**:
+- `Enemy.takeDamage()` → call `onHit()` for all equipped relics
+- `Enemy.die()` → call `onKill()` for all equipped relics
+- `Player.collectLoot()` → call `onPickup()` for all equipped relics
+- `Game.update()` (timer) → call `onTimer()` for all equipped relics
+
+### Phase R4: Class Filtering (1 day)
+**Files to modify**:
+- `src/items/loadout.ts` - Add `canEquipRelic(relic, character)` check
+- `src/systems/loadoutUI.ts` - Show error if wrong class tries to equip
+
+**Logic**:
+```typescript
+export function canEquipRelic(relic: Item, characterId: string): boolean {
+  return relic.classId === characterId;
+}
+
+// In UI:
+if (!canEquipRelic(item, selectedCharacter.id)) {
+  showError(`This relic can only be equipped by ${CHARACTERS[item.classId].name}`);
+}
+```
+
+### Phase R5: Drop Logic (1 day)
+**Files to modify**:
+- `src/game.ts` - Replace debug relic logic with proper drop rates
+- `src/items/drops.ts` - Add `rollRelicDrop(enemyType, luck, classId)`
+
+**Changes**:
+```typescript
+// In Enemy.die():
+const relicDrop = rollRelicDrop(this.type, player.luck, player.characterId);
+if (relicDrop) {
+  const relic = ItemGenerator.generateRelic({
+    classId: player.characterId,
+    isBoss: this.type === 'boss'
+  });
+  this.game.loot.push(new Loot(this.x, this.y, 'orb', relic));
+}
+```
+
+**Drop rates**:
+- Basic: 0.1% × (1 + luck/100)
+- Elite: 2% × (1 + luck/100) (additional drop, not replacing normal)
+- Boss: Always drops 1 relic (plus 2-3 normal items)
+
+### Phase R6: Tooltip Display (1 day)
+**Files to modify**:
+- `src/systems/ui.ts` - Update tooltip for relics
+
+**Display format**:
+```
+┌─────────────────────────────────────────────────────────┐
+│ Arcane Die                                LEGENDARY  │
+│ ────────────────────────────────────────────────────── │
+│ UNIQUE EFFECTS:                                     │
+│ Fate Roll: 5% chance to deal 10x damage            │
+│                                                     │
+│ ROLLED IMPLICITS:                                   │
+│ +52% Fire Damage (40-60)                           │
+│ +3 Pierce (2-4)                                    │
+│ +6% Crit Chance (3-7)                               │
+│                                                     │
+│ Can only be equipped by Wizard                        │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Total estimated time**: 6-8 days
+
+**MEDIUM PRIORITY** (Planned but not started):
+1. Extraction zones and secure slot
+2. Boss-specific relic pools
+3. Map selection and modifiers
+4. First-run guidance and starter gear
+
+**LOW PRIORITY** (Stretch features):
+1. Gambler merchant and corrupted items
+2. Crafting and rerolling
+3. Set items and uniques
