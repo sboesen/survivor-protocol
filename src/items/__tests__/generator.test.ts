@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { ItemGenerator, _test } from '../generator';
+import { AFFIX_POOLS } from '../affixTables';
 import type { ItemRarity } from '../types';
 
 const mulberry32 = (seed: number): (() => number) => {
@@ -54,5 +55,11 @@ describe('ItemGenerator', () => {
     expect(_test.applyRarityBoost('common', 0)).toBe('common');
     expect(_test.applyRarityBoost('common', 2)).toBe('rare');
     expect(_test.applyRarityBoost('rare', 5)).toBe('legendary');
+  });
+
+  it('should cap common tiers to T2', () => {
+    const def = AFFIX_POOLS.accessory[0];
+    const result = _test.rollAffixTier(def, 'common', () => 0.99);
+    expect(result.tier).toBeLessThanOrEqual(2);
   });
 });

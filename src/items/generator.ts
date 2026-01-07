@@ -110,13 +110,26 @@ function rollAffixCount(rarity: ItemRarity, random: () => number): number {
   return table.options[index];
 }
 
+function getTierBounds(rarity: ItemRarity): { min: number; max: number } {
+  switch (rarity) {
+    case 'common':
+      return { min: 1, max: 2 };
+    case 'magic':
+      return { min: 1, max: 3 };
+    case 'rare':
+      return { min: 2, max: 4 };
+    case 'legendary':
+      return { min: 2, max: 5 };
+  }
+}
+
 function rollAffixTier(definition: AffixDefinition, rarity: ItemRarity, random: () => number): { tier: number; value: number } {
-  const minTier = rarity === 'legendary' ? 2 : 1;
+  const { min: minTier, max: maxTier } = getTierBounds(rarity);
   const available: Array<{ tier: number; weight: number; value: number }> = [];
 
   definition.tiers.forEach((value, idx) => {
     const tier = idx + 1;
-    if (value === null || tier < minTier) return;
+    if (value === null || tier < minTier || tier > maxTier) return;
     available.push({ tier, weight: AFFIX_TIER_WEIGHTS[idx] || 0, value });
   });
 
