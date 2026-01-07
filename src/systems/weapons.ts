@@ -76,32 +76,42 @@ export interface WeaponFireResult {
 export function fireNearest(
   p: { x: number; y: number },
   enemies: Enemy[],
+  w: Weapon,
   dmg: number,
   isCrit: boolean,
-  pierce: number
+  pierce: number,
+  projectileBonus: number = 0
 ): WeaponFireResult {
   const { enemy: near } = findNearestEnemy(enemies, p.x, p.y, 400);
-
+ 
   if (!near) {
     return { fired: false };
   }
-
+ 
   const ang = calculateWrappedAngle(p.x, p.y, near.x, near.y);
-
-  return {
-    fired: true,
-    projectiles: [{
+  const speed = 8 * (w.speedMult || 1);
+  const count = (w.projectileCount || 1) + projectileBonus;
+  const projectiles: ProjectileData[] = [];
+ 
+  for (let i = 0; i < count; i++) {
+    const spread = (i - (count - 1) / 2) * 0.1;
+    projectiles.push({
       x: p.x,
       y: p.y,
-      vx: Math.cos(ang) * 8,
-      vy: Math.sin(ang) * 8,
+      vx: Math.cos(ang + spread) * speed,
+      vy: Math.sin(ang + spread) * speed,
       radius: 5,
       color: '#0ff',
       dmg,
       duration: 60,
       pierce,
       isCrit,
-    }],
+    });
+  }
+ 
+  return {
+    fired: true,
+    projectiles,
   };
 }
 
@@ -450,7 +460,7 @@ export function fireWeapon(
 ): WeaponFireResult {
   switch (weaponType) {
     case 'nearest':
-      return fireNearest(p, enemies, dmg, isCrit, pierce);
+      return fireNearest(p, enemies, w, dmg, isCrit, pierce, projectileBonus);
     case 'bubble':
       return fireBubble(p, enemies, w, dmg, isCrit, pierce, projectileBonus);
     case 'facing':
