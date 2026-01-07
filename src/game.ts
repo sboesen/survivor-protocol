@@ -13,7 +13,6 @@ import {
   calculateLootMagnetPosition,
   canCollectLoot,
   calculateLootEffect,
-  applyLootEffectToPlayer,
 } from './systems/lootCollection';
 import {
   calculateTimeState,
@@ -61,6 +60,14 @@ import type { Item } from './items/types';
 import { rollItemType, shouldDropItem } from './items/drops';
 import { Stash } from './items/stash';
 import { ItemStats } from './items/stats';
+import {
+  applyAreaBonus,
+  applyArmorReduction,
+  applyDurationBonus,
+  applyGoldBonus,
+  applyHealingBonus,
+  applyXpBonus,
+} from './systems/statEffects';
 
 class GameCore {
   canvas: HTMLCanvasElement | null = null;
@@ -441,6 +448,7 @@ class GameCore {
         case 'Inferno':
           const projectiles = calculateInfernoProjectiles(this.player.x, this.player.y);
           for (const projData of projectiles) {
+            const duration = applyDurationBonus(projData.duration, this.player.durationBonus);
             const proj = new Projectile(
               this.player.x,
               this.player.y,
@@ -448,7 +456,7 @@ class GameCore {
               projData.vy,
               projData.damage,
               projData.color,
-              projData.duration,
+              duration,
               100,
               projData.pierce,
               true
@@ -461,7 +469,9 @@ class GameCore {
 
       // Reboot also heals
       if (type === 'Reboot') {
-        this.player.hp = calculateRebootHeal(this.player.hp, this.player.maxHp);
+        const baseHeal = calculateRebootHeal(this.player.hp, this.player.maxHp) - this.player.hp;
+        const boostedHeal = applyHealingBonus(baseHeal, this.player.healMult);
+        this.player.hp = Math.min(this.player.maxHp, this.player.hp + boostedHeal);
       }
     }
   }
@@ -544,6 +554,13 @@ class GameCore {
     // Aura animation frame tracking
     p.auraAttackFrame++;
 
+    if (p.hpRegen > 0 && this.frames % 60 === 0) {
+      const regen = applyHealingBonus(p.hpRegen, p.healMult);
+      if (regen > 0) {
+        p.hp = Math.min(p.maxHp, p.hp + regen);
+      }
+    }
+
     // Player movement
     const movementResult = processPlayerMovement(
       p.x, p.y,
@@ -590,8 +607,9 @@ class GameCore {
         const result = fireWeapon('aura', w.id, { x: p.x, y: p.y }, this.enemies, w, dmg, isCrit, 1 + p.items.pierce, this.input.lastDx, this.input.lastDy, this.input.aimAngle, this.frames, p.items.projectile);
         if (result.fired && result.auraDamage) {
           p.auraAttackFrame = 0;
+          const auraArea = applyAreaBonus(result.auraDamage.area, p.areaFlat, p.areaPercent);
           this.enemies.forEach(e => {
-            if (Utils.getDist(p.x, p.y, e.x, e.y) < result.auraDamage!.area) {
+            if (Utils.getDist(p.x, p.y, e.x, e.y) < auraArea) {
               this.hitEnemy(e, result.auraDamage!.dmg, result.auraDamage!.isCrit);
             }
           });
@@ -606,6 +624,7 @@ class GameCore {
           // Create projectiles from result data
           if (result.projectiles) {
             for (const projData of result.projectiles) {
+              const duration = applyDurationBonus(projData.duration, p.durationBonus);
               const proj = new Projectile(
                 projData.x,
                 projData.y,
@@ -614,7 +633,7 @@ class GameCore {
                 projData.radius,
                 projData.color,
                 projData.dmg,
-                projData.duration,
+                duration,
                 projData.pierce,
                 projData.isCrit,
                 false,
@@ -625,7 +644,9 @@ class GameCore {
               }
               if (projData.splits) (proj as any).splits = true;
               if (projData.isArc) (proj as any).isArc = true;
-              if (projData.explodeRadius) proj.explodeRadius = projData.explodeRadius;
+              if (projData.explodeRadius) {
+                proj.explodeRadius = applyAreaBonus(projData.explodeRadius, p.areaFlat, p.areaPercent);
+              }
               if (projData.knockback) proj.knockback = projData.knockback;
               this.projectiles.push(proj);
             }
@@ -634,6 +655,7 @@ class GameCore {
           // Create fireballs from result data
           if (result.fireballs) {
             for (const fbData of result.fireballs) {
+              const duration = applyDurationBonus(fbData.duration, p.durationBonus);
               const fireball = new FireballProjectile(
                 fbData.startX,
                 fbData.startY,
@@ -641,12 +663,14 @@ class GameCore {
                 fbData.targetY,
                 fbData.speed,
                 fbData.dmg,
-                fbData.duration,
+                duration,
                 fbData.pierce,
                 fbData.isCrit,
                 w.id
               );
-              if (fbData.explodeRadius) fireball.explodeRadius = fbData.explodeRadius;
+              if (fbData.explodeRadius) {
+                fireball.explodeRadius = applyAreaBonus(fbData.explodeRadius, p.areaFlat, p.areaPercent);
+              }
               if (fbData.trailDamage) fireball.trailDamage = fbData.trailDamage;
               this.fireballs.push(fireball);
             }
@@ -654,7 +678,8 @@ class GameCore {
 
           // Handle cleave weapon effects (shield bash - shoots shield sprite at nearest)
           if (result.cleave) {
-            const { baseAngle, range } = result.cleave;
+            const { baseAngle, range: baseRange } = result.cleave;
+            const range = applyAreaBonus(baseRange, p.areaFlat, p.areaPercent);
 
             // Find nearest enemy for direction
             let nearestDist = Infinity;
@@ -696,7 +721,8 @@ class GameCore {
 
           // Handle spray weapon effects
           if (result.spray) {
-            const { baseAngle, isLighter, gasColor, pelletCount, spreadAmount, coneLength } = result.spray;
+            const { baseAngle, isLighter, gasColor, pelletCount, spreadAmount, coneLength: baseConeLength } = result.spray;
+            const coneLength = applyAreaBonus(baseConeLength, p.areaFlat, p.areaPercent);
 
             // Spawn gas cloud particles (pepper spray ONLY)
             // Lighter now uses a unified high-fidelity shader cone
@@ -830,8 +856,9 @@ class GameCore {
         if (hasDamageImmunity(p.ultName, p.ultActiveTime)) return;
 
         if (this.frames % 30 === 0) {
-          p.hp -= 5;
-          this.spawnDamageText(p.x, p.y, '-5', '#f00');
+          const dmg = applyArmorReduction(5, p.armor);
+          p.hp -= dmg;
+          this.spawnDamageText(p.x, p.y, `-${dmg}`, '#f00');
           if (p.hp <= 0) this.gameOver(false);
         }
       }
@@ -847,8 +874,9 @@ class GameCore {
             proj.marked = true;
             continue;
           }
-          p.hp -= proj.dmg;
-          this.spawnDamageText(p.x, p.y, `-${proj.dmg}`, '#f00');
+          const dmg = applyArmorReduction(proj.dmg, p.armor);
+          p.hp -= dmg;
+          this.spawnDamageText(p.x, p.y, `-${dmg}`, '#f00');
           proj.marked = true;
           if (p.hp <= 0) this.gameOver(false);
         }
@@ -1023,11 +1051,13 @@ class GameCore {
           }
 
           if (effect.type === 'xp') {
-            p.gainXp(effect.xp || 0, () => this.triggerLevelUp());
+            const xpGain = applyXpBonus(effect.xp || 0, p.xpMult);
+            p.gainXp(xpGain, () => this.triggerLevelUp());
           } else if (effect.type === 'chest') {
             this.openChest();
           } else if (effect.type === 'heart') {
-            applyLootEffectToPlayer(p, effect);
+            const healAmount = applyHealingBonus(effect.hp || 0, p.healMult);
+            p.hp = Math.min(p.maxHp, p.hp + healAmount);
           }
         }
       }
@@ -1089,7 +1119,9 @@ class GameCore {
     if (e.hp <= 0 && !e.marked) {
       e.marked = true;
       this.kills++;
-      this.goldRun += e.type === 'boss' ? 100 : (e.type === 'elite' ? 10 : 1);
+      const baseGold = e.type === 'boss' ? 100 : (e.type === 'elite' ? 10 : 1);
+      const goldGain = applyGoldBonus(baseGold, this.player?.goldMult ?? 0);
+      this.goldRun += goldGain;
 
       if (e.type === 'boss') this.bossKills++;
 
@@ -1120,9 +1152,10 @@ class GameCore {
   }
 
   openChest(): void {
-    const gold = calculateChestGold();
-    this.goldRun += gold;
-    this.spawnDamageText(this.player?.x || 0, this.player?.y || 0, `+${gold}G`, '#fbbf24');
+    const baseGold = calculateChestGold();
+    const goldGain = applyGoldBonus(baseGold, this.player?.goldMult ?? 0);
+    this.goldRun += goldGain;
+    this.spawnDamageText(this.player?.x || 0, this.player?.y || 0, `+${goldGain}G`, '#fbbf24');
   }
 
   triggerLevelUp(): void {

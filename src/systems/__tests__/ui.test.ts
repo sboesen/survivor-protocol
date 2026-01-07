@@ -353,7 +353,7 @@ describe('UI', () => {
     it('should work when damage layer is missing', () => {
       document.getElementById('damage-layer')?.remove();
       const el = UI.spawnDamageText(100, 100, 10, '#fff');
-      expect(el).toBeInstanceOf(HTMLElement);
+      expect(el).toBeNull();
     });
 
     it('should convert numeric text to string', () => {

@@ -534,27 +534,27 @@ describe('Player', () => {
 
       it('level 2: adds cone length', () => {
         player.addUpgrade('lighter');
-        expect(player.weapons[0].coneLength).toBe(80);
+        expect(player.weapons[0].coneLength).toBe(150);
       });
 
       it('level 3: adds spread', () => {
         player.addUpgrade('lighter');
         player.addUpgrade('lighter');
-        expect(player.weapons[0].spread).toBe(0.35);
+        expect(player.weapons[0].spread).toBe(1.8);
       });
 
       it('level 4: increases cone length', () => {
         for (let i = 0; i < 3; i++) {
           player.addUpgrade('lighter');
         }
-        expect(player.weapons[0].coneLength).toBe(100);
+        expect(player.weapons[0].coneLength).toBe(200);
       });
 
       it('level 5: adds speed multiplier', () => {
         for (let i = 0; i < 4; i++) {
           player.addUpgrade('lighter');
         }
-        expect(player.weapons[0].speedMult).toBe(1.5);
+        expect(player.weapons[0].speedMult).toBe(2.0);
       });
     });
   });

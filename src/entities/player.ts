@@ -27,6 +27,12 @@ export class Player extends Entity {
   luck: number;
   armor: number;
   hpRegen: number;
+  areaFlat: number;
+  areaPercent: number;
+  durationBonus: number;
+  healMult: number;
+  goldMult: number;
+  xpMult: number;
   loadoutStats: StatBlock;
   xp: number;
   level: number;
@@ -72,6 +78,12 @@ export class Player extends Entity {
     this.luck = loadoutStats.luck;
     this.armor = loadoutStats.armor;
     this.hpRegen = loadoutStats.hpRegen;
+    this.areaFlat = loadoutStats.areaFlat;
+    this.areaPercent = loadoutStats.areaPercent;
+    this.durationBonus = loadoutStats.duration * 10;
+    this.healMult = 1 + loadoutStats.percentHealing;
+    this.goldMult = loadoutStats.percentGold;
+    this.xpMult = loadoutStats.percentXp;
     this.xp = 0;
     this.level = 1;
     this.nextXp = 5;

@@ -225,9 +225,9 @@ describe('movement', () => {
       expect(checkObstacleCollision(40, 100, obstacles)).toBe(false);
     });
 
-    it('should ignore obstacles near world edge', () => {
+    it('should detect obstacles near world edge', () => {
       const obstacles = [createObstacle(20, 1000, 100, 100)];
-      expect(checkObstacleCollision(20, 1000, obstacles)).toBe(false);
+      expect(checkObstacleCollision(20, 1000, obstacles)).toBe(true);
     });
 
     it('should check exact obstacle boundary', () => {

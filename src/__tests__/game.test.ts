@@ -30,6 +30,15 @@ vi.mock('../systems/saveData', () => ({
         speed: 0,
         magnet: 0,
       },
+      loadout: {
+        relic: null,
+        weapon: null,
+        helm: null,
+        armor: null,
+        accessory1: null,
+        accessory2: null,
+        accessory3: null,
+      },
     },
   },
 }));
@@ -47,10 +56,15 @@ vi.mock('../systems/ui', () => ({
     updateUlt: vi.fn(),
     updateItemSlots: vi.fn(),
     updateWeaponSlots: vi.fn(),
+    updateVeiledCount: vi.fn(),
     spawnDamageText: vi.fn(() => ({ style: {} })),
     updateDamageTexts: vi.fn(),
     showLevelUpScreen: vi.fn(),
     showGameOverScreen: vi.fn(),
+    hideLootInventory: vi.fn(),
+    hideExtractionScreen: vi.fn(),
+    showExtractionScreen: vi.fn(),
+    showLootInventory: vi.fn(),
   },
 }));
 
