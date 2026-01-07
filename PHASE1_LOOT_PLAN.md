@@ -136,6 +136,12 @@ For each affix slot:
 
 3. Roll weighted random from filtered pool
 4. **No duplicate affix types** on same item
+5. **Prefix/Suffix mapping (POE-style):** certain affix types map to name components.
+   - Prefixes come from primary affixes (damage, speed, HP, cooldown, etc.).
+   - Suffixes come from secondary affixes (utility, luck, gold, XP, etc.).
+   - If the item rolls multiple eligible affixes, pick the highest-tier affix for prefix/suffix (tie-break by weight).
+   - If no eligible affix exists, fall back to the generic prefix/suffix pool.
+   - MVP: only apply to non-relic items.
 
 ### Tier Roll (Fourth Gate)
 
@@ -459,7 +465,10 @@ Example: "Got Arcane Die with 42% Fire Damage (40-60)" - player sees the range, 
    - Roll affix count based on rarity
    - Roll each affix from filtered pool (no dupes)
    - Roll tier for each affix
-   - Generate name (prefix + base + suffix)
+   - Generate name:
+     - Base from item type pool
+     - Prefix/suffix derived from affix types (POE-style mapping)
+     - Fallback to generic prefix/suffix if no mapped affixes
 4. Write unit tests for generation distribution
 
 **Milestone**: Can generate 10,000 items and verify distribution matches expected probabilities.
