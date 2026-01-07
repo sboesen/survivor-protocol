@@ -76,12 +76,19 @@ class RendererSystem {
    * Returns Image element or a placeholder if not loaded yet.
    */
   getLoadedImage(spriteId: string): HTMLImageElement {
+    console.log('[Renderer] getLoadedImage called with spriteId:', spriteId);
     if (!this.imageCache.has(spriteId)) {
       const img = new Image();
-      img.src = `/src/assets/sprites/${spriteId}.png`;
+      const path = `/src/assets/sprites/${spriteId}.png`;
+      console.log('[Renderer] Creating new image at path:', path);
+      img.src = path;
       this.imageCache.set(spriteId, img);
+    } else {
+      console.log('[Renderer] Using cached image');
     }
-    return this.imageCache.get(spriteId)!;
+    const result = this.imageCache.get(spriteId)!;
+    console.log('[Renderer] Returning image, complete:', result.complete, 'src:', result.src);
+    return result;
   }
 }
 

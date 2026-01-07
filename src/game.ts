@@ -669,7 +669,10 @@ class GameCore {
                 proj.explodeRadius = applyAreaBonus(projData.explodeRadius, p.areaFlat, p.areaPercent);
               }
               if (projData.knockback) proj.knockback = projData.knockback;
-              if (projData.spriteId) (proj as any).spriteId = projData.spriteId;
+              if (projData.spriteId) {
+                console.log('[Game] Setting spriteId on projectile:', projData.spriteId);
+                (proj as any).spriteId = projData.spriteId;
+              }
               if (projData.homingTarget) (proj as any).homingTarget = projData.homingTarget;
               this.projectiles.push(proj);
             }

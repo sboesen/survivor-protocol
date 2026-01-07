@@ -116,11 +116,13 @@ export class Projectile extends Entity {
   
     // Fade out near end of life
     const alpha = this.dur < 5 ? this.dur / 5 : 1;
-    ctx.globalAlpha = alpha; 
+    ctx.globalAlpha = alpha;
   
     // Draw sprite if specified - check this FIRST before other conditions
     if (this.spriteId) {
+      console.log('[Projectile] Drawing sprite:', this.spriteId);
       const img = Renderer.getLoadedImage(this.spriteId);
+      console.log('[Projectile] Image:', img, 'src:', img?.src, 'complete:', img?.complete);
       ctx.drawImage(
         img,
         -8, -8, 16, 16
