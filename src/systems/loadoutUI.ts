@@ -168,8 +168,7 @@ class LoadoutUISystem {
   }
 
   private handleAltKey = (event: KeyboardEvent): void => {
-    if (event.key !== 'Alt') return;
-    const next = event.type === 'keydown';
+    const next = event.altKey;
     if (this.altCompare === next) return;
     this.altCompare = next;
     if (!this.hovered || !this.currentLoadout || !this.currentTooltip) return;
