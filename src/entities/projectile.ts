@@ -24,6 +24,9 @@ export class Projectile extends Entity {
   splits?: boolean;
   weaponId: string; // Track which weapon created this projectile
   spriteId?: string; // Use sprite instead of circle
+  homingTarget?: any; // Target to home in on (Enemy instance)
+  homingSpeed?: number; // How fast projectile turns toward target
+  homingStrength?: number; // How strongly projectile steers (0-1)
 
   constructor(
     x: number,
@@ -60,7 +63,7 @@ export class Projectile extends Entity {
 
   update(): void {
     this.age++;
-
+  
     if (this.isBubble) {
       // Wavy motion: add perpendicular sine wave
       const perpX = -this.baseVy;
@@ -69,15 +72,30 @@ export class Projectile extends Entity {
       this.vx = this.baseVx + perpX * wobbleAmount * 0.1;
       this.vy = this.baseVy + perpY * wobbleAmount * 0.1;
     }
-
+  
+    // Apply homing if target is set
+    if (this.homingTarget && !this.homingTarget.marked) {
+      const homingResult = updateHomingVelocity(
+        this.x,
+        this.y,
+        this.vx,
+        this.vy,
+        this.homingTarget,
+        this.homingSpeed || 0.08,
+        this.homingStrength || 0.05
+      );
+      this.vx = homingResult.vx;
+      this.vy = homingResult.vy;
+    }
+  
     this.x = (this.x + this.vx + CONFIG.worldSize) % CONFIG.worldSize;
     this.y = (this.y + this.vy + CONFIG.worldSize) % CONFIG.worldSize;
-
+  
     if (this.isArc) {
       this.vy += 0.25;
       this.rot += 0.3;
     }
-
+  
     this.dur--;
     if (this.dur <= 0) this.marked = true;
   }
@@ -164,4 +182,58 @@ export class Projectile extends Entity {
 
     ctx.restore();
   }
+}
+
+/**
+ * Update projectile velocity to home in on a target.
+ *
+ * @param x - Projectile X position
+ * @param y - Projectile Y position
+ * @param vx - Current projectile velocity X
+ * @param vy - Current projectile velocity Y
+ * @param target - Target enemy with x, y, and marked properties
+ * @param homingSpeed - How fast projectile turns toward target (default 0.08)
+ * @param homingStrength - How strongly projectile steers (0-1, default 0.05)
+ * @returns New velocity { vx, vy }
+ */
+function updateHomingVelocity(
+  x: number,
+  y: number,
+  vx: number,
+  vy: number,
+  target: { x: number; y: number; marked: boolean },
+  homingSpeed = 0.08,
+  homingStrength = 0.05
+): { vx: number; vy: number } {
+  if (!target || target.marked) {
+    return { vx, vy };
+  }
+  
+  const dx = target.x - x;
+  const dy = target.y - y;
+  
+  const angle = Math.atan2(dy, dx);
+  const speed = Math.hypot(vx, vy);
+  
+  const turnAmount = homingSpeed * homingStrength;
+  const newAngle = lerpAngle(angle, Math.atan2(vy, vx), turnAmount);
+  
+  return {
+    vx: Math.cos(newAngle) * speed,
+    vy: Math.sin(newAngle) * speed,
+  };
+}
+
+/**
+ * Interpolate between two angles, taking the shortest path.
+ *
+ * @param target - Target angle to steer toward
+ * @param current - Current velocity angle
+ * @param t - Interpolation factor (0-1)
+ * @returns Interpolated angle
+ */
+function lerpAngle(target: number, current: number, t: number): number {
+  const diff = target - current;
+  const normalized = ((diff + Math.PI) % (Math.PI * 2)) - Math.PI;
+  return current + normalized * t;
 }

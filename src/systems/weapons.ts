@@ -47,6 +47,7 @@ function findTarget(enemies: Enemy[], x: number, y: number, range: number): Targ
  * @param speedMult - Optional speed multiplier
  * @param spread - Spread angle between projectiles (optional)
  * @param config - Projectile configuration object (required fields only)
+ * @param homingTarget - Optional enemy target for homing projectiles
  * @returns Array of projectile data
  */
 function createSpreadProjectiles(
@@ -69,14 +70,15 @@ function createSpreadProjectiles(
     splits?: boolean;
     explodeRadius?: number;
     knockback?: number;
-  }
+  },
+  homingTarget?: any
 ): ProjectileData[] {
   const projectiles: ProjectileData[] = [];
   const speed = baseSpeed * (speedMult || 1);
   
   for (let i = 0; i < count; i++) {
     const spreadAngle = (i - (count - 1)) / 2 * spread;
-    projectiles.push({
+    const proj: ProjectileData = {
       x,
       y,
       vx: Math.cos(angle + spreadAngle) * speed,
@@ -92,7 +94,11 @@ function createSpreadProjectiles(
       splits: config.splits,
       explodeRadius: config.explodeRadius,
       knockback: config.knockback,
-    });
+    };
+    if (homingTarget) {
+      proj.homingTarget = homingTarget;
+    }
+    projectiles.push(proj);
   }
   
   return projectiles;
@@ -118,6 +124,7 @@ export interface ProjectileData {
   splits?: boolean;
   explodeRadius?: number;
   knockback?: number;
+  homingTarget?: any; // Optional target for homing projectiles
 }
 
 export interface FireballData {
