@@ -3,6 +3,7 @@ import { UPGRADES } from '../data/upgrades';
 import type { Item, ItemAffix } from '../items/types';
 import { AFFIX_TIER_BRACKETS } from '../items/affixTables';
 import { Utils } from '../utils';
+import type { Weapon } from '../types';
 
 class UISystem {
   private cache: Record<string, HTMLElement | null> = {};
@@ -617,7 +618,7 @@ class UISystem {
     bow: '🏹',
   };
 
-  updateWeaponSlots(weapons: Array<{ id: string; level: number; curCd: number; cd: number }>): void {
+  updateWeaponSlots(weapons: Weapon[]): void {
     const container = this.getEl('weapon-slots');
     if (!container) return;
 
@@ -670,7 +671,30 @@ class UISystem {
       });
     }
 
-    // Update cooldown ready state
+    // Update cooldown ready state, level, and tooltip handlers
+    weapons.forEach((w, i) => {
+      const slot = container.querySelectorAll('.weapon-slot')[i] as HTMLElement;
+      if (slot) {
+        if (w.curCd <= 0) {
+          slot.classList.add('cooldown-ready');
+        } else {
+          slot.classList.remove('cooldown-ready');
+        }
+        const level = slot.querySelector('.weapon-level');
+        if (level) {
+          level.textContent = `Lv${w.level}`;
+        }
+
+        slot.onmouseenter = (event: MouseEvent) => this.showWeaponTooltip(w, event);
+        slot.onmousemove = (event: MouseEvent) => {
+          const tooltip = this.getEl('weapon-tooltip');
+          if (tooltip && tooltip.style.display !== 'none') {
+            this.showWeaponTooltip(w, event);
+          }
+        };
+        slot.onmouseleave = () => this.hideWeaponTooltip();
+      }
+    });
     weapons.forEach((w, i) => {
       const slot = container.querySelectorAll('.weapon-slot')[i];
       if (slot) {
@@ -679,8 +703,130 @@ class UISystem {
         } else {
           slot.classList.remove('cooldown-ready');
         }
+        const level = slot.querySelector('.weapon-level');
+        if (level) {
+          level.textContent = `Lv${w.level}`;
+        }
       }
     });
+  }
+
+  showWeaponTooltip(weapon: Weapon, event?: MouseEvent): void {
+    const tooltip = this.getEl('weapon-tooltip');
+    if (!tooltip) return;
+    tooltip.innerHTML = '';
+    tooltip.className = 'weapon-tooltip';
+
+    const upgrade = UPGRADES[weapon.id];
+    const name = upgrade ? upgrade.name.replace(/[A-Z]/g, m => ' ' + m).trim() : weapon.id;
+
+    const title = document.createElement('div');
+    title.className = 'weapon-tooltip-title';
+    title.textContent = `${name} (Lv${weapon.level})`;
+
+    const desc = document.createElement('div');
+    desc.className = 'weapon-tooltip-desc';
+    desc.textContent = upgrade?.desc || '';
+
+    const stats = document.createElement('div');
+    stats.className = 'weapon-tooltip-stats';
+
+    const dmgMult = this.player?.dmgMult ?? 0;
+    const dmg = weapon.dmg * (1 + dmgMult);
+    const dmgLine = document.createElement('div');
+    dmgLine.textContent = `Damage: ${dmg.toFixed(1)}`;
+    stats.appendChild(dmgLine);
+
+    const cdLine = document.createElement('div');
+    cdLine.textContent = `Cooldown: ${(weapon.cd / 60).toFixed(1)}s`;
+    stats.appendChild(cdLine);
+
+    if (weapon.projectileCount) {
+      const projLine = document.createElement('div');
+      projLine.textContent = `Projectiles: ${weapon.projectileCount}`;
+      stats.appendChild(projLine);
+    }
+
+    if (weapon.speedMult) {
+      const speedLine = document.createElement('div');
+      speedLine.textContent = `Speed: ${(weapon.speedMult * 100).toFixed(0)}%`;
+      stats.appendChild(speedLine);
+    }
+
+    if (weapon.splits) {
+      const splitLine = document.createElement('div');
+      splitLine.textContent = `Splits on hit`;
+      stats.appendChild(splitLine);
+    }
+
+    if (weapon.explodeRadius) {
+      const explodeLine = document.createElement('div');
+      explodeLine.textContent = `Explosion: ${weapon.explodeRadius}px`;
+      stats.appendChild(explodeLine);
+    }
+
+    if (weapon.knockback) {
+      const kbLine = document.createElement('div');
+      kbLine.textContent = `Knockback: ${weapon.knockback}`;
+      stats.appendChild(kbLine);
+    }
+
+    if (weapon.area) {
+      const areaLine = document.createElement('div');
+      areaLine.textContent = `Area: ${weapon.area}px`;
+      stats.appendChild(areaLine);
+    }
+
+    if (weapon.coneLength) {
+      const coneLine = document.createElement('div');
+      coneLine.textContent = `Range: ${weapon.coneLength}px`;
+      stats.appendChild(coneLine);
+    }
+
+    if (weapon.coneWidth) {
+      const widthLine = document.createElement('div');
+      widthLine.textContent = `Cone: ${(weapon.coneWidth * 180 / Math.PI).toFixed(0)}°`;
+      stats.appendChild(widthLine);
+    }
+
+    if (weapon.trailDamage) {
+      const trailLine = document.createElement('div');
+      trailLine.textContent = `Trail Dmg: ${weapon.trailDamage}`;
+      stats.appendChild(trailLine);
+    }
+
+    tooltip.appendChild(title);
+    tooltip.appendChild(desc);
+    tooltip.appendChild(stats);
+    tooltip.style.display = 'block';
+
+    if (event) {
+      const width = tooltip.offsetWidth;
+      const height = tooltip.offsetHeight;
+      let x = event.clientX + 12;
+      let y = event.clientY + 12;
+      const maxX = window.innerWidth - width - 8;
+      const maxY = window.innerHeight - height - 8;
+      if (x > maxX) x = maxX;
+      if (y > maxY) y = maxY;
+      if (x < 8) x = 8;
+      if (y < 8) y = 8;
+      tooltip.style.left = `${x}px`;
+      tooltip.style.top = `${y}px`;
+    }
+  }
+
+  hideWeaponTooltip(): void {
+    const tooltip = this.getEl('weapon-tooltip');
+    if (tooltip) {
+      tooltip.innerHTML = '';
+      tooltip.style.display = 'none';
+    }
+  }
+
+  private player: { dmgMult: number } | null = null;
+  setPlayer(player: { dmgMult: number }): void {
+    this.player = player;
   }
 }
 

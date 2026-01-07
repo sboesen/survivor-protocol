@@ -186,6 +186,7 @@ canvas {
   border-radius: 4px;
   padding: 4px 6px;
   transition: 0.2s;
+  pointer-events: auto;
 }
 
 .weapon-slot.cooldown-ready {
@@ -746,6 +747,43 @@ canvas {
 
 .tooltip-relic .loadout-detail-title {
   color: #f97316;
+}
+
+.weapon-tooltip {
+  position: fixed;
+  display: none;
+  z-index: 1500;
+  min-width: 180px;
+  max-width: 240px;
+  background: rgba(0, 0, 0, 0.9);
+  border: 2px solid #60a5fa;
+  padding: 10px;
+  font-size: 10px;
+  color: #e5e7eb;
+  text-align: left;
+  pointer-events: none;
+  left: 0;
+  top: 0;
+}
+
+.weapon-tooltip-title {
+  font-size: 10px;
+  color: #60a5fa;
+  margin-bottom: 4px;
+}
+
+.weapon-tooltip-desc {
+  font-size: 9px;
+  color: #9ca3af;
+  margin-bottom: 8px;
+}
+
+.weapon-tooltip-stats {
+  display: grid;
+  gap: 2px;
+  font-size: 9px;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
 }
 
 .loadout-detail-meta {

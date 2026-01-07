@@ -181,7 +181,7 @@ export class ThreeRenderer {
       this.renderPlayer(player, interpPlayer.x, interpPlayer.y, aimAngle);
     }
     this.renderEnemies(enemies, alpha);
-    this.renderProjectiles(projectiles, alpha, aimAngle);
+    this.renderProjectiles(projectiles, alpha);
     this.renderLoot(loot, alpha);
     this.renderFireballs(fireballs, alpha);
     this.renderParticles(particles, alpha);
@@ -347,7 +347,7 @@ export class ThreeRenderer {
     }
   }
 
-  private renderProjectiles(projectiles: Projectile[], alpha: number, playerAimAngle = 0): void {
+  private renderProjectiles(projectiles: Projectile[], alpha: number): void {
     // Clean up removed projectiles
     const currentSet = new Set(projectiles);
     for (const proj of this.activeProjectiles) {
@@ -370,7 +370,6 @@ export class ThreeRenderer {
 
       if (!view) {
         if (proj.spriteId) {
-          console.log('[ThreeRenderer] Creating sprite with texture for:', proj.spriteId);
           const texture = this.spriteManager.getTexture(proj.spriteId);
           if (!texture) {
             console.error('[ThreeRenderer] Failed to get texture for:', proj.spriteId);

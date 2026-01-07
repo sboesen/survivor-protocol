@@ -255,6 +255,8 @@ class GameCore {
       loadoutStats
     );
 
+    UI.setPlayer(this.player);
+
     this.enemies = [];
     this.projectiles = [];
     this.fireballs = [];
