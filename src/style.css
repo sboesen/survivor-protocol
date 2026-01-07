@@ -586,7 +586,7 @@ canvas {
   z-index: 1600;
   min-width: 180px;
   max-width: 240px;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.9);
   border: 2px solid #6b7280;
   padding: 10px;
   font-size: 10px;
@@ -675,7 +675,7 @@ canvas {
   z-index: 1500;
   min-width: 180px;
   max-width: 240px;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(0, 0, 0, 0.9);
   border: 2px solid #6b7280;
   padding: 10px;
   font-size: 10px;
@@ -701,7 +701,7 @@ canvas {
 .loadout-compare-panel {
   min-width: 180px;
   max-width: 240px;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(0, 0, 0, 0.9);
   border: 2px solid #6b7280;
   padding: 10px;
 }
