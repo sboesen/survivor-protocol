@@ -31,7 +31,7 @@ const affixValues = {
   areaFlat: [10, 25, 50, null, null],
   areaPercent: [15, 30, 50, null, null],
   cooldownReduction: [10, 18, 28, 40, 55],
-  projectiles: [1, 1, 2, null, null],
+  projectiles: [1, 2, 3, null, null],
   pierce: [1, 2, 3, null, null],
   duration: [1, 2, 3, 4, null],
   speed: [5, 10, 18, 30, 50],
@@ -48,6 +48,9 @@ const affixValues = {
 } as const satisfies Record<string, Array<number | null>>;
 
 const buildTierBrackets = (tiers: Array<number | null>): Array<{ min: number; max: number } | null> => {
+  const hasFloat = tiers.some(value => typeof value === 'number' && !Number.isInteger(value));
+  const step = hasFloat ? 0.1 : 1;
+
   return tiers.map((value, idx) => {
     if (value === null) return null;
     let prev = 0;
@@ -58,7 +61,22 @@ const buildTierBrackets = (tiers: Array<number | null>): Array<{ min: number; ma
         break;
       }
     }
-    const min = idx === 0 ? 0 : prev;
+
+    let min: number;
+    if (idx === 0) {
+      if (hasFloat) {
+        min = Math.max(step, Math.round(value * 0.5 * 10) / 10);
+      } else {
+        min = Math.max(step, Math.round(value * 0.5));
+      }
+    } else {
+      min = Math.round((prev + step) * (hasFloat ? 10 : 1)) / (hasFloat ? 10 : 1);
+    }
+
+    if (min > value) {
+      min = value;
+    }
+
     return { min, max: value };
   });
 };
