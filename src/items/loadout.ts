@@ -14,13 +14,13 @@ export const LOADOUT_SLOT_ORDER: LoadoutSlotId[] = [
 ];
 
 export const LOADOUT_SLOT_LABELS: Record<LoadoutSlotId, string> = {
-  relic: 'Relic',
+  relic: 'Offhand',
   weapon: 'Weapon',
   helm: 'Helm',
   armor: 'Armor',
-  accessory1: 'Accessory',
+  accessory1: 'Gloves',
   accessory2: 'Accessory',
-  accessory3: 'Accessory',
+  accessory3: 'Boots',
 };
 
 export const LOADOUT_SLOT_TYPES: Record<LoadoutSlotId, ItemType | 'relic'> = {

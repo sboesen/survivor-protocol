@@ -117,12 +117,59 @@
     </div>
 
     <!-- Stash Screen -->
-    <div id="stash-screen" class="screen">
-        <h1>LOADOUT</h1>
-        <div id="loadout-grid" class="loadout-grid"></div>
-        <h2>STASH</h2>
-        <div id="stash-grid" class="stash-grid"></div>
-        <button onclick="Menu.closeStash()" style="margin-top:20px;">BACK</button>
+    <div id="stash-screen" class="screen stash-screen">
+        <div class="stash-panel">
+            <div class="stash-layout">
+                <div class="equipment-panel">
+                    <h1>LOADOUT</h1>
+                    <div class="loadout-stage">
+                        <div class="loadout-silhouette" aria-hidden="true"></div>
+                        <div id="loadout-grid" class="loadout-grid"></div>
+                    </div>
+                </div>
+                <div class="inventory-panel">
+                    <h2>STASH</h2>
+                    <div id="stash-grid" class="stash-grid"></div>
+                </div>
+            </div>
+        </div>
+        <div class="stash-footer">
+            <button onclick="Menu.closeStash()">BACK</button>
+            <div id="loadout-summary" class="loadout-summary">
+                <div class="summary-item summary-might">
+                    <div class="summary-label">MIGHT</div>
+                    <div class="summary-value" id="summary-might">+0%</div>
+                </div>
+                <div class="summary-item summary-cooldown">
+                    <div class="summary-label">COOLDOWN</div>
+                    <div class="summary-value" id="summary-cooldown">0%</div>
+                </div>
+                <div class="summary-item summary-area">
+                    <div class="summary-label">AREA SIZE</div>
+                    <div class="summary-value" id="summary-area">+0%</div>
+                </div>
+                <div class="summary-item summary-luck">
+                    <div class="summary-label">LUCK</div>
+                    <div class="summary-value" id="summary-luck">+0%</div>
+                </div>
+                <div class="summary-item summary-speed">
+                    <div class="summary-label">SPEED</div>
+                    <div class="summary-value" id="summary-speed">+0%</div>
+                </div>
+                <div class="summary-item summary-amount">
+                    <div class="summary-label">PROJECTILES</div>
+                    <div class="summary-value" id="summary-amount">+0</div>
+                </div>
+                <div class="summary-item summary-greed">
+                    <div class="summary-label">GREED</div>
+                    <div class="summary-value" id="summary-greed">+0%</div>
+                </div>
+                <div class="summary-item summary-armor">
+                    <div class="summary-label">ARMOR</div>
+                    <div class="summary-value" id="summary-armor">+0</div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Sprite Viewer Screen -->

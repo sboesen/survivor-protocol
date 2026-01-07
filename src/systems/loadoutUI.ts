@@ -1,6 +1,8 @@
 import type { LoadoutData } from '../types';
 import type { Item, ItemAffix, StashSlot } from '../items/types';
 import { AFFIX_TIER_BRACKETS } from '../items/affixTables';
+import { ItemStats } from '../items/stats';
+import { CHARACTERS } from '../data/characters';
 import {
   LOADOUT_SLOT_LABELS,
   LOADOUT_SLOT_ORDER,
@@ -14,6 +16,18 @@ type Selection =
   | { type: 'stash'; index: number }
   | { type: 'loadout'; slot: LoadoutSlotId };
 
+type WeaponIconKey =
+  | 'dagger'
+  | 'sword'
+  | 'club'
+  | 'great_axe'
+  | 'spear'
+  | 'hammer'
+  | 'bow'
+  | 'arrow'
+  | 'wand'
+  | 'torch';
+
 class LoadoutUISystem {
   private selected: Selection | null = null;
   private pendingClick: { selection: Selection; timer: number } | null = null;
@@ -25,6 +39,18 @@ class LoadoutUISystem {
   private currentStash: StashSlot[] = [];
   private currentLoadout: LoadoutData | null = null;
   private currentTooltip: HTMLElement | null = null;
+  private weaponIconSources: Record<WeaponIconKey, string> = {
+    dagger: new URL('../assets/sprites/weapons/dagger.png', import.meta.url).href,
+    sword: new URL('../assets/sprites/weapons/sword.png', import.meta.url).href,
+    club: new URL('../assets/sprites/weapons/club.png', import.meta.url).href,
+    great_axe: new URL('../assets/sprites/weapons/great_axe.png', import.meta.url).href,
+    spear: new URL('../assets/sprites/weapons/spear.png', import.meta.url).href,
+    hammer: new URL('../assets/sprites/weapons/hammer.png', import.meta.url).href,
+    bow: new URL('../assets/sprites/weapons/bow.png', import.meta.url).href,
+    arrow: new URL('../assets/sprites/weapons/arrow.png', import.meta.url).href,
+    wand: new URL('../assets/sprites/weapons/wand.png', import.meta.url).href,
+    torch: new URL('../assets/sprites/weapons/torch.png', import.meta.url).href,
+  };
 
   private bindListeners(): void {
     if (this.listenersBound) return;
@@ -56,6 +82,7 @@ class LoadoutUISystem {
       const slotItem = loadout[slotId];
       const cell = document.createElement('div');
       cell.className = 'loadout-slot';
+      cell.classList.add(`slot-${slotId}`);
       cell.dataset.slotType = 'loadout';
       cell.dataset.slotId = slotId;
 
@@ -76,13 +103,23 @@ class LoadoutUISystem {
       const body = document.createElement('div');
       body.className = 'slot-item';
 
+      cell.appendChild(label);
+
       if (slotItem) {
+        const iconSrc = this.getItemIcon(slotItem);
+        if (iconSrc) {
+          cell.classList.add('has-icon');
+          const icon = document.createElement('img');
+          icon.className = 'slot-icon';
+          icon.src = iconSrc;
+          icon.alt = '';
+          cell.appendChild(icon);
+        }
         body.textContent = slotItem.name;
       } else {
         body.textContent = 'Empty';
       }
 
-      cell.appendChild(label);
       cell.appendChild(body);
 
       if (slotItem) {
@@ -120,7 +157,19 @@ class LoadoutUISystem {
         cell.classList.add('filled');
         cell.classList.add(`rarity-${slot.rarity}`);
         if (slot.type === 'relic') cell.classList.add('type-relic');
-        cell.textContent = slot.name;
+        const iconSrc = this.getItemIcon(slot);
+        if (iconSrc) {
+          cell.classList.add('has-icon');
+          const icon = document.createElement('img');
+          icon.className = 'stash-icon';
+          icon.src = iconSrc;
+          icon.alt = '';
+          cell.appendChild(icon);
+        }
+        const name = document.createElement('div');
+        name.className = 'stash-item-name';
+        name.textContent = slot.name;
+        cell.appendChild(name);
         cell.draggable = true;
         cell.ondragstart = (event) => this.handleDragStart(event, 'stash', index);
       }
@@ -141,6 +190,7 @@ class LoadoutUISystem {
       stashGrid.appendChild(cell);
     });
 
+    this.updateSummary(loadout);
     this.hideTooltip(tooltip);
   }
 
@@ -225,6 +275,87 @@ class LoadoutUISystem {
       ? ` (${bracket.min}${affix.isPercent ? '%' : ''}-${bracket.max}${affix.isPercent ? '%' : ''})`
       : '';
     return `T${affix.tier} ${sign}${value} ${labels[affix.type] ?? affix.type}${bracketSuffix}`;
+  }
+
+  private getWeaponIcon(name: string): string | null {
+    const key = name.toLowerCase();
+    const checks: Array<[WeaponIconKey, string[]]> = [
+      ['dagger', ['dagger', 'dirk']],
+      ['sword', ['blade', 'sword', 'reaver']],
+      ['club', ['club']],
+      ['great_axe', ['axe', 'scythe']],
+      ['spear', ['spear', 'glaive', 'halberd']],
+      ['hammer', ['hammer', 'mace']],
+      ['bow', ['bow']],
+      ['arrow', ['arrow']],
+      ['wand', ['scepter', 'wand']],
+      ['torch', ['torch']],
+    ];
+
+    for (const [iconKey, keywords] of checks) {
+      if (keywords.some(keyword => key.includes(keyword))) {
+        return this.weaponIconSources[iconKey];
+      }
+    }
+
+    return null;
+  }
+
+  private getItemIcon(item: Item): string | null {
+    if (item.type !== 'weapon') return null;
+    return this.getWeaponIcon(item.name);
+  }
+
+  private updateSummary(loadout: LoadoutData): void {
+    const summary = document.getElementById('loadout-summary');
+    if (!summary) return;
+
+    const stats = ItemStats.calculate(loadout);
+
+    const formatRatio = (value: number): string => {
+      const pct = Math.round(value * 100);
+      const sign = pct >= 0 ? '+' : '';
+      return `${sign}${pct}%`;
+    };
+
+    const formatPercentValue = (value: number): string => {
+      const pct = Math.round(value);
+      const sign = pct >= 0 ? '+' : '';
+      return `${sign}${pct}%`;
+    };
+
+    const formatSigned = (value: number): string => {
+      const rounded = Math.round(value);
+      const sign = rounded >= 0 ? '+' : '';
+      return `${sign}${rounded}`;
+    };
+
+    const formatCooldown = (value: number): string => {
+      const pct = Math.round(Math.abs(value) * 100);
+      if (pct === 0) return '0%';
+      const sign = value >= 0 ? '-' : '+';
+      return `${sign}${pct}%`;
+    };
+
+    const selectedCharId = SaveData.data.selectedChar ?? 'wizard';
+    const selectedChar = CHARACTERS[selectedCharId] ?? CHARACTERS.wizard;
+    const shopSpeed = SaveData.data.shop?.speed ?? 0;
+    const baseSpeed = 7.5 * (1 + shopSpeed * 0.05) * selectedChar.spdMod;
+    const speedRatio = baseSpeed > 0 ? stats.speed / baseSpeed : 0;
+
+    const updateValue = (id: string, value: string): void => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    };
+
+    updateValue('summary-might', formatRatio(stats.percentDamage + stats.allStats));
+    updateValue('summary-cooldown', formatCooldown(stats.cooldownReduction));
+    updateValue('summary-area', formatRatio(stats.areaPercent));
+    updateValue('summary-luck', formatPercentValue(stats.luck));
+    updateValue('summary-speed', formatRatio(speedRatio + stats.allStats));
+    updateValue('summary-amount', formatSigned(stats.projectiles));
+    updateValue('summary-greed', formatRatio(stats.percentGold));
+    updateValue('summary-armor', formatSigned(stats.armor));
   }
 
   private populateDetail(detailEl: HTMLElement, item: Item, heading?: string): void {
