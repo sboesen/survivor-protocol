@@ -73,12 +73,12 @@ class RendererSystem {
 
   /**
    * Get a cached image for projectile sprites.
-   * Returns the Image element or a placeholder if not loaded yet.
+   * Returns Image element or a placeholder if not loaded yet.
    */
   getLoadedImage(spriteId: string): HTMLImageElement {
     if (!this.imageCache.has(spriteId)) {
       const img = new Image();
-      img.src = `/src/assets/sprites/${spriteId}.png`;
+      img.src = `/assets/sprites/${spriteId}.png`;
       this.imageCache.set(spriteId, img);
     }
     return this.imageCache.get(spriteId)!;
@@ -86,3 +86,4 @@ class RendererSystem {
 }
 
 export const Renderer = new RendererSystem();
+  
