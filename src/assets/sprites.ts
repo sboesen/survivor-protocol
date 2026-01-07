@@ -74,7 +74,7 @@ export const SPRITES: Sprites = {
     "  11  11  ",
     "  11  11  "
   ],
-  archer: [
+  ranger: [
     "   gggg   ",
     "  gggggg  ",
     "  g11gg1  ",
