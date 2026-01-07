@@ -464,6 +464,28 @@ class GameCore {
             this.projectiles.push(proj);
           }
           break;
+        case 'Volley':
+          const arrowProjectiles = calculateInfernoProjectiles(this.player.x, this.player.y);
+          for (const projData of arrowProjectiles) {
+            const duration = applyDurationBonus(projData.duration, this.player.durationBonus);
+            const proj = new Projectile(
+              this.player.x,
+              this.player.y,
+              projData.vx,
+              projData.vy,
+              5,
+              '#4a4',
+              projData.damage,
+              duration,
+              projData.pierce,
+              false,
+              false,
+              'bow'
+            );
+            (proj as any).spriteId = 'weapons/arrow';
+            this.projectiles.push(proj);
+          }
+          break;
       }
 
       // Reboot also heals

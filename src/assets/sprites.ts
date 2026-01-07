@@ -67,12 +67,24 @@ export const SPRITES: Sprites = {
     "  pppppp  ",
     "  p11pp1  ",
     "  pppppp  ",
-    " 11111111 ",
-    " 1r1r1r1r ",
-    " 1r1r1r1r ",
+    "  11111111 ",
+    "  1r1r1r1r ",
+    "  1r1r1r1r ",
     "   1  1   ",
     "  11  11  ",
     "  11  11  "
+  ],
+  archer: [
+    "   gggg   ",
+    "  gggggg  ",
+    "  g11gg1  ",
+    "  gggggg  ",
+    "  11111111 ",
+    "  b1b1b1b1 ",
+    "  b1b1b1b1 ",
+    "   b  b   ",
+    "  bb  bb  ",
+    "  bb  bb  "
   ],
   // Enemies - these match the EntityType values
   basic: [

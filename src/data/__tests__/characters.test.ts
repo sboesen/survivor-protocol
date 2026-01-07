@@ -78,9 +78,21 @@ describe('CHARACTERS', () => {
     expect(CHARACTERS.pyromancer.desc).toBe('Reckless. Start: Flame Burst.');
   });
 
+  it('should have ranger character', () => {
+    expect(CHARACTERS.ranger).toBeDefined();
+    expect(CHARACTERS.ranger.id).toBe('ranger');
+    expect(CHARACTERS.ranger.name).toBe('Ranger');
+    expect(CHARACTERS.ranger.icon).toBe('🏹');
+    expect(CHARACTERS.ranger.weapon).toBe('bow');
+    expect(CHARACTERS.ranger.hpMod).toBe(0.9);
+    expect(CHARACTERS.ranger.spdMod).toBe(1.15);
+    expect(CHARACTERS.ranger.ult).toBe('Volley');
+    expect(CHARACTERS.ranger.desc).toBe('Agile ranged. Start: Bow.');
+  });
+
   describe('character count', () => {
-    it('should have 6 characters', () => {
-      expect(Object.keys(CHARACTERS).length).toBe(6);
+    it('should have 7 characters', () => {
+      expect(Object.keys(CHARACTERS).length).toBe(7);
     });
 
     it('should include all fantasy classes', () => {
@@ -91,6 +103,7 @@ describe('CHARACTERS', () => {
       expect(charIds).toContain('knight');
       expect(charIds).toContain('berserker');
       expect(charIds).toContain('pyromancer');
+      expect(charIds).toContain('ranger');
     });
   });
 

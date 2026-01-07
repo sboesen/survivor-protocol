@@ -18,9 +18,9 @@ class MenuSystem {
 
       const el = document.createElement('div');
       el.className = `char-card ${owned ? 'owned' : ''} ${selected ? 'selected' : ''}`;
-      // Use image sprite for wizard, emoji for others
+      // Use image sprite for wizard only, emoji for others
       const iconHtml = c.id === 'wizard'
-        ? `<img src="/wizard.png" style="width: 40px; height: 40px; image-rendering: pixelated;">`
+        ? `<img src="/${c.id}.png" style="width: 40px; height: 40px; image-rendering: pixelated;">`
         : `<div class="char-icon">${c.icon}</div>`;
       el.innerHTML = `
         ${iconHtml}

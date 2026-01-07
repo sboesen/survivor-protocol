@@ -55,6 +55,7 @@ export function getUltConfig(ultName: string): UltConfig | null {
     DivineShield: { duration: 240, text: 'DIVINE SHIELD!', color: '#888' },
     Inferno: { duration: 0, text: 'INFERNO!', color: '#f80' },
     Reboot: { duration: 300, text: 'REBOOT!', color: '#0ff' },
+    Volley: { duration: 0, text: 'VOLLEY!', color: '#4a4' },
   };
 
   return configs[ultName] ?? null;

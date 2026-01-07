@@ -60,5 +60,15 @@ export const CHARACTERS: Record<string, Character> = {
     spdMod: 1.1,
     ult: 'SmokeScreen',
     desc: 'Reckless. Start: Flame Burst.'
+  },
+  ranger: {
+    id: 'ranger',
+    name: 'Ranger',
+    icon: '🏹',
+    weapon: 'bow',
+    hpMod: 0.9,
+    spdMod: 1.15,
+    ult: 'Volley',
+    desc: 'Agile ranged. Start: Bow.'
   }
 };
