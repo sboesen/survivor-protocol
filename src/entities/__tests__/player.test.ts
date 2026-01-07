@@ -259,15 +259,15 @@ describe('Player', () => {
       player.inventory = {};
     });
 
-    it('should add pepper_spray weapon', () => {
-      player.addUpgrade('pepper_spray');
+    it('should add bow weapon', () => {
+      player.addUpgrade('bow');
       expect(player.weapons.length).toBe(1);
-      expect(player.weapons[0].id).toBe('pepper_spray');
-      expect(player.weapons[0].dmg).toBe(5);
-      expect(player.weapons[0].cd).toBe(3);
-      expect(player.weapons[0].type).toBe('spray');
+      expect(player.weapons[0].id).toBe('bow');
+      expect(player.weapons[0].dmg).toBe(8);
+      expect(player.weapons[0].cd).toBe(30);
+      expect(player.weapons[0].type).toBe('nearest');
       expect(player.weapons[0].level).toBe(1);
-      expect(player.inventory['pepper_spray']).toBe(1);
+      expect(player.inventory['bow']).toBe(1);
     });
 
     it('should add bubble_stream weapon', () => {
@@ -322,10 +322,10 @@ describe('Player', () => {
     });
 
     it('should add multiple different weapons', () => {
-      player.addUpgrade('pepper_spray');
+      player.addUpgrade('bow');
       player.addUpgrade('bubble_stream');
       expect(player.weapons.length).toBe(2);
-      expect(player.inventory['pepper_spray']).toBe(1);
+      expect(player.inventory['bow']).toBe(1);
       expect(player.inventory['bubble_stream']).toBe(1);
     });
   });
@@ -394,38 +394,38 @@ describe('Player', () => {
       });
     });
 
-    describe('pepper_spray specific upgrades', () => {
+    describe('lighter specific upgrades', () => {
       beforeEach(() => {
         player = new Player('wizard', 0.75, 0.95, 'fireball', 'MeteorSwarm',
           { health: 0, speed: 0, magnet: 0, damage: 0 });
         player.weapons = [];
         player.inventory = {};
-        player.addUpgrade('pepper_spray');
+        player.addUpgrade('lighter');
       });
 
-      it('level 2: adds +2 pellets (7 total)', () => {
-        player.addUpgrade('pepper_spray');
-        expect(player.weapons[0].pelletCount).toBe(7);
+      it('level 2: increases cone length', () => {
+        player.addUpgrade('lighter');
+        expect(player.weapons[0].coneLength).toBe(150);
       });
 
-      it('level 3: adds wider spread', () => {
-        player.addUpgrade('pepper_spray');
-        player.addUpgrade('pepper_spray');
-        expect(player.weapons[0].spread).toBe(0.6);
+      it('level 3: increases spread', () => {
+        player.addUpgrade('lighter');
+        player.addUpgrade('lighter');
+        expect(player.weapons[0].spread).toBe(1.8);
       });
 
-      it('level 4: increases spread to 0.8', () => {
+      it('level 4: increases cone length further', () => {
         for (let i = 0; i < 3; i++) {
-          player.addUpgrade('pepper_spray');
+          player.addUpgrade('lighter');
         }
-        expect(player.weapons[0].spread).toBe(0.8);
+        expect(player.weapons[0].coneLength).toBe(200);
       });
 
-      it('level 5: adds +3 pellets (10 total)', () => {
+      it('level 5: increases burn speed multiplier', () => {
         for (let i = 0; i < 4; i++) {
-          player.addUpgrade('pepper_spray');
+          player.addUpgrade('lighter');
         }
-        expect(player.weapons[0].pelletCount).toBe(10);
+        expect(player.weapons[0].speedMult).toBe(2);
       });
     });
 

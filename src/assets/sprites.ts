@@ -59,7 +59,7 @@ export const SPRITES: Sprites = {
     " 3r3333r3 ",
     "  333333  ",
     "   33 3   ",
-    "  3   3  ",
+    "  3   3   ",
     "     33   "
   ],
   pyromancer: [
@@ -67,9 +67,9 @@ export const SPRITES: Sprites = {
     "  pppppp  ",
     "  p11pp1  ",
     "  pppppp  ",
-    "  11111111 ",
-    "  1r1r1r1r ",
-    "  1r1r1r1r ",
+    "  11111111",
+    "  1r1r1r1r",
+    "  1r1r1r1r",
     "   1  1   ",
     "  11  11  ",
     "  11  11  "
@@ -79,9 +79,9 @@ export const SPRITES: Sprites = {
     "  gggggg  ",
     "  g11gg1  ",
     "  gggggg  ",
-    "  11111111 ",
-    "  b1b1b1b1 ",
-    "  b1b1b1b1 ",
+    "  11111111",
+    "  b1b1b1b1",
+    "  b1b1b1b1",
     "   b  b   ",
     "  bb  bb  ",
     "  bb  bb  "
@@ -101,15 +101,15 @@ export const SPRITES: Sprites = {
   ],
   bat: [
     "  d   d   ",
-    " d www d ",
-    "drwwwwwd ",
-    " dddrddd ",
-    "  ddddd  ",
-    "   ddd   ",
-    "    d    ",
-    "         ",
-    "         ",
-    "         "
+    " d www d  ",
+    "drwwwwwd  ",
+    " dddrddd  ",
+    "  ddddd   ",
+    "   ddd    ",
+    "    d     ",
+    "          ",
+    "          ",
+    "          "
   ],
   elite: [
     "  111111  ",
@@ -150,15 +150,15 @@ export const SPRITES: Sprites = {
   ],
   sprinter: [
     "  d   d   ",
-    " d www d ",
-    "drwwwwwd ",
-    " dddrddd ",
-    "  ddddd  ",
-    "   ddd   ",
-    "    d    ",
-    "         ",
-    "         ",
-    "         "
+    " d www d  ",
+    "drwwwwwd  ",
+    " dddrddd  ",
+    "  ddddd   ",
+    "   ddd    ",
+    "    d     ",
+    "          ",
+    "          ",
+    "          "
   ],
   armored: [
     "  111111  ",

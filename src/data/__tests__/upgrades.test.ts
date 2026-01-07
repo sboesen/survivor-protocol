@@ -7,15 +7,6 @@ describe('UPGRADES', () => {
   });
 
   describe('weapons', () => {
-    it('should have pepper_spray weapon', () => {
-      expect(UPGRADES.pepper_spray).toBeDefined();
-      expect(UPGRADES.pepper_spray.name).toBe('Pepper Spray');
-      expect(UPGRADES.pepper_spray.type).toBe('Weapon');
-      expect(UPGRADES.pepper_spray.desc).toBe('Toxic green cloud spray');
-      expect(UPGRADES.pepper_spray.dmg).toBe(5);
-      expect(UPGRADES.pepper_spray.cd).toBe(3);
-    });
-
     it('should have bubble_stream weapon', () => {
       expect(UPGRADES.bubble_stream).toBeDefined();
       expect(UPGRADES.bubble_stream.name).toBe('Bubble Stream');
@@ -68,6 +59,15 @@ describe('UPGRADES', () => {
       expect(UPGRADES.shield_bash.desc).toBe('Heavy close-range bash');
       expect(UPGRADES.shield_bash.dmg).toBe(25);
       expect(UPGRADES.shield_bash.cd).toBe(25);
+    });
+
+    it('should have bow weapon', () => {
+      expect(UPGRADES.bow).toBeDefined();
+      expect(UPGRADES.bow.name).toBe('Bow');
+      expect(UPGRADES.bow.type).toBe('Weapon');
+      expect(UPGRADES.bow.desc).toBe('Rapid arrow shots at nearest enemy');
+      expect(UPGRADES.bow.dmg).toBe(8);
+      expect(UPGRADES.bow.cd).toBe(30);
     });
   });
 
@@ -250,7 +250,7 @@ describe('UPGRADES', () => {
 
   describe('upgrade keys', () => {
     it('should have matching keys for weapon types', () => {
-      const weaponKeys = ['pepper_spray', 'bubble_stream', 'frying_pan', 'thrown_cds', 'fireball', 'lighter'];
+      const weaponKeys = ['bubble_stream', 'frying_pan', 'thrown_cds', 'fireball', 'lighter', 'shield_bash', 'bow'];
       weaponKeys.forEach(key => {
         expect(UPGRADES[key]).toBeDefined();
       });

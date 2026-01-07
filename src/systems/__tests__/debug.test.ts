@@ -123,7 +123,7 @@ describe('Debug', () => {
 
     it('should unlock all characters', () => {
       Debug.unlockAll();
-      expect(SaveData.data.ownedChars).toEqual(['wizard', 'paladin', 'rogue', 'knight', 'berserker', 'pyromancer']);
+      expect(SaveData.data.ownedChars).toEqual(Object.keys(CHARACTERS));
     });
 
     it('should save after unlocking', () => {

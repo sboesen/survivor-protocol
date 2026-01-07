@@ -1,6 +1,16 @@
 import type { SaveGameData } from '../types';
 import { Stash } from '../items/stash';
 
+// Map old character IDs to new fantasy-themed IDs
+const CHARACTER_MIGRATION: Record<string, string> = {
+  dungeonMaster: 'wizard',
+  janitor: 'paladin',
+  skater: 'rogue',
+  mallCop: 'knight',
+  foodCourt: 'berserker',
+  teenager: 'pyromancer',
+};
+
 const createDefaultSaveData = (): SaveGameData => ({
   gold: 0,
   ownedChars: ['wizard'],
@@ -29,10 +39,19 @@ class SaveDataSystem {
       try {
         const parsed = JSON.parse(saved) as Partial<SaveGameData>;
 
+        const needsMigration = (parsed.ownedChars ?? []).some(
+          charId => charId in CHARACTER_MIGRATION
+        ) || (parsed.selectedChar && parsed.selectedChar in CHARACTER_MIGRATION);
+
+        const migratedOwnedChars = (parsed.ownedChars ?? ['wizard']).map(
+          charId => CHARACTER_MIGRATION[charId] || charId
+        );
+        const migratedSelectedChar = CHARACTER_MIGRATION[parsed.selectedChar ?? 'wizard'] || parsed.selectedChar || 'wizard';
+
         this.data = {
           gold: parsed.gold ?? 0,
-          ownedChars: parsed.ownedChars ?? ['wizard'],
-          selectedChar: parsed.selectedChar ?? 'wizard',
+          ownedChars: migratedOwnedChars,
+          selectedChar: migratedSelectedChar,
           shop: {
             damage: parsed.shop?.damage ?? 0,
             health: parsed.shop?.health ?? 0,
@@ -53,6 +72,10 @@ class SaveDataSystem {
 
         if (this.data.selectedChar && !this.data.ownedChars.includes(this.data.selectedChar)) {
           this.data.ownedChars.push(this.data.selectedChar);
+        }
+
+        if (needsMigration) {
+          this.save();
         }
       } catch (e) {
         console.error('Failed to parse save data, using defaults:', e);

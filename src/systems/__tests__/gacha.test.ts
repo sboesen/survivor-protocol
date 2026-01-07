@@ -251,7 +251,7 @@ describe('GachaAnim', () => {
       GachaAnim.ctx = mockCtx;
       GachaAnim.resultChar = { id: 'rogue', name: 'Rogue' };
       GachaAnim.active = true;
-      GachaAnim.phase = 2;
+      GachaAnim.phase = 1;
       GachaAnim.frames = 0;
       GachaAnim.isDup = false;
     });
@@ -308,7 +308,7 @@ describe('GachaAnim', () => {
     beforeEach(() => {
       GachaAnim.init();
       GachaAnim.ctx = createMockCtx();
-      GachaAnim.resultChar = { id: 'rogue', name: 'Skater' };
+      GachaAnim.resultChar = { id: 'rogue', name: 'Rogue' };
       GachaAnim.active = true;
       GachaAnim.phase = 2;
       GachaAnim.frames = 0;

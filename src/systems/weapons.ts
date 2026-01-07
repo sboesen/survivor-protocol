@@ -48,6 +48,7 @@ function findTarget(enemies: Enemy[], x: number, y: number, range: number): Targ
  * @param spread - Spread angle between projectiles (optional)
  * @param config - Projectile configuration object (required fields only)
  * @param homingTarget - Optional enemy target for homing projectiles
+ * @param spriteId - Optional sprite ID for rendering (overrides color/radius)
  * @returns Array of projectile data
  */
 function createSpreadProjectiles(
@@ -71,7 +72,8 @@ function createSpreadProjectiles(
     explodeRadius?: number;
     knockback?: number;
   },
-  homingTarget?: any
+  homingTarget?: any,
+  spriteId?: string
 ): ProjectileData[] {
   const projectiles: ProjectileData[] = [];
   const speed = baseSpeed * (speedMult || 1);
@@ -83,8 +85,8 @@ function createSpreadProjectiles(
       y,
       vx: Math.cos(angle + spreadAngle) * speed,
       vy: Math.sin(angle + spreadAngle) * speed,
-      radius: config.radius || 5,
-      color: config.color || '#0ff',
+      radius: spriteId ? 5 : (config.radius || 5),
+      color: spriteId ? 'transparent' : (config.color || '#0ff'),
       dmg: config.dmg,
       duration: config.duration || 60,
       pierce: config.pierce || 1,
@@ -97,6 +99,9 @@ function createSpreadProjectiles(
     };
     if (homingTarget) {
       proj.homingTarget = homingTarget;
+    }
+    if (spriteId) {
+      proj.spriteId = spriteId;
     }
     projectiles.push(proj);
   }
@@ -125,6 +130,7 @@ export interface ProjectileData {
   explodeRadius?: number;
   knockback?: number;
   homingTarget?: any; // Optional target for homing projectiles
+  spriteId?: string; // Optional sprite ID for rendering
 }
 
 export interface FireballData {
@@ -186,6 +192,7 @@ export function fireNearest(
   }
   
   const count = (w.projectileCount || 1) + projectileBonus;
+  const isBow = w.id === 'bow';
   const projectiles = createSpreadProjectiles(
     p.x,
     p.y,
@@ -195,12 +202,14 @@ export function fireNearest(
     w.speedMult || 1,
     0.1,
     {
-      color: '#0ff',
+      color: isBow ? '#4a4' : '#0ff',
       dmg,
       duration: 60,
       pierce,
       isCrit,
-    }
+    },
+    undefined,
+    isBow ? 'weapons/arrow' : undefined
   );
   
   return {
@@ -396,7 +405,7 @@ export function fireFireball(
 }
 
 /**
- * Fire a weapon of type 'spray' (pepper_spray, lighter, or shield_bash).
+ * Fire a weapon of type 'spray' (lighter or similar).
  */
 export function fireSpray(
   _p: { x: number; y: number },

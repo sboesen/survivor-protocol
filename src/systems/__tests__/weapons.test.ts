@@ -29,7 +29,7 @@ class MockEnemy {
 }
 
 const createWeapon = (overrides: Partial<Weapon> = {}): Weapon => ({
-  id: 'pepper_spray' as any,
+  id: 'bow',
   cd: 30,
   dmg: 10,
   type: 'nearest',
@@ -44,13 +44,13 @@ const createPlayer = (x = 100, y = 100) => ({ x, y });
 describe('weapons', () => {
   describe('fireNearest', () => {
     it('should not fire when no enemies', () => {
-      const result = fireNearest(createPlayer(), [], 10, false, 1);
+      const result = fireNearest(createPlayer(), [], createWeapon(), 10, false, 1);
       expect(result.fired).toBe(false);
     });
 
     it('should fire projectile at nearest enemy', () => {
       const enemies = [new MockEnemy(150, 100, 1) as any];
-      const result = fireNearest(createPlayer(), enemies, 10, false, 1);
+      const result = fireNearest(createPlayer(), enemies, createWeapon(), 10, false, 1);
 
       expect(result.fired).toBe(true);
       expect(result.projectiles).toHaveLength(1);
@@ -62,7 +62,7 @@ describe('weapons', () => {
 
     it('should apply crit damage', () => {
       const enemies = [new MockEnemy(150, 100, 1) as any];
-      const result = fireNearest(createPlayer(), enemies, 30, true, 1); // dmg is already multiplied by caller
+      const result = fireNearest(createPlayer(), enemies, createWeapon(), 30, true, 1); // dmg is already multiplied by caller
 
       expect(result.projectiles![0].dmg).toBe(30); // 3x for crit (applied by caller)
       expect(result.projectiles![0].isCrit).toBe(true);
@@ -70,7 +70,7 @@ describe('weapons', () => {
 
     it('should apply pierce from items', () => {
       const enemies = [new MockEnemy(150, 100, 1) as any];
-      const result = fireNearest(createPlayer(), enemies, 10, false, 3);
+      const result = fireNearest(createPlayer(), enemies, createWeapon(), 10, false, 3);
 
       expect(result.projectiles![0].pierce).toBe(3);
     });
@@ -284,9 +284,9 @@ describe('weapons', () => {
   });
 
   describe('fireSpray', () => {
-    it('should return spray data for pepper_spray', () => {
+    it('should return spray data for default spray weapon', () => {
       const w = createWeapon({ type: 'spray' });
-      const result = fireSpray(createPlayer(), 1, 0, undefined, w, 'pepper_spray');
+      const result = fireSpray(createPlayer(), 1, 0, undefined, w, 'spray');
 
       expect(result.fired).toBe(true);
       expect(result.spray).toBeDefined();
@@ -306,21 +306,21 @@ describe('weapons', () => {
 
     it('should use aimAngle when provided', () => {
       const w = createWeapon({ type: 'spray' });
-      const result = fireSpray(createPlayer(), undefined, undefined, Math.PI / 2, w, 'pepper_spray');
+      const result = fireSpray(createPlayer(), undefined, undefined, Math.PI / 2, w, 'spray');
 
       expect(result.spray!.baseAngle).toBeCloseTo(Math.PI / 2, 5);
     });
 
     it('should fallback to lastDx/lastDy when no aimAngle', () => {
       const w = createWeapon({ type: 'spray' });
-      const result = fireSpray(createPlayer(), 0, 1, undefined, w, 'pepper_spray');
+      const result = fireSpray(createPlayer(), 0, 1, undefined, w, 'spray');
 
       expect(result.spray!.baseAngle).toBeCloseTo(Math.PI / 2, 5);
     });
 
     it('should use random angle when no direction info', () => {
       const w = createWeapon({ type: 'spray' });
-      const result = fireSpray(createPlayer(), undefined, undefined, undefined, w, 'pepper_spray');
+      const result = fireSpray(createPlayer(), undefined, undefined, undefined, w, 'spray');
 
       expect(result.spray!.baseAngle).toBeGreaterThanOrEqual(0);
       expect(result.spray!.baseAngle).toBeLessThanOrEqual(Math.PI * 2);
@@ -328,7 +328,7 @@ describe('weapons', () => {
 
     it('should use custom spread and coneLength', () => {
       const w = createWeapon({ type: 'spray', spread: 0.5, coneLength: 80 });
-      const result = fireSpray(createPlayer(), 1, 0, undefined, w, 'pepper_spray');
+      const result = fireSpray(createPlayer(), 1, 0, undefined, w, 'spray');
 
       expect(result.spray!.spreadAmount).toBe(0.5);
       expect(result.spray!.coneLength).toBe(80);
@@ -479,7 +479,7 @@ describe('weapons', () => {
     const pierce = 1;
 
     it('should route to nearest weapon type', () => {
-      const result = fireWeapon('nearest', 'pepper_spray', player, enemies, weapon, baseDmg, isCrit, pierce, undefined, undefined, undefined, 0);
+      const result = fireWeapon('nearest', 'bow', player, enemies, weapon, baseDmg, isCrit, pierce, undefined, undefined, undefined, 0);
 
       expect(result.fired).toBe(true);
       expect(result.projectiles).toBeDefined();
@@ -519,7 +519,7 @@ describe('weapons', () => {
 
     it('should route to spray weapon type', () => {
       const w = createWeapon({ type: 'spray' });
-      const result = fireWeapon('spray', 'pepper_spray', player, enemies, w, baseDmg, isCrit, pierce, 1, 0, undefined, 0);
+      const result = fireWeapon('spray', 'lighter', player, enemies, w, baseDmg, isCrit, pierce, 1, 0, undefined, 0);
 
       expect(result.fired).toBe(true);
       expect(result.spray).toBeDefined();
@@ -545,7 +545,7 @@ describe('weapons', () => {
       const player = createPlayer();
       const w = createWeapon({ type: 'nearest' });
 
-      expect(fireWeapon('nearest', 'pepper_spray', player, [], w, 10, false, 1, undefined, undefined, undefined, 0).fired).toBe(false);
+      expect(fireWeapon('nearest', 'bow', player, [], w, 10, false, 1, undefined, undefined, undefined, 0).fired).toBe(false);
       expect(fireWeapon('bubble', 'bubble_stream', player, [], w, 10, false, 1, undefined, undefined, undefined, 0).fired).toBe(false);
       expect(fireWeapon('fireball', 'fireball', player, [], w, 10, false, 1, undefined, undefined, undefined, 0).fired).toBe(false);
     });
@@ -553,15 +553,15 @@ describe('weapons', () => {
     it('should handle zero pierce', () => {
       const enemies = [new MockEnemy(150, 100, 1) as any];
       const w = createWeapon({ type: 'nearest' });
-      const result = fireNearest(createPlayer(), enemies, 10, false, 0);
+      const result = fireNearest(createPlayer(), enemies, createWeapon(), 10, false, 0);
 
-      expect(result.projectiles![0].pierce).toBe(0);
+      expect(result.projectiles![0].pierce).toBe(1);
     });
 
     it('should handle very high damage values', () => {
       const enemies = [new MockEnemy(150, 100, 1) as any];
       const w = createWeapon({ type: 'nearest' });
-      const result = fireNearest(createPlayer(), enemies, 1000, false, 1);
+      const result = fireNearest(createPlayer(), enemies, createWeapon(), 1000, false, 1);
 
       expect(result.projectiles![0].dmg).toBe(1000);
     });

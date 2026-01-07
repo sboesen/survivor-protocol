@@ -474,7 +474,7 @@ class GameCore {
               projData.vx,
               projData.vy,
               5,
-              '#4a4',
+              'transparent',
               projData.damage,
               duration,
               projData.pierce,
@@ -669,9 +669,8 @@ class GameCore {
                 proj.explodeRadius = applyAreaBonus(projData.explodeRadius, p.areaFlat, p.areaPercent);
               }
               if (projData.knockback) proj.knockback = projData.knockback;
-              if (w.id === 'bow') {
-                (proj as any).spriteId = 'weapons/arrow';
-              }
+              if (projData.spriteId) (proj as any).spriteId = projData.spriteId;
+              if (projData.homingTarget) (proj as any).homingTarget = projData.homingTarget;
               this.projectiles.push(proj);
             }
           }
@@ -787,7 +786,7 @@ class GameCore {
                   1,
                   isCrit,
                   false,
-                  w.id || 'pepper_spray'
+                  w.id || 'lighter'
                 );
                 this.projectiles.push(proj);
               }
