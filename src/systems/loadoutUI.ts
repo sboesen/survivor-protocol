@@ -17,6 +17,21 @@ type Selection =
 class LoadoutUISystem {
   private selected: Selection | null = null;
   private pendingClick: { selection: Selection; timer: number } | null = null;
+  private hovered: Selection | null = null;
+  private hoverAnchor: HTMLElement | null = null;
+  private lastPointer: { x: number; y: number } | null = null;
+  private altCompare = false;
+  private listenersBound = false;
+  private currentStash: StashSlot[] = [];
+  private currentLoadout: LoadoutData | null = null;
+  private currentTooltip: HTMLElement | null = null;
+
+  private bindListeners(): void {
+    if (this.listenersBound) return;
+    this.listenersBound = true;
+    window.addEventListener('keydown', this.handleAltKey);
+    window.addEventListener('keyup', this.handleAltKey);
+  }
 
   render(stash: StashSlot[], loadout: LoadoutData): void {
     const stashGrid = document.getElementById('stash-grid');
@@ -25,7 +40,15 @@ class LoadoutUISystem {
 
     if (!stashGrid || !loadoutGrid) return;
 
+    this.currentStash = stash;
+    this.currentLoadout = loadout;
+    this.currentTooltip = tooltip;
+    this.bindListeners();
+
     this.hideTooltip(tooltip);
+    this.hovered = null;
+    this.hoverAnchor = null;
+    this.lastPointer = null;
     loadoutGrid.innerHTML = '';
     stashGrid.innerHTML = '';
 
@@ -73,7 +96,7 @@ class LoadoutUISystem {
 
       cell.onmouseenter = (event) => this.showTooltip({ type: 'loadout', slot: slotId }, tooltip, stash, loadout, event);
       cell.onmousemove = (event) => this.updateTooltipPosition(tooltip, event);
-      cell.onmouseleave = () => this.hideTooltip(tooltip);
+      cell.onmouseleave = () => this.clearHover(tooltip);
       cell.onfocus = () => this.showTooltip({ type: 'loadout', slot: slotId }, tooltip, stash, loadout, null, cell);
       cell.onblur = () => this.hideTooltip(tooltip);
       cell.onclick = () => {
@@ -108,7 +131,7 @@ class LoadoutUISystem {
 
       cell.onmouseenter = (event) => this.showTooltip({ type: 'stash', index }, tooltip, stash, loadout, event);
       cell.onmousemove = (event) => this.updateTooltipPosition(tooltip, event);
-      cell.onmouseleave = () => this.hideTooltip(tooltip);
+      cell.onmouseleave = () => this.clearHover(tooltip);
       cell.onfocus = () => this.showTooltip({ type: 'stash', index }, tooltip, stash, loadout, null, cell);
       cell.onblur = () => this.hideTooltip(tooltip);
       cell.onclick = () => {
@@ -143,6 +166,15 @@ class LoadoutUISystem {
 
     this.pendingClick = { selection, timer };
   }
+
+  private handleAltKey = (event: KeyboardEvent): void => {
+    if (event.key !== 'Alt') return;
+    const next = event.type === 'keydown';
+    if (this.altCompare === next) return;
+    this.altCompare = next;
+    if (!this.hovered || !this.currentLoadout || !this.currentTooltip) return;
+    this.showTooltip(this.hovered, this.currentTooltip, this.currentStash, this.currentLoadout, null, this.hoverAnchor ?? undefined);
+  };
 
   private handleSingleClick(selection: Selection, stash: StashSlot[], loadout: LoadoutData): void {
     if (selection.type === 'stash') {
@@ -196,7 +228,14 @@ class LoadoutUISystem {
     return `T${affix.tier} ${sign}${value} ${labels[affix.type] ?? affix.type}${bracketSuffix}`;
   }
 
-  private populateDetail(detailEl: HTMLElement, item: Item): void {
+  private populateDetail(detailEl: HTMLElement, item: Item, heading?: string): void {
+    if (heading) {
+      const label = document.createElement('div');
+      label.className = 'loadout-compare-label';
+      label.textContent = heading;
+      detailEl.appendChild(label);
+    }
+
     const title = document.createElement('div');
     title.className = 'loadout-detail-title';
     title.textContent = item.name;
@@ -263,12 +302,27 @@ class LoadoutUISystem {
   ): void {
     if (!tooltip) return;
 
+    this.hovered = selection;
+    if (event) {
+      this.lastPointer = { x: event.clientX, y: event.clientY };
+      this.altCompare = event.altKey;
+    }
+    this.hoverAnchor = fallbackEl ?? (event?.currentTarget as HTMLElement | undefined) ?? null;
+
     tooltip.innerHTML = '';
+    tooltip.className = 'loadout-tooltip';
     const item = this.resolveSelectionItem(selection, stash, loadout);
-    this.applyTooltipTheme(tooltip, item);
-    this.renderDetail(tooltip, selection, stash, loadout);
+    const compare = this.getCompareItem(selection, item, loadout);
+    if (compare) {
+      tooltip.classList.add('compare');
+      this.renderCompareDetail(tooltip, item!, compare.item, compare.label);
+    } else {
+      this.applyTooltipTheme(tooltip, item);
+      this.renderDetail(tooltip, selection, stash, loadout);
+    }
+
     if (!tooltip.innerHTML) {
-      this.hideTooltip(tooltip);
+      this.clearHover(tooltip);
       return;
     }
 
@@ -288,6 +342,10 @@ class LoadoutUISystem {
     if (event) {
       x = event.clientX + 12;
       y = event.clientY + 12;
+      this.lastPointer = { x: event.clientX, y: event.clientY };
+    } else if (this.lastPointer) {
+      x = this.lastPointer.x + 12;
+      y = this.lastPointer.y + 12;
     } else if (fallbackEl) {
       const rect = fallbackEl.getBoundingClientRect();
       x = rect.right + 12;
@@ -313,6 +371,71 @@ class LoadoutUISystem {
     tooltip.innerHTML = '';
     tooltip.className = 'loadout-tooltip';
     tooltip.style.display = 'none';
+  }
+
+  private clearHover(tooltip: HTMLElement | null): void {
+    this.hovered = null;
+    this.hoverAnchor = null;
+    this.lastPointer = null;
+    this.hideTooltip(tooltip);
+  }
+
+  private getCompareItem(
+    selection: Selection,
+    item: Item | null,
+    loadout: LoadoutData
+  ): { item: Item; label: string } | null {
+    if (!item || selection.type !== 'stash' || !this.altCompare) return null;
+
+    if (item.type === 'weapon') {
+      return loadout.weapon ? { item: loadout.weapon, label: 'WEAPON' } : null;
+    }
+    if (item.type === 'helm') {
+      return loadout.helm ? { item: loadout.helm, label: 'HELM' } : null;
+    }
+    if (item.type === 'armor') {
+      return loadout.armor ? { item: loadout.armor, label: 'ARMOR' } : null;
+    }
+    if (item.type === 'relic') {
+      return loadout.relic ? { item: loadout.relic, label: 'RELIC' } : null;
+    }
+    if (item.type === 'accessory') {
+      const accessorySlots = LOADOUT_SLOT_ORDER.filter(slot => LOADOUT_SLOT_TYPES[slot] === 'accessory');
+      for (const slot of accessorySlots) {
+        const equipped = loadout[slot];
+        if (equipped) {
+          return { item: equipped, label: LOADOUT_SLOT_LABELS[slot] };
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private renderCompareDetail(
+    tooltip: HTMLElement,
+    stashItem: Item,
+    equippedItem: Item,
+    equippedLabel: string
+  ): void {
+    const compare = document.createElement('div');
+    compare.className = 'loadout-compare';
+
+    const stashPanel = document.createElement('div');
+    stashPanel.className = 'loadout-compare-panel';
+    stashPanel.classList.add(`tooltip-${stashItem.rarity}`);
+    if (stashItem.type === 'relic') stashPanel.classList.add('tooltip-relic');
+    this.populateDetail(stashPanel, stashItem, 'STASH ITEM');
+
+    const equippedPanel = document.createElement('div');
+    equippedPanel.className = 'loadout-compare-panel';
+    equippedPanel.classList.add(`tooltip-${equippedItem.rarity}`);
+    if (equippedItem.type === 'relic') equippedPanel.classList.add('tooltip-relic');
+    this.populateDetail(equippedPanel, equippedItem, `EQUIPPED (${equippedLabel})`);
+
+    compare.appendChild(stashPanel);
+    compare.appendChild(equippedPanel);
+    tooltip.appendChild(compare);
   }
 
   private handleDragStart(

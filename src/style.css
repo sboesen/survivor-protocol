@@ -686,6 +686,33 @@ canvas {
   top: 0;
 }
 
+.loadout-tooltip.compare {
+  background: transparent;
+  border: none;
+  padding: 0;
+  max-width: 520px;
+}
+
+.loadout-compare {
+  display: flex;
+  gap: 8px;
+}
+
+.loadout-compare-panel {
+  min-width: 180px;
+  max-width: 240px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 2px solid #6b7280;
+  padding: 10px;
+}
+
+.loadout-compare-label {
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  color: #9ca3af;
+  margin-bottom: 4px;
+}
+
 .loadout-detail-title {
   font-size: 10px;
   color: #fbbf24;
