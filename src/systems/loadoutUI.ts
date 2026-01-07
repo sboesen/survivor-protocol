@@ -16,6 +16,7 @@ type Selection =
 
 class LoadoutUISystem {
   private selected: Selection | null = null;
+  private pendingClick: { selection: Selection; timer: number } | null = null;
 
   render(stash: StashSlot[], loadout: LoadoutData): void {
     const stashGrid = document.getElementById('stash-grid');
@@ -32,6 +33,8 @@ class LoadoutUISystem {
       const slotItem = loadout[slotId];
       const cell = document.createElement('div');
       cell.className = 'loadout-slot';
+      cell.dataset.slotType = 'loadout';
+      cell.dataset.slotId = slotId;
 
       if (this.selected?.type === 'loadout' && this.selected.slot === slotId) {
         cell.classList.add('selected');
@@ -52,9 +55,6 @@ class LoadoutUISystem {
 
       if (slotItem) {
         body.textContent = slotItem.name;
-      } else if (LOADOUT_SLOT_TYPES[slotId] === 'relic') {
-        body.textContent = 'Locked';
-        cell.classList.add('locked');
       } else {
         body.textContent = 'Empty';
       }
@@ -62,13 +62,22 @@ class LoadoutUISystem {
       cell.appendChild(label);
       cell.appendChild(body);
 
+      if (slotItem) {
+        cell.draggable = true;
+        cell.ondragstart = (event) => this.handleDragStart(event, 'loadout', slotId);
+      }
+
+      cell.ondragover = (event) => this.handleDragOver(event, cell);
+      cell.ondragleave = () => cell.classList.remove('drag-over');
+      cell.ondrop = (event) => this.handleDrop(event, 'loadout', slotId, stash, loadout, cell);
+
       cell.onmouseenter = (event) => this.showTooltip({ type: 'loadout', slot: slotId }, tooltip, stash, loadout, event);
       cell.onmousemove = (event) => this.updateTooltipPosition(tooltip, event);
       cell.onmouseleave = () => this.hideTooltip(tooltip);
       cell.onfocus = () => this.showTooltip({ type: 'loadout', slot: slotId }, tooltip, stash, loadout, null, cell);
       cell.onblur = () => this.hideTooltip(tooltip);
       cell.onclick = () => {
-        this.handleLoadoutClick(slotId, stash, loadout);
+        this.handleSlotClick({ type: 'loadout', slot: slotId }, stash, loadout);
       };
 
       loadoutGrid.appendChild(cell);
@@ -77,6 +86,8 @@ class LoadoutUISystem {
     stash.forEach((slot, index) => {
       const cell = document.createElement('div');
       cell.className = 'stash-slot';
+      cell.dataset.slotType = 'stash';
+      cell.dataset.slotId = index.toString();
 
       if (this.selected?.type === 'stash' && this.selected.index === index) {
         cell.classList.add('selected');
@@ -87,7 +98,13 @@ class LoadoutUISystem {
         cell.classList.add(`rarity-${slot.rarity}`);
         if (slot.type === 'relic') cell.classList.add('type-relic');
         cell.textContent = slot.name;
+        cell.draggable = true;
+        cell.ondragstart = (event) => this.handleDragStart(event, 'stash', index);
       }
+
+      cell.ondragover = (event) => this.handleDragOver(event, cell);
+      cell.ondragleave = () => cell.classList.remove('drag-over');
+      cell.ondrop = (event) => this.handleDrop(event, 'stash', index, stash, loadout, cell);
 
       cell.onmouseenter = (event) => this.showTooltip({ type: 'stash', index }, tooltip, stash, loadout, event);
       cell.onmousemove = (event) => this.updateTooltipPosition(tooltip, event);
@@ -95,16 +112,57 @@ class LoadoutUISystem {
       cell.onfocus = () => this.showTooltip({ type: 'stash', index }, tooltip, stash, loadout, null, cell);
       cell.onblur = () => this.hideTooltip(tooltip);
       cell.onclick = () => {
-        this.handleStashClick(index, stash, loadout);
-      };
-      cell.ondblclick = () => {
-        this.handleStashDoubleClick(index, stash, loadout);
+        this.handleSlotClick({ type: 'stash', index }, stash, loadout);
       };
 
       stashGrid.appendChild(cell);
     });
 
     this.hideTooltip(tooltip);
+  }
+
+  private handleSlotClick(selection: Selection, stash: StashSlot[], loadout: LoadoutData): void {
+    if (this.pendingClick) {
+      const same = this.isSameSelection(this.pendingClick.selection, selection);
+      window.clearTimeout(this.pendingClick.timer);
+
+      if (same) {
+        this.pendingClick = null;
+        this.handleDoubleClick(selection, stash, loadout);
+        return;
+      }
+
+      this.handleSingleClick(this.pendingClick.selection, stash, loadout);
+      this.pendingClick = null;
+    }
+
+    const timer = window.setTimeout(() => {
+      this.pendingClick = null;
+      this.handleSingleClick(selection, stash, loadout);
+    }, 250);
+
+    this.pendingClick = { selection, timer };
+  }
+
+  private handleSingleClick(selection: Selection, stash: StashSlot[], loadout: LoadoutData): void {
+    if (selection.type === 'stash') {
+      this.handleStashClick(selection.index, stash, loadout);
+    } else {
+      this.handleLoadoutClick(selection.slot, stash, loadout);
+    }
+  }
+
+  private handleDoubleClick(selection: Selection, stash: StashSlot[], loadout: LoadoutData): void {
+    if (selection.type === 'stash') {
+      this.handleStashDoubleClick(selection.index, stash, loadout);
+    } else {
+      this.handleLoadoutDoubleClick(selection.slot, stash, loadout);
+    }
+  }
+
+  private isSameSelection(a: Selection, b: Selection): boolean {
+    if (a.type !== b.type) return false;
+    return a.type === 'stash' ? a.index === (b as { index: number }).index : a.slot === (b as { slot: LoadoutSlotId }).slot;
   }
 
   private formatAffix(affix: ItemAffix): string {
@@ -191,7 +249,6 @@ class LoadoutUISystem {
     }
 
     if (LOADOUT_SLOT_TYPES[slotId] === 'relic') {
-      detailEl.textContent = 'Relics unlock in a later phase.';
       return;
     }
   }
@@ -256,6 +313,99 @@ class LoadoutUISystem {
     tooltip.innerHTML = '';
     tooltip.className = 'loadout-tooltip';
     tooltip.style.display = 'none';
+  }
+
+  private handleDragStart(
+    event: DragEvent,
+    sourceType: 'stash' | 'loadout',
+    sourceId: number | LoadoutSlotId
+  ): void {
+    if (!event.dataTransfer) return;
+    event.dataTransfer.setData('text/plain', JSON.stringify({
+      sourceType,
+      sourceId,
+    }));
+    event.dataTransfer.effectAllowed = 'move';
+  }
+
+  private handleDragOver(event: DragEvent, cell: HTMLElement): void {
+    event.preventDefault();
+    cell.classList.add('drag-over');
+  }
+
+  private handleDrop(
+    event: DragEvent,
+    targetType: 'stash' | 'loadout',
+    targetId: number | LoadoutSlotId,
+    stash: StashSlot[],
+    loadout: LoadoutData,
+    cell: HTMLElement
+  ): void {
+    event.preventDefault();
+    cell.classList.remove('drag-over');
+    if (!event.dataTransfer) return;
+    const raw = event.dataTransfer.getData('text/plain');
+    if (!raw) return;
+    try {
+      const payload = JSON.parse(raw) as {
+        sourceType: 'stash' | 'loadout';
+        sourceId: number | LoadoutSlotId;
+      };
+      this.moveItem(payload.sourceType, payload.sourceId, targetType, targetId, stash, loadout);
+    } catch {
+      return;
+    }
+  }
+
+  private getItemAt(
+    type: 'stash' | 'loadout',
+    id: number | LoadoutSlotId,
+    stash: StashSlot[],
+    loadout: LoadoutData
+  ): Item | null {
+    if (type === 'stash') return stash[id as number] ?? null;
+    return loadout[id as LoadoutSlotId] ?? null;
+  }
+
+  private setItemAt(
+    type: 'stash' | 'loadout',
+    id: number | LoadoutSlotId,
+    item: Item | null,
+    stash: StashSlot[],
+    loadout: LoadoutData
+  ): void {
+    if (type === 'stash') {
+      stash[id as number] = item;
+    } else {
+      loadout[id as LoadoutSlotId] = item;
+    }
+  }
+
+  private moveItem(
+    sourceType: 'stash' | 'loadout',
+    sourceId: number | LoadoutSlotId,
+    targetType: 'stash' | 'loadout',
+    targetId: number | LoadoutSlotId,
+    stash: StashSlot[],
+    loadout: LoadoutData
+  ): void {
+    const sourceItem = this.getItemAt(sourceType, sourceId, stash, loadout);
+    if (!sourceItem) return;
+    const targetItem = this.getItemAt(targetType, targetId, stash, loadout);
+
+    if (targetType === 'loadout' && !isSlotCompatible(targetId as LoadoutSlotId, sourceItem)) {
+      return;
+    }
+
+    if (sourceType === 'loadout' && targetType === 'loadout' && targetItem) {
+      if (!isSlotCompatible(sourceId as LoadoutSlotId, targetItem)) return;
+    }
+
+    this.setItemAt(sourceType, sourceId, targetItem, stash, loadout);
+    this.setItemAt(targetType, targetId, sourceItem, stash, loadout);
+    this.selected = null;
+    SaveData.save();
+    this.render(stash, loadout);
   }
 
   private resolveSelectionItem(
@@ -375,6 +525,42 @@ class LoadoutUISystem {
 
     stash[this.selected.index] = clickedItem ?? null;
     loadout[slotId] = sourceItem;
+    this.selected = null;
+    SaveData.save();
+    this.render(stash, loadout);
+  }
+
+  private handleLoadoutDoubleClick(slotId: LoadoutSlotId, stash: StashSlot[], loadout: LoadoutData): void {
+    const loadoutItem = loadout[slotId];
+
+    if (this.selected?.type === 'stash') {
+      const sourceItem = stash[this.selected.index];
+      if (sourceItem && isSlotCompatible(slotId, sourceItem)) {
+        stash[this.selected.index] = loadoutItem ?? null;
+        loadout[slotId] = sourceItem;
+        this.selected = null;
+        SaveData.save();
+        this.render(stash, loadout);
+        return;
+      }
+    }
+
+    if (!loadoutItem) return;
+    const emptyIndex = stash.findIndex(slot => slot === null);
+    if (emptyIndex !== -1) {
+      stash[emptyIndex] = loadoutItem;
+      loadout[slotId] = null;
+      this.selected = null;
+      SaveData.save();
+      this.render(stash, loadout);
+      return;
+    }
+
+    const swapIndex = stash.findIndex(slot => slot && slot.type === loadoutItem.type);
+    if (swapIndex === -1) return;
+    const swapItem = stash[swapIndex];
+    stash[swapIndex] = loadoutItem;
+    loadout[slotId] = swapItem ?? null;
     this.selected = null;
     SaveData.save();
     this.render(stash, loadout);

@@ -18,7 +18,6 @@ class StashUISystem {
       if (slot) {
         cell.classList.add('filled');
         cell.textContent = slot.name;
-        cell.title = `${slot.rarity.toUpperCase()} ${slot.type.toUpperCase()}`;
       }
 
       cell.onclick = () => {

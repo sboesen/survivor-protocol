@@ -48,7 +48,7 @@ export function createEmptyLoadout(): LoadoutData {
 export function isSlotCompatible(slot: LoadoutSlotId, item: Item | null): boolean {
   if (!item) return false;
   const allowed = LOADOUT_SLOT_TYPES[slot];
-  if (allowed === 'relic') return false;
+  if (allowed === 'relic') return item.type === 'relic';
   return item.type === allowed;
 }
 

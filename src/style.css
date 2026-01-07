@@ -779,6 +779,17 @@ canvas {
   gap: 4px;
 }
 
+.loadout-slot.filled,
+.stash-slot.filled {
+  cursor: pointer;
+}
+
+.loadout-slot.drag-over,
+.stash-slot.drag-over {
+  border-color: #fbbf24;
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.35);
+}
+
 .loadout-slot.filled {
   color: #e5e7eb;
   border-color: #6d28d9;
