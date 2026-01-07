@@ -5,6 +5,17 @@ import { Game } from '../game';
 
 class DebugSystem {
   private lootBoostEnabled = false;
+  private readonly lootBoostKey = 'debug_loot_boost';
+
+  init(): void {
+    if (typeof localStorage === 'undefined') return;
+    const saved = localStorage.getItem(this.lootBoostKey);
+    if (saved === 'true') {
+      this.lootBoostEnabled = true;
+      Game.setDebugLootBoost(true);
+      this.syncLootBoostUi();
+    }
+  }
 
   addGold(amt: number): void {
     SaveData.data.gold += amt;
@@ -32,6 +43,13 @@ class DebugSystem {
   toggleLootBoost(): void {
     this.lootBoostEnabled = !this.lootBoostEnabled;
     Game.setDebugLootBoost(this.lootBoostEnabled);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(this.lootBoostKey, this.lootBoostEnabled ? 'true' : 'false');
+    }
+    this.syncLootBoostUi();
+  }
+
+  private syncLootBoostUi(): void {
     const btn = document.getElementById('debug-loot-boost');
     const indicator = document.getElementById('debug-loot-indicator');
     if (btn) {

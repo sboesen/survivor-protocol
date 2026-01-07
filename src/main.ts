@@ -14,7 +14,9 @@ import { SpriteViewer } from './systems/spriteViewer';
 
 // Start the game when DOM is ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => Game.init());
+  document.addEventListener('DOMContentLoaded', () => {
+    Game.init().then(() => Debug.init());
+  });
 } else {
-  Game.init();
+  Game.init().then(() => Debug.init());
 }
