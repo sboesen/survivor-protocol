@@ -230,7 +230,11 @@ export class Player extends Entity {
     if (this.xp >= this.nextXp) {
       this.xp -= this.nextXp;
       this.level++;
-      this.nextXp *= 1.5;
+      let xpMultiplier = 1.5;
+      if (this.level >= 10 && this.level < 20) {
+        xpMultiplier = 1.25;
+      }
+      this.nextXp *= xpMultiplier;
       onLevelUp();
     }
   }
