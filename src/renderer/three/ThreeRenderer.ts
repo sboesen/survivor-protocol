@@ -181,7 +181,7 @@ export class ThreeRenderer {
       this.renderPlayer(player, interpPlayer.x, interpPlayer.y, aimAngle);
     }
     this.renderEnemies(enemies, alpha);
-    this.renderProjectiles(projectiles, alpha);
+    this.renderProjectiles(projectiles, alpha, aimAngle);
     this.renderLoot(loot, alpha);
     this.renderFireballs(fireballs, alpha);
     this.renderParticles(particles, alpha);
@@ -347,7 +347,7 @@ export class ThreeRenderer {
     }
   }
 
-  private renderProjectiles(projectiles: Projectile[], alpha: number): void {
+  private renderProjectiles(projectiles: Projectile[], alpha: number, playerAimAngle = 0): void {
     // Clean up removed projectiles
     const currentSet = new Set(projectiles);
     for (const proj of this.activeProjectiles) {
@@ -402,7 +402,9 @@ export class ThreeRenderer {
           view = new THREE.Sprite(material);
         }
 
-        view.scale.set(proj.radius * 1.75, proj.radius * 1.75, 1);
+        // Use larger scale for sprite projectiles
+        const scaleMultiplier = proj.spriteId ? 3.5 : 1.75;
+        view.scale.set(proj.radius * scaleMultiplier, proj.radius * scaleMultiplier, 1);
         this.sceneManager.addToScene(view);
         this.projectileViews.set(proj, view);
         this.activeProjectiles.add(proj);
@@ -418,6 +420,13 @@ export class ThreeRenderer {
         if (view instanceof THREE.Mesh && view.material instanceof THREE.ShaderMaterial) {
           view.material.uniforms.uTime.value = performance.now() / 1000;
         }
+      }
+
+      // Update rotation for sprite projectiles
+      if (proj.spriteId && view instanceof THREE.Sprite) {
+        const velocityAngle = Math.atan2(proj.vy, proj.vx);
+        // Arrow sprite points to top-right (45°); invert for Y-flipped camera, then offset.
+        view.material.rotation = -velocityAngle - Math.PI / 4;
       }
 
       // Get wrapped render position
