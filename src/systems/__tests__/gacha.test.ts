@@ -6,8 +6,8 @@ import { CHARACTERS } from '../../data/characters';
 // Mock dependencies
 vi.mock('../../data/characters', () => ({
   CHARACTERS: {
-    paladin: { id: 'paladin', name: 'Janitor' },
-    rogue: { id: 'rogue', name: 'Skater' },
+    paladin: { id: 'paladin', name: 'Paladin' },
+    rogue: { id: 'rogue', name: 'Rogue' },
   },
 }));
 
@@ -249,9 +249,11 @@ describe('GachaAnim', () => {
       GachaAnim.init();
       mockCtx = createMockCtx();
       GachaAnim.ctx = mockCtx;
+      GachaAnim.resultChar = { id: 'rogue', name: 'Rogue' };
       GachaAnim.active = true;
-      GachaAnim.phase = 1;
+      GachaAnim.phase = 2;
       GachaAnim.frames = 0;
+      GachaAnim.isDup = false;
     });
 
     it('should clear canvas and draw background', () => {
@@ -329,7 +331,7 @@ describe('GachaAnim', () => {
       GachaAnim.isDup = false;
       GachaAnim.loop();
       expect(mockElements['gacha-result'].innerHTML).toContain('UNLOCKED');
-      expect(mockElements['gacha-result'].innerHTML).toContain('Skater');
+      expect(mockElements['gacha-result'].innerHTML).toContain('Rogue');
     });
 
     it('should update result text for duplicate', () => {
@@ -358,7 +360,7 @@ describe('GachaAnim', () => {
     beforeEach(() => {
       GachaAnim.init();
       GachaAnim.ctx = createMockCtx();
-      GachaAnim.resultChar = { id: 'rogue', name: 'Skater' };
+      GachaAnim.resultChar = { id: 'rogue', name: 'Rogue' };
       GachaAnim.active = true;
       GachaAnim.phase = 3;
       GachaAnim.frames = 0;

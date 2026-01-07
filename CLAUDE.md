@@ -58,7 +58,7 @@ This prevents frustrating the user by unexpectedly stopping their development wo
 - Entities have a `marked` flag for deletion
 
 ### Character System
-- `src/data/characters.ts` - Defines 8 characters (Janitor, Skater, Mall Cop, Chef, Teenager, Tech Support, Ninja, Dungeon Master)
+- `src/data/characters.ts` - Defines 6 characters (Wizard, Paladin, Rogue, Knight, Berserker, Pyromancer)
 - Each has: `hpMod`, `spdMod`, starting `weapon`, and `ult`
 - `src/entities/player.ts` - Player class with weapons, passives, XP, leveling, ult charge
 

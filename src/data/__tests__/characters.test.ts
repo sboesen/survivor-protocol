@@ -54,7 +54,7 @@ describe('CHARACTERS', () => {
     expect(CHARACTERS.knight.desc).toBe('High HP. Start: Shield Bash.');
   });
 
-  it('should have berserker (Chef) character', () => {
+  it('should have berserker character', () => {
     expect(CHARACTERS.berserker).toBeDefined();
     expect(CHARACTERS.berserker.id).toBe('berserker');
     expect(CHARACTERS.berserker.name).toBe('Berserker');
@@ -81,6 +81,16 @@ describe('CHARACTERS', () => {
   describe('character count', () => {
     it('should have 6 characters', () => {
       expect(Object.keys(CHARACTERS).length).toBe(6);
+    });
+
+    it('should include all fantasy classes', () => {
+      const charIds = Object.keys(CHARACTERS);
+      expect(charIds).toContain('wizard');
+      expect(charIds).toContain('paladin');
+      expect(charIds).toContain('rogue');
+      expect(charIds).toContain('knight');
+      expect(charIds).toContain('berserker');
+      expect(charIds).toContain('pyromancer');
     });
   });
 

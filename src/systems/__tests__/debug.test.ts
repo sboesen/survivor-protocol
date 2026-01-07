@@ -19,9 +19,9 @@ vi.mock('../saveData', () => ({
 // Mock CHARACTERS
 vi.mock('../../data/characters', () => ({
   CHARACTERS: {
-    paladin: { name: 'Janitor' },
-    rogue: { name: 'Skater' },
-    knight: { name: 'Mall Cop' },
+    paladin: { name: 'Paladin' },
+    rogue: { name: 'Rogue' },
+    knight: { name: 'Knight' },
   },
 }));
 
@@ -123,7 +123,7 @@ describe('Debug', () => {
 
     it('should unlock all characters', () => {
       Debug.unlockAll();
-      expect(SaveData.data.ownedChars).toEqual(['paladin', 'rogue', 'knight']);
+      expect(SaveData.data.ownedChars).toEqual(['wizard', 'paladin', 'rogue', 'knight', 'berserker', 'pyromancer']);
     });
 
     it('should save after unlocking', () => {
