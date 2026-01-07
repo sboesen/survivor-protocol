@@ -754,6 +754,12 @@ canvas {
   margin-bottom: 6px;
 }
 
+.loadout-detail-base {
+  font-size: 8px;
+  color: #cbd5f5;
+  margin-bottom: 6px;
+}
+
 .loadout-detail-stats {
   display: grid;
   gap: 2px;
@@ -764,6 +770,10 @@ canvas {
 
 .affix-line {
   color: #e5e7eb;
+}
+
+.affix-line.implicit-line {
+  color: #a5b4fc;
 }
 
 .affix-line.tier-1 {

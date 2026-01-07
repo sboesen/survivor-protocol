@@ -74,7 +74,6 @@ class GameCore {
   ctx: CanvasRenderingContext2D | null = null;
 
   // Debug stats
-  private fps: number = 60;
   private fpsFrames: number = 0;
   private fpsLastTime: number = 0;
   active = false;
@@ -648,6 +647,9 @@ class GameCore {
                 proj.explodeRadius = applyAreaBonus(projData.explodeRadius, p.areaFlat, p.areaPercent);
               }
               if (projData.knockback) proj.knockback = projData.knockback;
+              if (w.id === 'bow') {
+                (proj as any).spriteId = 'weapons/arrow';
+              }
               this.projectiles.push(proj);
             }
           }
@@ -1145,7 +1147,13 @@ class GameCore {
         const rollRelic = this.debugLootBoost && Math.random() < 0.1;
         const finalItemType = rollRelic ? 'relic' : itemType;
         const rarityBoost = rollRelic ? 3 : 0;
-        const item = ItemGenerator.generate({ itemType: finalItemType, luck, rarityBoost });
+        const item = ItemGenerator.generate({
+          itemType: finalItemType,
+          luck,
+          rarityBoost,
+          minutesElapsed: this.mins,
+          enemyType: e.type,
+        });
         this.loot.push(new Loot(e.x, e.y, 'orb', item));
       }
     }
@@ -1226,7 +1234,6 @@ class GameCore {
     // FPS tracking
     this.fpsFrames++;
     if (currentTime - this.fpsLastTime >= 1000) {
-      this.fps = this.fpsFrames;
       this.fpsFrames = 0;
       this.fpsLastTime = currentTime;
     }

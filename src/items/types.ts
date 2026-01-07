@@ -40,9 +40,14 @@ export interface ItemAffix {
 export interface Item {
   id: string;
   name: string;
+  baseId: string;
+  baseName: string;
+  tier: number;
   type: ItemType;
   rarity: ItemRarity;
   affixes: ItemAffix[];
+  implicits: ItemAffix[];
+  baseTint?: string;
 }
 
 export type StashSlot = Item | null;
@@ -52,4 +57,7 @@ export interface GenerateOptions {
   luck: number;
   rarityBoost?: number;
   random?: () => number;
+  minutesElapsed?: number;
+  enemyType?: 'basic' | 'bat' | 'elite' | 'boss';
+  baseTier?: number;
 }

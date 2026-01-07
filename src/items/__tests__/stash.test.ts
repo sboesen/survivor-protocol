@@ -5,9 +5,13 @@ import type { Item } from '../types';
 const makeItem = (id: string): Item => ({
   id,
   name: `Item ${id}`,
+  baseId: 'test-base',
+  baseName: 'Test Base',
+  tier: 1,
   type: 'weapon',
   rarity: 'common',
   affixes: [],
+  implicits: [],
 });
 
 describe('Stash', () => {

@@ -3,12 +3,16 @@ import { ItemStats } from '../stats';
 import type { Item } from '../types';
 import type { LoadoutData } from '../../types';
 
-const createItem = (type: Item['type'], affixes: Item['affixes']): Item => ({
+const createItem = (type: Item['type'], affixes: Item['affixes'], implicits: Item['implicits'] = []): Item => ({
   id: `item-${type}`,
   name: 'Test Item',
+  baseId: 'test-base',
+  baseName: 'Test Base',
+  tier: 1,
   type,
   rarity: 'common',
   affixes,
+  implicits,
 });
 
 describe('ItemStats.calculate', () => {
@@ -20,11 +24,15 @@ describe('ItemStats.calculate', () => {
       { type: 'projectiles', tier: 1, value: 1 },
     ]);
 
-    const accessory = createItem('accessory', [
-      { type: 'luck', tier: 1, value: 15, isPercent: true },
-      { type: 'pickupRadius', tier: 1, value: 10 },
-      { type: 'allStats', tier: 1, value: 5, isPercent: true },
-    ]);
+    const accessory = createItem(
+      'accessory',
+      [
+        { type: 'luck', tier: 1, value: 15, isPercent: true },
+        { type: 'pickupRadius', tier: 1, value: 10 },
+        { type: 'allStats', tier: 1, value: 5, isPercent: true },
+      ],
+      [{ type: 'percentGold', tier: 1, value: 20, isPercent: true }]
+    );
 
     const loadout: LoadoutData = {
       relic: null,
@@ -45,5 +53,6 @@ describe('ItemStats.calculate', () => {
     expect(stats.luck).toBe(15);
     expect(stats.pickupRadius).toBe(10);
     expect(stats.allStats).toBeCloseTo(0.05, 4);
+    expect(stats.percentGold).toBeCloseTo(0.2, 4);
   });
 });

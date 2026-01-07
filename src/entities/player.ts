@@ -132,9 +132,6 @@ export class Player extends Entity {
       if (!this.inventory[weaponType]) {
         let weapon: Weapon;
         switch (weaponType) {
-          case 'pepper_spray':
-            weapon = { id: 'pepper_spray', cd: 3, dmg: 5, type: 'spray', curCd: 0, level: 1, baseDmg: 5 };
-            break;
           case 'bubble_stream':
             weapon = { id: 'bubble_stream', cd: 60, dmg: 12, type: 'bubble', curCd: 0, level: 1, baseDmg: 12 };
             break;
@@ -153,8 +150,11 @@ export class Player extends Entity {
           case 'shield_bash':
             weapon = { id: 'shield_bash', cd: 25, dmg: 25, type: 'cleave', curCd: 0, level: 1, baseDmg: 25, coneLength: 60, coneWidth: 0.6, knockback: 8 };
             break;
+          case 'bow':
+            weapon = { id: 'bow', cd: 30, dmg: 8, type: 'nearest', curCd: 0, level: 1, baseDmg: 8 };
+            break;
           default:
-            weapon = { id: 'pepper_spray', cd: 50, dmg: 10, type: 'nearest', curCd: 0, level: 1, baseDmg: 10 };
+            weapon = { id: 'bubble_stream', cd: 60, dmg: 12, type: 'bubble', curCd: 0, level: 1, baseDmg: 12 };
         }
         this.weapons.push(weapon);
         this.inventory[weaponType] = 1;
@@ -175,13 +175,6 @@ export class Player extends Entity {
               if (w.level === 4) w.splits = true;
               if (w.level === 5) w.projectileCount = 3;
               break;
-            case 'pepper_spray':
-              // Level 2: +2 pellets, Level 3: wider spread, Level 4: longer duration, Level 5: +3 pellets
-              if (w.level === 2) w.pelletCount = 7;
-              if (w.level === 3) w.spread = 0.6;
-              if (w.level === 4) w.spread = 0.8; // Also implies longer effect visually
-              if (w.level === 5) w.pelletCount = 10;
-              break;
             case 'frying_pan':
               // Level 2: explosion, Level 3: knockback, Level 4: +1 projectile, Level 5: +size
               if (w.level === 2) w.explodeRadius = 40;
@@ -193,6 +186,12 @@ export class Player extends Entity {
               // Level 2: +1 CD, Level 3: +speed, Level 4: pierce (handled by passive), Level 5: +2 CDs
               if (w.level === 2) w.projectileCount = 2;
               if (w.level === 3) w.speedMult = 1.4;
+              if (w.level === 5) w.projectileCount = 3;
+              break;
+            case 'bow':
+              // Level 2: +1 arrow, Level 3: +speed, Level 4: pierce, Level 5: +2 arrows
+              if (w.level === 2) w.projectileCount = 2;
+              if (w.level === 3) w.speedMult = 1.3;
               if (w.level === 5) w.projectileCount = 3;
               break;
             case 'fireball':

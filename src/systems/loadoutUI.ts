@@ -277,6 +277,33 @@ class LoadoutUISystem {
     return `T${affix.tier} ${sign}${value} ${labels[affix.type] ?? affix.type}${bracketSuffix}`;
   }
 
+  private formatImplicit(affix: ItemAffix): string {
+    const labels: Record<ItemAffix['type'], string> = {
+      flatDamage: 'Damage',
+      percentDamage: 'Damage',
+      areaFlat: 'Area',
+      areaPercent: 'Area',
+      cooldownReduction: 'Cooldown Reduction',
+      projectiles: 'Projectiles',
+      pierce: 'Pierce',
+      duration: 'Duration',
+      speed: 'Speed',
+      maxHp: 'Max HP',
+      armor: 'Armor',
+      hpRegen: 'HP Regen',
+      percentHealing: 'Healing',
+      magnet: 'Magnet',
+      luck: 'Luck',
+      percentGold: 'Gold',
+      pickupRadius: 'Pickup Radius',
+      percentXp: 'XP',
+      allStats: 'All Stats',
+    };
+    const sign = affix.value >= 0 ? '+' : '';
+    const value = affix.isPercent ? `${affix.value}%` : `${affix.value}`;
+    return `Implicit: ${sign}${value} ${labels[affix.type] ?? affix.type}`;
+  }
+
   private getWeaponIcon(name: string): string | null {
     const key = name.toLowerCase();
     const checks: Array<[WeaponIconKey, string[]]> = [
@@ -303,7 +330,7 @@ class LoadoutUISystem {
 
   private getItemIcon(item: Item): string | null {
     if (item.type !== 'weapon') return null;
-    return this.getWeaponIcon(item.name);
+    return this.getWeaponIcon(item.baseName || item.name);
   }
 
   private updateSummary(loadout: LoadoutData): void {
@@ -374,22 +401,37 @@ class LoadoutUISystem {
     meta.className = 'loadout-detail-meta';
     meta.textContent = `${item.rarity.toUpperCase()} ${item.type.toUpperCase()}`;
 
+    const base = document.createElement('div');
+    base.className = 'loadout-detail-base';
+    base.textContent = `Base: ${item.baseName} (T${item.tier})`;
+
     const stats = document.createElement('div');
     stats.className = 'loadout-detail-stats';
 
-    if (item.affixes.length === 0) {
-      stats.textContent = 'No affixes.';
-    } else {
+    const implicits = item.implicits ?? [];
+    if (implicits.length > 0) {
+      implicits.forEach(affix => {
+        const line = document.createElement('div');
+        line.className = 'affix-line implicit-line';
+        line.textContent = this.formatImplicit(affix);
+        stats.appendChild(line);
+      });
+    }
+
+    if (item.affixes.length > 0) {
       item.affixes.forEach(affix => {
         const line = document.createElement('div');
         line.className = `affix-line tier-${affix.tier}`;
         line.textContent = this.formatAffix(affix);
         stats.appendChild(line);
       });
+    } else if (implicits.length === 0) {
+      stats.textContent = 'No affixes.';
     }
 
     detailEl.appendChild(title);
     detailEl.appendChild(meta);
+    detailEl.appendChild(base);
     detailEl.appendChild(stats);
   }
 

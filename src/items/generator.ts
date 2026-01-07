@@ -8,15 +8,8 @@ import {
   RARITY_WEIGHTS,
   UNIVERSAL_AFFIXES,
 } from './affixTables';
+import { getBaseByTier, rollBaseTier } from './bases';
 import type { AffixDefinition, AffixType, GenerateOptions, Item, ItemAffix, ItemRarity, ItemType } from './types';
-
-const NAME_BASES: Record<ItemType, string[]> = {
-  weapon: ['Blade', 'Axe', 'Scepter', 'Bow', 'Dagger', 'Glaive', 'Scythe', 'Reaver', 'Dirk', 'Halberd'],
-  helm: ['Helm', 'Visor', 'Hood', 'Crown', 'Mask', 'Cowl', 'Visage'],
-  armor: ['Cuirass', 'Robe', 'Plate', 'Tunic', 'Hauberk', 'Mantle', 'Carapace'],
-  accessory: ['Ring', 'Amulet', 'Charm', 'Talisman', 'Sigil', 'Idol', 'Totem'],
-  relic: ['Relic', 'Idol', 'Talisman', 'Totem', 'Omen'],
-};
 
 const PREFIXES: Record<ItemRarity, string[]> = {
   common: ['Plain', 'Worn', 'Simple', 'Dusty', 'Tarnished', 'Faded'],
@@ -172,13 +165,11 @@ function pickNamePart(
 
 function buildName(
   itemType: ItemType,
+  baseName: string,
   rarity: ItemRarity,
   affixes: RolledAffix[],
   random: () => number
 ): string {
-  const base = NAME_BASES[itemType];
-  const baseName = base[Math.floor(random() * base.length)];
-
   let prefix = null;
   let suffix = null;
 
@@ -216,10 +207,15 @@ export class ItemGenerator {
       luck,
       rarityBoost = 0,
       random = Math.random,
+      minutesElapsed = 0,
+      enemyType = 'basic',
+      baseTier,
     } = options;
 
     const rolledRarity = rollRarity(luck, random);
     const rarity = applyRarityBoost(rolledRarity, rarityBoost);
+    const tier = typeof baseTier === 'number' ? baseTier : rollBaseTier(minutesElapsed, enemyType, random);
+    const base = getBaseByTier(itemType, tier, random);
     const affixCount = rollAffixCount(rarity, random);
     const pool = collectAffixPool(itemType);
     const affixes: ItemAffix[] = [];
@@ -243,10 +239,15 @@ export class ItemGenerator {
 
     return {
       id: createId(random),
-      name: buildName(itemType, rarity, rolledAffixes, random),
+      name: buildName(itemType, base.name, rarity, rolledAffixes, random),
+      baseId: base.id,
+      baseName: base.name,
+      tier: base.tier,
       type: itemType,
       rarity,
       affixes,
+      implicits: base.implicits,
+      baseTint: base.tint,
     };
   }
 }

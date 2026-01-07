@@ -86,7 +86,15 @@ export class Projectile extends Entity {
     const { sx, sy } = pos;
     ctx.save();
     ctx.translate(sx, sy);
-    if (this.isArc) ctx.rotate(this.rot);
+    
+    // Calculate rotation for sprite projectiles based on velocity
+    let rotation = 0;
+    if (this.isArc) {
+      rotation = this.rot;
+    } else if (this.spriteId) {
+      rotation = Math.atan2(this.vy, this.vx) + Math.PI / 4;
+    }
+    if (rotation !== 0) ctx.rotate(rotation);
 
     // Fade out near end of life
     const alpha = this.dur < 5 ? this.dur / 5 : 1;

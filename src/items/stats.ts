@@ -121,6 +121,9 @@ export class ItemStats {
 
     for (const item of Object.values(loadout)) {
       if (!item) continue;
+      for (const affix of item.implicits ?? []) {
+        applyAffix(stats, affix);
+      }
       for (const affix of item.affixes) {
         applyAffix(stats, affix);
       }

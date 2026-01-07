@@ -222,6 +222,33 @@ class UISystem {
       return `T${affix.tier} ${sign}${value} ${labels[affix.type] ?? affix.type}${bracketSuffix}`;
     };
 
+    const formatImplicit = (affix: ItemAffix): string => {
+      const labels: Record<ItemAffix['type'], string> = {
+        flatDamage: 'Damage',
+        percentDamage: 'Damage',
+        areaFlat: 'Area',
+        areaPercent: 'Area',
+        cooldownReduction: 'Cooldown Reduction',
+        projectiles: 'Projectiles',
+        pierce: 'Pierce',
+        duration: 'Duration',
+        speed: 'Speed',
+        maxHp: 'Max HP',
+        armor: 'Armor',
+        hpRegen: 'HP Regen',
+        percentHealing: 'Healing',
+        magnet: 'Magnet',
+        luck: 'Luck',
+        percentGold: 'Gold',
+        pickupRadius: 'Pickup Radius',
+        percentXp: 'XP',
+        allStats: 'All Stats',
+      };
+      const sign = affix.value >= 0 ? '+' : '';
+      const value = affix.isPercent ? `${affix.value}%` : `${affix.value}`;
+      return `Implicit: ${sign}${value} ${labels[affix.type] ?? affix.type}`;
+    };
+
     const hideTooltip = (): void => {
       if (!tooltip) return;
       tooltip.innerHTML = '';
@@ -247,21 +274,35 @@ class UISystem {
       meta.className = 'loadout-detail-meta';
       meta.textContent = `${item.rarity.toUpperCase()} ${item.type.toUpperCase()}`;
 
+      const base = document.createElement('div');
+      base.className = 'loadout-detail-base';
+      base.textContent = `Base: ${item.baseName} (T${item.tier})`;
+
       const stats = document.createElement('div');
       stats.className = 'loadout-detail-stats';
-      if (item.affixes.length === 0) {
-        stats.textContent = 'No affixes.';
-      } else {
+      const implicits = item.implicits ?? [];
+      if (implicits.length > 0) {
+        implicits.forEach(affix => {
+          const line = document.createElement('div');
+          line.className = 'affix-line implicit-line';
+          line.textContent = formatImplicit(affix);
+          stats.appendChild(line);
+        });
+      }
+      if (item.affixes.length > 0) {
         item.affixes.forEach(affix => {
           const line = document.createElement('div');
           line.className = `affix-line tier-${affix.tier}`;
           line.textContent = formatAffix(affix);
           stats.appendChild(line);
         });
+      } else if (implicits.length === 0) {
+        stats.textContent = 'No affixes.';
       }
 
       tooltip.appendChild(title);
       tooltip.appendChild(meta);
+      tooltip.appendChild(base);
       tooltip.appendChild(stats);
       tooltip.style.display = 'block';
 
@@ -556,24 +597,24 @@ class UISystem {
 
   // Map weapon IDs to icon image paths
   private weaponIconMap: Record<string, string> = {
-    pepper_spray: '/pepper_spray.png',
     bubble_stream: '/bubble_stream.png',
     frying_pan: '/frying_pan.png',
     thrown_cds: '/thrown_cds.png',
     fireball: '/fireball.png',
     lighter: '/lighter.png',
     shield_bash: '/shield_bash.png',
+    bow: '/src/assets/sprites/weapons/arrow.png',
   };
 
   // Fallback emoji icons for weapons without image sprites
   private weaponEmojiMap: Record<string, string> = {
-    pepper_spray: '🧪',
     bubble_stream: '🫧',
     frying_pan: '🍳',
     thrown_cds: '💿',
     fireball: '🔥',
     lighter: '🔥',
     shield_bash: '🛡️',
+    bow: '🏹',
   };
 
   updateWeaponSlots(weapons: Array<{ id: string; level: number; curCd: number; cd: number }>): void {
