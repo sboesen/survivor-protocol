@@ -435,17 +435,14 @@ class UISystem {
     }
   }
 
-  showLootInventory(
-    items: Item[],
-    securedId: string | null,
-    onSecure: (itemId: string) => void
-  ): void {
+  showLootInventory(items: Item[], safeSlotCount: number): void {
     const screen = this.getEl('loot-inventory-screen');
     const grid = this.getEl('loot-inventory-grid');
     const securedEl = this.getEl('loot-secure-slot');
     if (screen) screen.classList.add('active');
     if (securedEl) {
-      securedEl.textContent = securedId ? 'Secured: Veiled item' : 'Secured: None';
+      const itemsWillSecure = Math.min(items.length, safeSlotCount);
+      securedEl.textContent = `Auto-Safe Slots: ${itemsWillSecure}/${safeSlotCount}`;
     }
 
     if (!grid) return;
@@ -479,16 +476,12 @@ class UISystem {
     items.forEach(item => {
       const button = document.createElement('button');
       button.className = `loot-item rarity-${item.rarity} ${item.type === 'relic' ? 'type-relic' : ''}`;
-      if (item.id === securedId) button.classList.add('secured');
       button.innerHTML = `
         ${item.type === 'relic' ? '<span class="loot-badge">★</span>' : ''}
         <span class="loot-icon">${typeIcon(item.type)}</span>
         <span class="loot-name">${item.rarity.toUpperCase()} ${item.type.toUpperCase()}</span>
         <span class="loot-meta">VEILED</span>
       `;
-      button.onclick = () => {
-        onSecure(item.id);
-      };
       grid.appendChild(button);
     });
   }

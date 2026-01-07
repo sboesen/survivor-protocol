@@ -71,6 +71,9 @@
     <div id="menu-screen" class="screen active">
         <img src="/logo.png" alt="Survivor Protocol" style="width: 560px; height: auto;">
         <h2 style="color:#aaa">v2.4: Pyromancer & Fireballs</h2>
+        <div style="font-size:10px; color:#888; max-width:600px; margin:0 auto 10px; padding:10px; background:#222; border:1px solid #444; border-radius:4px;">
+            <strong>💎 AUTO-SAFE SLOTS:</strong> When you die, your best items are automatically saved to stash. Upgrade to save more items on death! Priority: Legendary > Relic > Rare > Magic > Common. Same rarity: Random selection.
+        </div>
         <div class="char-scroll" id="char-select-list"></div>
         <div style="margin-top:20px;">
             <button onclick="Game.start()" style="font-size:12px; padding:15px 30px;">START MISSION</button>
@@ -213,7 +216,10 @@
     <!-- Loot Inventory Screen -->
     <div id="loot-inventory-screen" class="screen">
         <h1>RUN LOOT</h1>
-        <p id="loot-secure-slot" style="color:#aaa; font-size:10px; margin-bottom:10px;">Secured: None</p>
+        <p style="color:#888; font-size:10px; margin-bottom:5px; background:#222; padding:8px; border-radius:4px; border:1px solid #444;">
+            💡 <strong>Auto-Safe:</strong> Best items saved automatically on death. You cannot choose manually.
+        </p>
+        <p id="loot-secure-slot" style="color:#aaa; font-size:10px; margin-bottom:10px;">Auto-Safe Slots: 1/5</p>
         <div id="loot-inventory-grid" class="loot-inventory-grid"></div>
         <button onclick="Game.toggleLootInventory()">RESUME</button>
     </div>

@@ -15,7 +15,7 @@ const createDefaultSaveData = (): SaveGameData => ({
   gold: 0,
   ownedChars: ['wizard'],
   selectedChar: 'wizard',
-  shop: { damage: 0, health: 0, speed: 0, magnet: 0 },
+  shop: { damage: 0, health: 0, speed: 0, magnet: 0, safeSlotsCount: 1 },
   stash: new Stash().toJSON(),
   loadout: {
     relic: null,
@@ -57,6 +57,7 @@ class SaveDataSystem {
             health: parsed.shop?.health ?? 0,
             speed: parsed.shop?.speed ?? 0,
             magnet: parsed.shop?.magnet ?? 0,
+            safeSlotsCount: parsed.shop?.safeSlotsCount ?? 1,
           },
           stash: Stash.fromJSON(parsed.stash).toJSON(),
           loadout: {

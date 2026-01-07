@@ -35,19 +35,22 @@
 
 ### Safe Slots
 - **Tiebreaker**: Pure random among same-rarity items (default - simple and fair)
-- **Inventory display**: Show "X items will be auto-secured" message during run (no highlighting)
+- **Inventory display**: Show "X items will be auto-secured" message during run
 - **Auto-selection**: Top N items by rarity preserved on death
+- **Review button**: "📦 Review Loot" button for viewing collected items (clickable/tappable)
+- **Data clamping**: safeSlotsCount clamped to 1-5 range with console warning
 
 ### Shop Structure
 - **Gambler tab**: Price + type + rarity (e.g., "VEILED RARE WEAPON - 800G")
 - **Tab item distribution**: 4-6 items each tab (30% veiled in ITEMS tab)
 - **Veiled pricing**: 20% discount (cheaper because it's a gamble)
+- **Veiled hover**: Show type + rarity on hover
 
 ### Extraction Zones
 - **Spawn**: Every 3 minutes with 15-second warning
 - **Extraction**: 5 seconds in zone
-- **Enemies**: Spawn 8 enemies in circle around zone when player enters
-- **Visuals**: Portal style (swirling rift)
+- **Enemies**: Spawn 8 enemies (scaled to current difficulty) in circle around zone when player enters
+- **Visuals**: Blue portal on ground with beam of light (Three.js effects)
 - **Abort button**: Kept (saves only safe slot items)
 
 ---
@@ -56,30 +59,73 @@
 
 ### PHASE 1: Safe Slots Auto-System
 
-#### Step 1.1: Update Data Structures
+#### Task 1.1: Create Test Utilities ⏱️ 15 min
 
-**types/index.ts:**
+**NEW FILE: src/__tests__/testUtils.ts**
+
 ```typescript
-export interface SaveGameData {
-  gold: number;
-  ownedChars: string[];
-  selectedChar: string;
-  shop: ShopUpgrades;
-  stash: Array<Item | null>;
-  loadout: LoadoutData;
-  safeSlotsCount: number; // CHANGED: 1-5, tracks unlocked slots
+import type { Item, ItemType, ItemRarity } from '../items/types';
+import { ItemGenerator } from '../items/generator';
+
+export function createMockItem(overrides: {
+  rarity: ItemRarity;
+  type?: ItemType;
+  tier?: number;
+}): Item {
+  return ItemGenerator.generate({
+    itemType: overrides.type || 'weapon',
+    luck: 0,
+    minutesElapsed: 10,
+  });
 }
 
+export function createMockSaveData(overrides?: Partial<import('../types').SaveGameData>) {
+  const defaults = {
+    gold: 0,
+    ownedChars: ['wizard'],
+    selectedChar: 'wizard',
+    shop: {
+      damage: 0,
+      health: 0,
+      speed: 0,
+      magnet: 0,
+      safeSlotsCount: 1,
+    },
+    stash: [],
+    loadout: {
+      relic: null,
+      weapon: null,
+      helm: null,
+      armor: null,
+      accessory1: null,
+      accessory2: null,
+      accessory3: null,
+    },
+  };
+
+  return { ...defaults, ...overrides };
+}
+```
+
+#### Task 1.2: Update Type Definitions ⏱️ 5 min
+
+**File: src/types/index.ts**
+
+```typescript
 export interface ShopUpgrades {
   damage: number;
   health: number;
   speed: number;
   magnet: number;
-  safeSlotsCount: number; // NEW: Track safe slot upgrades
+  safeSlotsCount: number; // NEW: 1-5 auto-safe slots
+  [key: string]: number;
 }
 ```
 
-**data/shop.ts:**
+#### Task 1.3: Update Shop Data ⏱️ 5 min
+
+**File: src/data/shop.ts**
+
 ```typescript
 export const SHOP_ITEMS: Record<string, ShopItem> = {
   damage: { name: "Might", desc: "+10% Dmg", cost: (l) => 100 * (l + 1), max: 5 },
@@ -89,56 +135,129 @@ export const SHOP_ITEMS: Record<string, ShopItem> = {
   safeSlots: {
     name: "Safe Container",
     desc: "+1 Auto-Safe Slot",
-    cost: (l) => l === 1 ? 500 : (l === 2 ? 1000 : l * 1000), // 500, 1000, 2000, 4000
-    max: 5 // Total slots
+    cost: (l) => {
+      if (l === 1) return 500;
+      if (l === 2) return 1000;
+      return l * 1000;
+    },
+    max: 5
   }
 };
 ```
 
-**game.ts:**
-```typescript
-// Remove: securedLootId: string | null = null;
-// Remove: securedLootIds: string[] = [];
+**Cost Table:**
+| Level | Slots | Cost | Total Spent |
+|-------|-------|------|-------------|
+| 0     | 1     | 0G   | 0G          |
+| 1     | 2     | 500G | 500G        |
+| 2     | 3     | 1000G| 1500G       |
+| 3     | 4     | 3000G| 4500G       |
+| 4     | 5     | 5000G| 9500G       |
+| 5     | -     | MAX  | -           |
 
-// Add method for auto-selection
-private autoSelectSafeItems(): string[] {
+#### Task 1.4: Update Save Data Migration ⏱️ 10 min
+
+**File: src/systems/saveData.ts**
+
+**Changes in `load()` method:**
+
+```typescript
+shop: {
+  damage: parsed.shop?.damage ?? 0,
+  health: parsed.shop?.health ?? 0,
+  speed: parsed.shop?.speed ?? 0,
+  magnet: parsed.shop?.magnet ?? 0,
+  safeSlotsCount: this.clampSafeSlots(parsed.shop?.safeSlotsCount ?? 1),
+}
+```
+
+**Add helper method:**
+
+```typescript
+private clampSafeSlots(value: number): number {
+  const clamped = Math.max(1, Math.min(5, value));
+  if (clamped !== value) {
+    console.warn(`Safe slots count clamped from ${value} to ${clamped}`);
+  }
+  return clamped;
+}
+```
+
+#### Task 1.5: Implement Auto-Selection Logic ⏱️ 20 min
+
+**File: src/game.ts**
+
+**Changes:**
+1. Remove `securedLootId: string | null = null` (line 100)
+2. Remove `secureLoot()` method (lines 376-381)
+3. Update `toggleLootInventory()` method (lines 358-370) to just toggle UI (no secure callback):
+
+```typescript
+toggleLootInventory(): void {
+  if (!this.active || !this.player) return;
+  if (this.paused && !this.lootInventoryOpen) return;
+
+  this.lootInventoryOpen = !this.lootInventoryOpen;
+  this.paused = this.lootInventoryOpen;
+
+  if (this.lootInventoryOpen) {
+    UI.showLootInventory(this.collectedLoot);
+  } else {
+    UI.hideLootInventory();
+  }
+}
+```
+
+4. Add `autoSelectSafeItems()` method:
+
+```typescript
+private autoSelectSafeItems(): Item[] {
   if (this.collectedLoot.length === 0) return [];
 
   const safeSlotCount = SaveData.data.shop.safeSlotsCount;
-  const rarityOrder = { 'legendary': 4, 'relic': 3, 'rare': 2, 'magic': 1, 'common': 0 };
+  const rarityOrder: Record<ItemRarity, number> = {
+    'legendary': 4,
+    'relic': 3,
+    'rare': 2,
+    'magic': 1,
+    'common': 0
+  };
 
-  // Sort by rarity (desc), then random within same rarity
   const sorted = [...this.collectedLoot].sort((a, b) => {
     const rarityDiff = rarityOrder[b.rarity] - rarityOrder[a.rarity];
     if (rarityDiff !== 0) return rarityDiff;
-
-    // Tiebreaker: random (or user preference TBC)
     return Math.random() - 0.5;
   });
 
-  // Return top N item IDs
-  return sorted.slice(0, safeSlotCount).map(item => item.id);
+  return sorted.slice(0, safeSlotCount);
 }
+```
 
-// Update gameOver()
+5. Update `gameOver()` method (lines 383-413):
+
+```typescript
 gameOver(success = false): void {
   this.active = false;
   this.lootInventoryOpen = false;
   UI.hideLootInventory();
+  UI.hideExtractionScreen();
 
-  const rewards = calculateGameOverRewards({...});
+  const rewards = calculateGameOverRewards({
+    goldRun: this.goldRun,
+    mins: this.mins,
+    kills: this.kills,
+    bossKills: this.bossKills
+  });
 
   const stash = Stash.fromJSON(SaveData.data.stash);
 
-  // Use auto-selection instead of manual
-  const securedIds = success
-    ? this.collectedLoot.map(item => item.id)
+  const itemsToStore = success
+    ? this.collectedLoot
     : this.autoSelectSafeItems();
 
-  const itemsToStore = this.collectedLoot.filter(item => securedIds.includes(item.id));
   itemsToStore.forEach(item => stash.addItem(item));
-
   SaveData.data.stash = stash.toJSON();
+
   SaveData.data.gold += rewards.total;
   SaveData.save();
 
@@ -150,43 +269,330 @@ gameOver(success = false): void {
 }
 ```
 
-#### Step 1.2: Update UI
+#### Task 1.6: Update Inventory UI ⏱️ 20 min
 
-**systems/ui.ts - Remove manual secure UI:**
-- Remove `showLootInventory()` method (or repurpose)
-- Update inventory to show "X items will be auto-secured" message
-- Add safe slot count display
+**File: src/systems/ui.ts**
 
-**systems/ui.ts - Add shop slot display:**
+**Update `showLootInventory()` method:**
+
 ```typescript
-// In renderShop():
-const safeSlotLevel = SaveData.data.shop.safeSlotsCount;
-// Display as: "Safe Container X/5 slots"
+showLootInventory(items: Item[]): void {
+  const screen = this.getEl('loot-inventory-screen');
+  const grid = this.getEl('loot-inventory-grid');
+  const securedEl = this.getEl('loot-secure-slot');
+
+  if (screen) screen.classList.add('active');
+
+  const safeSlotCount = SaveData.data.shop.safeSlotsCount;
+  const securedCount = Math.min(safeSlotCount, items.length);
+
+  if (securedEl) {
+    securedEl.textContent = `${securedCount} of ${items.length} items will be auto-secured`;
+  }
+
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  const rarityOrder: Record<ItemRarity, number> = {
+    'legendary': 4,
+    'relic': 3,
+    'rare': 2,
+    'magic': 1,
+    'common': 0
+  };
+  const sorted = [...items].sort((a, b) => {
+    const rarityDiff = rarityOrder[b.rarity] - rarityOrder[a.rarity];
+    return rarityDiff !== 0 ? rarityDiff : 0;
+  });
+  const topItems = sorted.slice(0, safeSlotCount);
+
+  items.forEach(item => {
+    const div = document.createElement('div');
+    div.className = `loot-slot rarity-${item.rarity}`;
+
+    const isAutoSecured = topItems.includes(item);
+    if (isAutoSecured) {
+      div.classList.add('auto-secured');
+    }
+
+    div.innerHTML = `
+      <div class="loot-icon">?</div>
+      <div class="loot-info">
+        <div class="loot-name">VEILED</div>
+        <div class="loot-rarity">${item.rarity.toUpperCase()}</div>
+        ${isAutoSecured ? '<div class="auto-secured-badge">AUTO-SECURED</div>' : ''}
+      </div>
+    `;
+
+    grid.appendChild(div);
+  });
+
+  const btn = this.createBtn('CLOSE', () => {
+    screen.classList.remove('active');
+  });
+  grid.appendChild(btn);
+}
 ```
 
-**index.html - Update HUD:**
-- Change "Secured: None" to show auto-secured count
-- Add safe slot total indicator
+**Note:** Removed `onSecure` callback parameter.
 
-#### Step 1.3: Add Tutorial/Explanation
+#### Task 1.7: Update HUD ⏱️ 15 min
 
-**Add help screen or menu text:**
+**File: index.html**
+
+**Add review button to HUD:**
+
+```html
+<!-- In HUD section, near other controls -->
+<div id="hud-controls">
+  <button id="review-loot-btn" class="hud-btn">📦 Review Loot</button>
+</div>
 ```
-AUTO-SAFE SLOTS:
-When you die, your X best items are automatically saved to stash.
-Upgrade to save more items on death!
 
-Priority: Legendary > Relic > Rare > Magic > Common
-Same rarity: Random selection
+**File: src/systems/ui.ts**
+
+**Update `updateHud()` method:**
+
+```typescript
+updateHud(): void {
+  // ... existing hud updates ...
+
+  const safeSlotCount = SaveData.data.shop.safeSlotsCount;
+  const securedCount = Math.min(safeSlotCount, Game.collectedLoot?.length || 0);
+
+  const securedEl = document.getElementById('hud-secured-count');
+  if (securedEl) {
+    securedEl.textContent = `${securedCount}/${safeSlotCount}`;
+  }
+
+  // Update review button visibility
+  const reviewBtn = document.getElementById('review-loot-btn');
+  if (reviewBtn) {
+    reviewBtn.style.display = Game.active && Game.collectedLoot.length > 0 ? 'block' : 'none';
+  }
+}
 ```
 
-#### Step 1.4: Testing
+**Wire up review button in src/main.ts:**
 
-- Test with 1-5 slots at various loot levels
-- Verify tiebreaker logic
-- Test extraction (all items saved)
-- Test death (top N items saved)
-- Save/load data persistence
+```typescript
+// Expose review loot function to window
+(window as any).reviewLoot = () => {
+  if (Game) {
+    Game.toggleLootInventory();
+  }
+};
+```
+
+**Update index.html button onclick:**
+
+```html
+<button id="review-loot-btn" class="hud-btn" onclick="reviewLoot()">📦 Review Loot</button>
+```
+
+#### Task 1.8: Add CSS Styles ⏱️ 10 min
+
+**File: src/style.css**
+
+```css
+.auto-secured {
+  border: 2px solid gold;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.auto-secured-badge {
+  background: linear-gradient(135deg, #ffd700, #ffaa00);
+  color: #000;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: bold;
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+
+.hud-btn {
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  border: 2px solid #4a90e2;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hud-btn:active {
+  transform: scale(0.95);
+  background: rgba(74, 144, 226, 0.3);
+}
+
+#hud-controls {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 10px;
+  z-index: 100;
+}
+
+@media (max-width: 768px) {
+  #hud-controls {
+    bottom: 80px; /* Above joystick */
+    right: 10px;
+  }
+
+  .hud-btn {
+    padding: 12px 20px;
+    font-size: 16px;
+  }
+}
+```
+
+#### Task 1.9: Add Test Coverage ⏱️ 30 min
+
+**NEW FILE: src/__tests__/safeSlots.test.ts**
+
+```typescript
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import type { Item, ItemRarity } from '../items/types';
+import { createMockItem, createMockSaveData } from './testUtils';
+
+// Mock dependencies
+vi.mock('../systems/saveData', () => ({
+  SaveData: {
+    data: createMockSaveData({ shop: { safeSlotsCount: 2 } }),
+    save: vi.fn(),
+  },
+}));
+
+describe('Auto Safe Slots System', () => {
+
+  describe('autoSelectSafeItems()', () => {
+    it('returns empty array when no items collected', () => {
+      // Test implementation
+    });
+
+    it('saves top N items by rarity with 1 slot', () => {
+      const items = [
+        createMockItem({ rarity: 'rare' }),
+        createMockItem({ rarity: 'common' }),
+        createMockItem({ rarity: 'legendary' }),
+      ];
+      // With 1 slot, should return legendary only
+    });
+
+    it('saves top N items by rarity with 5 slots', () => {
+      // Create 10 items with various rarities
+      // With 5 slots, should return top 5 by rarity
+    });
+
+    it('prioritizes rarity correctly: legendary > relic > rare > magic > common', () => {
+      // Create one of each rarity type
+      // Verify order is correct
+    });
+
+    it('handles tiebreaker with random selection for same rarity', () => {
+      // Create 3 rare items with 1 slot
+      // Should return one of them (random)
+    });
+
+    it('caps selection at available slots', () => {
+      // Create 10 items with 5 slots
+      // Should return exactly 5 items
+    });
+  });
+
+  describe('Shop Safe Slots Upgrade', () => {
+    it('costs 500G for 2nd slot (level 0 → 1)', () => {
+      const SHOP_ITEMS = require('../data/shop').SHOP_ITEMS;
+      expect(SHOP_ITEMS.safeSlots.cost(0)).toBe(500);
+    });
+
+    it('costs 1000G for 3rd slot (level 1 → 2)', () => {
+      const SHOP_ITEMS = require('../data/shop').SHOP_ITEMS;
+      expect(SHOP_ITEMS.safeSlots.cost(1)).toBe(1000);
+    });
+
+    it('costs 3000G for 4th slot (level 2 → 3)', () => {
+      const SHOP_ITEMS = require('../data/shop').SHOP_ITEMS;
+      expect(SHOP_ITEMS.safeSlots.cost(2)).toBe(3000);
+    });
+
+    it('costs 5000G for 5th slot (level 3 → 4)', () => {
+      const SHOP_ITEMS = require('../data/shop').SHOP_ITEMS;
+      expect(SHOP_ITEMS.safeSlots.cost(3)).toBe(5000);
+    });
+
+    it('returns MAX when at level 4 (5 slots)', () => {
+      const SHOP_ITEMS = require('../data/shop').SHOP_ITEMS;
+      const lvl = 4;
+      expect(lvl).toBeGreaterThanOrEqual(SHOP_ITEMS.safeSlots.max - 1);
+    });
+  });
+
+  describe('Save Data Migration', () => {
+    it('defaults safeSlotsCount to 1 for old save data', () => {
+      // Load save data without safeSlotsCount
+      // Verify it defaults to 1
+    });
+
+    it('preserves existing safeSlotsCount value', () => {
+      // Load save data with safeSlotsCount = 3
+      // Verify it stays at 3
+    });
+
+    it('saves and loads safeSlotsCount correctly', () => {
+      // Set safeSlotsCount to 4
+      // Save, then load
+      // Verify it's still 4
+    });
+
+    it('clamps safeSlotsCount to 1-5 range', () => {
+      // Test with values: 0, 6, -1, 10
+      // All should be clamped to 1 or 5
+    });
+
+    it('warns when clamping occurs', () => {
+      const consoleWarn = vi.spyOn(console, 'warn');
+      // Trigger clamp with invalid value
+      expect(consoleWarn).toHaveBeenCalled();
+    });
+  });
+});
+```
+
+---
+
+#### Phase 1 Summary
+
+**Files Modified (5):**
+1. `src/types/index.ts` - Add `safeSlotsCount` to `ShopUpgrades`
+2. `src/data/shop.ts` - Add safe slots upgrade item
+3. `src/systems/saveData.ts` - Add migration logic + clamp helper
+4. `src/game.ts` - Remove manual secure, add auto-select, update game over
+5. `src/systems/ui.ts` - Update inventory UI, add HUD update
+6. `src/style.css` - Add `.auto-secured` styles, HUD button styles
+7. `index.html` - Add review loot button
+8. `src/main.ts` - Expose reviewLoot to window
+
+**New Files (2):**
+1. `src/__tests__/testUtils.ts` - Test helper functions
+2. `src/__tests__/safeSlots.test.ts` - Comprehensive test coverage
+
+**Estimated Time:** 2 hours
+
+**Success Criteria:**
+- ✅ Death saves top N items by rarity (N = safe slots count, 1-5)
+- ✅ Extraction saves all items
+- ✅ Shop has "Safe Container" upgrade (500G → 1000G → 3000G → 5000G)
+- ✅ HUD shows "📦 Review Loot" button (clickable/tappable)
+- ✅ HUD shows "Auto-Secure: X/5" count
+- ✅ Inventory shows "X of Y items will be auto-secured"
+- ✅ Items marked with gold border + "AUTO-SECURED" badge
+- ✅ Save data clamps to 1-5 range with console warning
+- ✅ All tests pass (coverage > 80%)
 
 ---
 
@@ -963,12 +1369,29 @@ load(): void {
 
 ### Testing Checklist
 
-**Safe Slots:**
-- [ ] Test with 1-5 slots at various loot levels
-- [ ] Test extraction (all items saved)
-- [ ] Test death (top N items saved)
-- [ ] Test tiebreaker logic (same rarity selection)
-- [ ] Test save/load data persistence
+**Safe Slots (Phase 1):**
+- [ ] Test `autoSelectSafeItems()` with 0 items (returns empty array)
+- [ ] Test `autoSelectSafeItems()` with 1 slot and 3 legendary items (saves 1)
+- [ ] Test `autoSelectSafeItems()` with 5 slots and 10 items (saves top 5 by rarity)
+- [ ] Test tiebreaker works (random selection among same rarity)
+- [ ] Test rarity order: legendary > relic > rare > magic > common
+- [ ] Test `gameOver(true)` saves all items (extraction)
+- [ ] Test `gameOver(false)` saves only auto-selected items (death)
+- [ ] Test safe slots upgrade costs at each level
+- [ ] Test upgrade max level constraint
+- [ ] Test loading save data with missing `safeSlotsCount` (defaults to 1)
+- [ ] Test loading save data with existing `safeSlotsCount` (preserves value)
+- [ ] Test save/load data persistence for `safeSlotsCount`
+- [ ] Test clamping to 1-5 range (0 → 1, 6 → 5, -1 → 1, 10 → 5)
+- [ ] Test console warning when clamping occurs
+- [ ] Test inventory UI shows correct auto-secured count
+- [ ] Test items marked with `.auto-secured` class based on rarity
+- [ ] Test UI displays rarity correctly for each item
+- [ ] Test HUD shows correct auto-secured count
+- [ ] Test HUD updates when items collected
+- [ ] Test HUD shows max 5 when at 5 slots
+- [ ] Test review loot button visibility (hidden when no items)
+- [ ] Test review loot button clickability (desktop and mobile)
 
 **Shop:**
 - [ ] Test all three tabs (UPGRADES/ITEMS/GAMBLER)
@@ -1005,10 +1428,23 @@ load(): void {
 
 ✅ **ALL DECISIONS FINALIZED**
 
-**Implementation Order:**
-1. **Phase 1**: Safe Slots (foundation, auto-selection system)
-2. **Phase 2**: Shop System (three tabs, refresh mechanisms)
-3. **Phase 3**: Debug Enhancements (new debug options)
-4. **Phase 4**: Extraction Zones (in-world extraction, enemy spawning)
+**Implementation Order (Phased Rollout):**
+1. **Phase 1**: Safe Slots (foundation, auto-selection system) - 2 hours
+   - Test utilities, types, shop data, save migration, auto-selection, UI, HUD, CSS, tests
+2. **Phase 2**: Shop System (three tabs, refresh mechanisms) - 2-2.5 hours
+   - Shop types, generation, manager, UI, refresh systems
+3. **Phase 3**: Debug Enhancements (new debug options) - 0.5-1 hour
+4. **Phase 4**: Extraction Zones (in-world extraction, enemy spawning, blue portal) - 2.5-3 hours
 
-**Ready to begin?** Once you confirm, I'll start with Phase 1 implementation.
+**Total Estimated Time:** 7-8.5 hours across 4 phases
+
+**Phase 1 Status:** ✅ **READY TO IMPLEMENT**
+
+**Phase 1 Approach:**
+- Task-by-task implementation (1.1 → 1.9)
+- Test coverage created alongside implementation
+- Each task is independently testable
+- Review loot button for desktop + mobile
+- Clamping with console warning for data safety
+
+**Ready to begin Phase 1 implementation?** Once you confirm, I'll execute tasks 1.1-1.9 in order with full test coverage.

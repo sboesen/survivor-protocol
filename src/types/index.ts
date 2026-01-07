@@ -116,6 +116,7 @@ export interface ShopUpgrades {
   health: number;
   speed: number;
   magnet: number;
+  safeSlotsCount: number;
   [key: string]: number;
 }
 

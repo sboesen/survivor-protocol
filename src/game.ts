@@ -97,7 +97,6 @@ class GameCore {
   damageTexts: DamageText[] = [];
   particles: Particle[] = [];
   collectedLoot: Item[] = [];
-  securedLootId: string | null = null;
   lootInventoryOpen = false;
   debugLootBoost = false;
 
@@ -262,7 +261,6 @@ class GameCore {
     this.fireballs = [];
     this.loot = [];
     this.collectedLoot = [];
-    this.securedLootId = null;
     this.lootInventoryOpen = false;
     UI.updateVeiledCount(0);
     UI.hideLootInventory();
@@ -354,7 +352,7 @@ class GameCore {
   }
 
   quitRun(): void {
-    this.gameOver(true);
+    this.gameOver(true, false);
   }
 
   toggleLootInventory(): void {
@@ -365,7 +363,7 @@ class GameCore {
     this.paused = this.lootInventoryOpen;
 
     if (this.lootInventoryOpen) {
-      UI.showLootInventory(this.collectedLoot, this.securedLootId, (itemId) => this.secureLoot(itemId));
+      UI.showLootInventory(this.collectedLoot, SaveData.data.shop.safeSlotsCount);
     } else {
       UI.hideLootInventory();
     }
@@ -375,14 +373,23 @@ class GameCore {
     this.debugLootBoost = enabled;
   }
 
-  secureLoot(itemId: string): void {
-    this.securedLootId = itemId;
-    if (this.lootInventoryOpen) {
-      UI.showLootInventory(this.collectedLoot, this.securedLootId, (nextId) => this.secureLoot(nextId));
-    }
+  autoSelectSafeItems(): string[] {
+    if (this.collectedLoot.length === 0) return [];
+
+    const safeSlotCount = SaveData.data.shop.safeSlotsCount;
+    const rarityOrder = { 'legendary': 4, 'relic': 3, 'rare': 2, 'magic': 1, 'common': 0 };
+
+    const sorted = [...this.collectedLoot].sort((a, b) => {
+      const rarityDiff = rarityOrder[b.rarity] - rarityOrder[a.rarity];
+      if (rarityDiff !== 0) return rarityDiff;
+
+      return Math.random() - 0.5;
+    });
+
+    return sorted.slice(0, safeSlotCount).map(item => item.id);
   }
 
-  gameOver(success = false): void {
+  gameOver(extracted = false, fullExtract = false): void {
     this.active = false;
     this.lootInventoryOpen = false;
     UI.hideLootInventory();
@@ -395,10 +402,10 @@ class GameCore {
     });
 
     const stash = Stash.fromJSON(SaveData.data.stash);
-    const securedItem = this.collectedLoot.find(item => item.id === this.securedLootId) ?? null;
-    const itemsToStore = success
-      ? this.collectedLoot
-      : (securedItem ? [securedItem] : []);
+    const securedIds = (extracted && fullExtract) || !extracted
+      ? this.collectedLoot.map(item => item.id)
+      : this.autoSelectSafeItems();
+    const itemsToStore = this.collectedLoot.filter(item => securedIds.includes(item.id));
     itemsToStore.forEach(item => {
       stash.addItem(item);
     });
@@ -407,11 +414,8 @@ class GameCore {
     SaveData.data.gold += rewards.total;
     SaveData.save();
 
-    if (success) {
-      UI.showExtractionScreen(itemsToStore, () => this.returnToMenu());
-    } else {
-      UI.showGameOverScreen(success, this.goldRun, this.mins, this.kills, this.bossKills);
-    }
+    UI.showExtractionScreen(itemsToStore, () => this.returnToMenu());
+    UI.showGameOverScreen(extracted, this.goldRun, this.mins, this.kills, this.bossKills);
   }
 
   returnToMenu(): void {
