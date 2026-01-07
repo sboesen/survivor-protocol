@@ -369,7 +369,18 @@ export class ThreeRenderer {
       let view = this.projectileViews.get(proj);
 
       if (!view) {
-        if (proj.isBubble) {
+        if (proj.spriteId) {
+          console.log('[ThreeRenderer] Creating sprite with texture for:', proj.spriteId);
+          const texture = this.spriteManager.getTexture(proj.spriteId);
+          if (!texture) {
+            console.error('[ThreeRenderer] Failed to get texture for:', proj.spriteId);
+          }
+          const material = new THREE.SpriteMaterial({
+            map: texture,
+            depthTest: false,
+          });
+          view = new THREE.Sprite(material);
+        } else if (proj.isBubble) {
           const geometry = new THREE.PlaneGeometry(1, 1);
           const material = new THREE.ShaderMaterial({
             uniforms: {

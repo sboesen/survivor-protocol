@@ -603,7 +603,7 @@ class UISystem {
     fireball: '/fireball.png',
     lighter: '/lighter.png',
     shield_bash: '/shield_bash.png',
-    bow: '/src/assets/sprites/weapons/arrow.png',
+    bow: '/weapons/arrow.png',
   };
 
   // Fallback emoji icons for weapons without image sprites

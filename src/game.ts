@@ -482,7 +482,7 @@ class GameCore {
               false,
               'bow'
             );
-            (proj as any).spriteId = 'weapons/arrow';
+            proj.spriteId = 'weapons/arrow';
             this.projectiles.push(proj);
           }
           break;

@@ -40,16 +40,16 @@ class LoadoutUISystem {
   private currentLoadout: LoadoutData | null = null;
   private currentTooltip: HTMLElement | null = null;
   private weaponIconSources: Record<WeaponIconKey, string> = {
-    dagger: new URL('../assets/sprites/weapons/dagger.png', import.meta.url).href,
-    sword: new URL('../assets/sprites/weapons/sword.png', import.meta.url).href,
-    club: new URL('../assets/sprites/weapons/club.png', import.meta.url).href,
-    great_axe: new URL('../assets/sprites/weapons/great_axe.png', import.meta.url).href,
-    spear: new URL('../assets/sprites/weapons/spear.png', import.meta.url).href,
-    hammer: new URL('../assets/sprites/weapons/hammer.png', import.meta.url).href,
-    bow: new URL('../assets/sprites/weapons/bow.png', import.meta.url).href,
-    arrow: new URL('../assets/sprites/weapons/arrow.png', import.meta.url).href,
-    wand: new URL('../assets/sprites/weapons/wand.png', import.meta.url).href,
-    torch: new URL('../assets/sprites/weapons/torch.png', import.meta.url).href,
+    dagger: '/weapons/dagger.png',
+    sword: '/weapons/sword.png',
+    club: '/weapons/club.png',
+    great_axe: '/weapons/great_axe.png',
+    spear: '/weapons/spear.png',
+    hammer: '/weapons/hammer.png',
+    bow: '/weapons/bow.png',
+    arrow: '/weapons/arrow.png',
+    wand: '/weapons/wand.png',
+    torch: '/weapons/torch.png',
   };
 
   private bindListeners(): void {

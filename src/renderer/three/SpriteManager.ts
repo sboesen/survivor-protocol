@@ -4,7 +4,7 @@ import { PALETTE } from '../../assets/palette';
 import type { Sprites, PaletteKey } from '../../types';
 
 // Sprite keys that have image files
-const IMAGE_SPRITES: Set<string> = new Set(['bat', 'heart', 'gem', 'wizard', 'shield_bash', 'fireball']);
+const IMAGE_SPRITES: Set<string> = new Set(['bat', 'heart', 'gem', 'wizard', 'shield_bash', 'fireball', 'weapons/arrow']);
 
 /**
  * Type guard to check if a character is a valid palette key.
@@ -37,7 +37,15 @@ export class SpriteManager {
     // Try loading from image file first
     if (IMAGE_SPRITES.has(spriteKey)) {
       try {
-        const imageUrl = new URL(`../../assets/sprites/${spriteKey}.png`, import.meta.url).href;
+        let imageUrl: string;
+        if (spriteKey.startsWith('weapons/')) {
+          // Weapons are in public/ folder
+          imageUrl = `/${spriteKey}.png`;
+        } else {
+          // Other sprites use relative path
+          imageUrl = new URL(`../../assets/sprites/${spriteKey}.png`, import.meta.url).href;
+        }
+        console.log(`[SpriteManager] Loading image for ${spriteKey} from:`, imageUrl);
         const texture = await new THREE.TextureLoader().loadAsync(imageUrl);
         texture.magFilter = THREE.NearestFilter;
         texture.minFilter = THREE.NearestFilter;
@@ -51,6 +59,7 @@ export class SpriteManager {
           // heart already has transparency (RGBA)
           this.textures.set(spriteKey, texture);
         }
+        console.log(`[SpriteManager] Successfully loaded texture for ${spriteKey}`);
         return;
       } catch (e) {
         console.warn(`[SpriteManager] Failed to load image for ${spriteKey}, falling back to ASCII`, e);
@@ -58,6 +67,7 @@ export class SpriteManager {
     }
 
     // Fall back to ASCII sprite generation
+    console.log(`[SpriteManager] Creating ASCII fallback for ${spriteKey}`);
     this.textures.set(spriteKey, this.createAsciiTexture(spriteKey));
   }
 
@@ -197,6 +207,13 @@ export class SpriteManager {
     const sprite = new THREE.Sprite(material);
     sprite.scale.set(scale, scale, 1);
     return sprite;
+  }
+
+  /**
+   * Get a texture for the given sprite key (for custom sprite materials)
+   */
+  getTexture(spriteKey: string): THREE.Texture | undefined {
+    return this.textures.get(spriteKey);
   }
 
   /**
