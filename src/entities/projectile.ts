@@ -112,16 +112,17 @@ export class Projectile extends Entity {
     } else if (this.spriteId) {
       rotation = Math.atan2(this.vy, this.vx) + Math.PI / 4;
     }
-    if (rotation !== 0) ctx.rotate(rotation);
-
+    if (rotation !== 0) ctx.rotate(rotation); 
+  
     // Fade out near end of life
     const alpha = this.dur < 5 ? this.dur / 5 : 1;
-    ctx.globalAlpha = alpha;
-
-    // Draw sprite if specified
+    ctx.globalAlpha = alpha; 
+  
+    // Draw sprite if specified - check this FIRST before other conditions
     if (this.spriteId) {
+      const img = Renderer.getLoadedImage(this.spriteId);
       ctx.drawImage(
-        Renderer.getLoadedImage(this.spriteId),
+        img,
         -8, -8, 16, 16
       );
     } else if (this.isArc) {
