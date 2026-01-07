@@ -1,8 +1,6 @@
 import type { SaveGameData } from '../types';
 import { Stash } from '../items/stash';
 
-const WIPE_LEGACY_DATA = true;
-
 const createDefaultSaveData = (): SaveGameData => ({
   gold: 0,
   ownedChars: ['wizard'],
@@ -27,13 +25,6 @@ class SaveDataSystem {
 
   load(): void {
     const saved = localStorage.getItem(this.key);
-    if (saved && WIPE_LEGACY_DATA) {
-      localStorage.removeItem(this.key);
-      this.data = createDefaultSaveData();
-      this.save();
-      return;
-    }
-
     if (saved) {
       try {
         const parsed = JSON.parse(saved) as Partial<SaveGameData>;

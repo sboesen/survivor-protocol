@@ -9,6 +9,96 @@ import type { Enemy } from '../entities/enemy';
 import type { Weapon } from '../types';
 
 /**
+ * Result of finding a target enemy.
+ */
+interface TargetResult {
+  enemy: Enemy;
+  angle: number;
+}
+
+/**
+ * Find nearest enemy within range and calculate angle to them.
+ *
+ * @param enemies - Array of enemies to search
+ * @param x - Player X position
+ * @param y - Player Y position
+ * @param range - Maximum search distance
+ * @returns Target result with enemy and angle, or null if no enemy found
+ */
+function findTarget(enemies: Enemy[], x: number, y: number, range: number): TargetResult | null {
+  const { enemy: near } = findNearestEnemy(enemies, x, y, range);
+  
+  if (!near) {
+    return null;
+  }
+  
+  const ang = calculateWrappedAngle(x, y, near.x, near.y);
+  return { enemy: near, angle: ang };
+}
+
+/**
+ * Create multiple projectiles aimed at a target with optional spread.
+ *
+ * @param x - Start X position
+ * @param y - Start Y position
+ * @param angle - Base angle to target
+ * @param count - Number of projectiles to create
+ * @param baseSpeed - Base projectile speed
+ * @param speedMult - Optional speed multiplier
+ * @param spread - Spread angle between projectiles (optional)
+ * @param config - Projectile configuration object (required fields only)
+ * @returns Array of projectile data
+ */
+function createSpreadProjectiles(
+  x: number,
+  y: number,
+  angle: number,
+  count: number,
+  baseSpeed: number,
+  speedMult: number,
+  spread: number,
+  config: {
+    dmg: number;
+    isCrit?: boolean;
+    pierce?: number;
+    radius?: number;
+    color?: string;
+    duration?: number;
+    isBubble?: boolean;
+    isArc?: boolean;
+    splits?: boolean;
+    explodeRadius?: number;
+    knockback?: number;
+  }
+): ProjectileData[] {
+  const projectiles: ProjectileData[] = [];
+  const speed = baseSpeed * (speedMult || 1);
+  
+  for (let i = 0; i < count; i++) {
+    const spreadAngle = (i - (count - 1)) / 2 * spread;
+    projectiles.push({
+      x,
+      y,
+      vx: Math.cos(angle + spreadAngle) * speed,
+      vy: Math.sin(angle + spreadAngle) * speed,
+      radius: config.radius || 5,
+      color: config.color || '#0ff',
+      dmg: config.dmg,
+      duration: config.duration || 60,
+      pierce: config.pierce || 1,
+      isCrit: config.isCrit || false,
+      isBubble: config.isBubble,
+      isArc: config.isArc,
+      splits: config.splits,
+      explodeRadius: config.explodeRadius,
+      knockback: config.knockback,
+    });
+  }
+  
+  return projectiles;
+}
+
+/**
  * Result of a weapon fire action.
  * Contains data about what should be spawned/created.
  */
@@ -82,33 +172,30 @@ export function fireNearest(
   pierce: number,
   projectileBonus: number = 0
 ): WeaponFireResult {
-  const { enemy: near } = findNearestEnemy(enemies, p.x, p.y, 400);
- 
-  if (!near) {
+  const target = findTarget(enemies, p.x, p.y, 400);
+  
+  if (!target) {
     return { fired: false };
   }
- 
-  const ang = calculateWrappedAngle(p.x, p.y, near.x, near.y);
-  const speed = 8 * (w.speedMult || 1);
+  
   const count = (w.projectileCount || 1) + projectileBonus;
-  const projectiles: ProjectileData[] = [];
- 
-  for (let i = 0; i < count; i++) {
-    const spread = (i - (count - 1) / 2) * 0.1;
-    projectiles.push({
-      x: p.x,
-      y: p.y,
-      vx: Math.cos(ang + spread) * speed,
-      vy: Math.sin(ang + spread) * speed,
-      radius: 5,
+  const projectiles = createSpreadProjectiles(
+    p.x,
+    p.y,
+    target.angle,
+    count,
+    8,
+    w.speedMult || 1,
+    0.1,
+    {
       color: '#0ff',
       dmg,
       duration: 60,
       pierce,
       isCrit,
-    });
-  }
- 
+    }
+  );
+  
   return {
     fired: true,
     projectiles,
@@ -127,26 +214,22 @@ export function fireBubble(
   pierce: number,
   projectileBonus: number = 0
 ): WeaponFireResult {
-  const { enemy: near } = findNearestEnemy(enemies, p.x, p.y, 400);
-
-  if (!near) {
+  const target = findTarget(enemies, p.x, p.y, 400);
+ 
+  if (!target) {
     return { fired: false };
   }
-
-  const ang = calculateWrappedAngle(p.x, p.y, near.x, near.y);
-  const speed = 3.5 * (w.speedMult || 1);
+ 
   const count = (w.projectileCount || 1) + projectileBonus;
-
-  const projectiles: ProjectileData[] = [];
-
-  for (let i = 0; i < count; i++) {
-    const spread = (i - (count - 1) / 2) * 0.15;
-    projectiles.push({
-      x: p.x,
-      y: p.y,
-      vx: Math.cos(ang + spread) * speed,
-      vy: Math.sin(ang + spread) * speed,
-      radius: 5,
+  const projectiles = createSpreadProjectiles(
+    p.x,
+    p.y,
+    target.angle,
+    count,
+    3.5,
+    w.speedMult || 1,
+    0.15,
+    {
       color: '#aaddff',
       dmg,
       duration: 70,
@@ -154,9 +237,9 @@ export function fireBubble(
       isCrit,
       isBubble: true,
       splits: w.splits,
-    });
-  }
-
+    }
+  );
+ 
   return { fired: true, projectiles };
 }
 
