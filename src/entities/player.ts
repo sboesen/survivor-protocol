@@ -67,9 +67,9 @@ export class Player extends Entity {
     this.loadoutStats = loadoutStats;
     this.maxHp = baseHp * (1 + loadoutStats.allStats) + loadoutStats.maxHp;
     this.hp = this.maxHp;
-    this.speed = baseSpeed * (1 + loadoutStats.allStats) + loadoutStats.speed;
-    this.pickupRange = basePickup * (1 + loadoutStats.allStats) + loadoutStats.magnet + loadoutStats.pickupRadius;
-    this.dmgMult = baseDmgMult + loadoutStats.percentDamage + loadoutStats.allStats;
+    this.speed = baseSpeed + loadoutStats.speed + (baseSpeed * loadoutStats.allStats);
+    this.pickupRange = basePickup + loadoutStats.magnet + loadoutStats.pickupRadius + (basePickup * loadoutStats.allStats);
+    this.dmgMult = baseDmgMult + loadoutStats.percentDamage + (baseDmgMult * loadoutStats.allStats);
     this.flatDamage = loadoutStats.flatDamage;
     this.critChance = 0;
     this.items = {
