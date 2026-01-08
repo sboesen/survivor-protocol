@@ -1,6 +1,6 @@
 import { CHARACTERS } from '../data/characters';
 import { UPGRADES } from '../data/upgrades';
-import { WEAPON_LEVELS } from '../data/leveling';
+import { WEAPON_LEVELS, ATTRIBUTE_LABELS } from '../data/leveling';
 import type { Item, ItemAffix } from '../items/types';
 import { AFFIX_TIER_BRACKETS } from '../items/affixTables';
 import { Utils } from '../utils';
@@ -1006,7 +1006,9 @@ class UISystem {
         state.baseDmg *= 1.3;
         state.cd *= 0.9;
         const bonus = levels ? levels[i] : null;
-        if (bonus && bonus.apply) bonus.apply(state);
+        if (bonus) {
+          Object.assign(state, bonus);
+        }
       }
       return state;
     };
@@ -1026,43 +1028,29 @@ class UISystem {
       // Generate "NEW" bonus lines by comparing current state to previous state
       const dynamicBonuses: string[] = [];
       if (prevState) {
-        // We handle universal Dmg/CD separately or just show them
         dynamicBonuses.push('+30% Damage');
         dynamicBonuses.push('-10% Cooldown');
 
-        if (state.projectileCount > prevState.projectileCount) {
-          dynamicBonuses.push(`+${state.projectileCount - prevState.projectileCount} ${projName}${state.projectileCount - prevState.projectileCount > 1 ? 's' : ''}`);
-        }
-        if (state.pierce > prevState.pierce) {
-          dynamicBonuses.push(`+${state.pierce - prevState.pierce} Pierce`);
-        }
-        if (state.bounces > prevState.bounces) {
-          dynamicBonuses.push(`+${state.bounces - prevState.bounces} Bounce${state.bounces - prevState.bounces > 1 ? 's' : ''}`);
-        }
-        if (state.explodeRadius > prevState.explodeRadius) {
-          dynamicBonuses.push(`+Explosion Radius`);
-        }
-        if (state.coneLength > prevState.coneLength) {
-          dynamicBonuses.push(`+Range`);
-        }
-        if (state.spread > prevState.spread || state.coneWidth > prevState.coneWidth) {
-          dynamicBonuses.push(`+Width`);
-        }
-        if (state.speedMult > prevState.speedMult) {
-          const pct = Math.round((state.speedMult / prevState.speedMult - 1) * 100);
-          dynamicBonuses.push(`+${pct}% Speed`);
-        }
-        if (state.splits && !prevState.splits) {
-          dynamicBonuses.push(`Splits on hit`);
-        }
-        if (state.trailDamage > prevState.trailDamage) {
-          dynamicBonuses.push(`Trail deals damage`);
-        }
-        if (state.knockback > prevState.knockback) {
-          dynamicBonuses.push(`+Knockback`);
-        }
-        if (state.size > prevState.size) {
-          dynamicBonuses.push(`+Size`);
+        // Dynamically detect changes based on ATTRIBUTE_LABELS
+        for (const [attr, label] of Object.entries(ATTRIBUTE_LABELS)) {
+          const val = (state as any)[attr];
+          const prevVal = (prevState as any)[attr];
+
+          if (val !== prevVal && val !== undefined) {
+            if (typeof val === 'number' && typeof prevVal === 'number') {
+              const diff = val - prevVal;
+              if (attr === 'speedMult') {
+                const pct = Math.round((val / prevVal - 1) * 100);
+                dynamicBonuses.push(`+${pct}% ${label}`);
+              } else if (attr === 'projectileCount') {
+                dynamicBonuses.push(`+${diff} ${projName}${diff > 1 ? 's' : ''}`);
+              } else {
+                dynamicBonuses.push(`+${diff} ${label}`);
+              }
+            } else if (typeof val === 'boolean' && val === true && !prevVal) {
+              dynamicBonuses.push(label);
+            }
+          }
         }
       }
 

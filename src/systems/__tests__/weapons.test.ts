@@ -57,7 +57,8 @@ describe('weapons', () => {
       expect(result.projectiles![0].vx).toBeCloseTo(8, 1);
       expect(result.projectiles![0].vy).toBe(0);
       expect(result.projectiles![0].dmg).toBe(10);
-      expect(result.projectiles![0].color).toBe('#0ff');
+      expect(result.projectiles![0].color).toBe('#4a4');
+      expect(result.projectiles![0].spriteId).toBe('weapons/arrow');
     });
 
     it('should apply crit damage', () => {

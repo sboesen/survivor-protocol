@@ -1,4 +1,4 @@
-import type { SaveGameData } from '../types';
+import type { SaveGameData, ShopInventoryData } from '../types';
 import { Stash } from '../items/stash';
 
 // Map old character IDs to new fantasy-themed IDs
@@ -11,11 +11,19 @@ const CHARACTER_MIGRATION: Record<string, string> = {
   teenager: 'pyromancer',
 };
 
+const createDefaultShopInventory = (): ShopInventoryData => ({
+  items: [],
+  gamblerItems: [],
+  lastRefresh: 0,
+  lastDailyRefresh: 0,
+});
+
 const createDefaultSaveData = (): SaveGameData => ({
   gold: 0,
   ownedChars: ['wizard'],
   selectedChar: 'wizard',
   shop: { damage: 0, health: 0, speed: 0, magnet: 0, safeSlotsCount: 1 },
+  shopInventory: createDefaultShopInventory(),
   stash: new Stash().toJSON(),
   loadout: {
     relic: null,
@@ -58,6 +66,12 @@ class SaveDataSystem {
             speed: parsed.shop?.speed ?? 0,
             magnet: parsed.shop?.magnet ?? 0,
             safeSlotsCount: parsed.shop?.safeSlotsCount ?? 1,
+          },
+          shopInventory: {
+            items: parsed.shopInventory?.items ?? [],
+            gamblerItems: parsed.shopInventory?.gamblerItems ?? [],
+            lastRefresh: parsed.shopInventory?.lastRefresh ?? 0,
+            lastDailyRefresh: parsed.shopInventory?.lastDailyRefresh ?? parsed.shopInventory?.lastRefresh ?? 0,
           },
           stash: Stash.fromJSON(parsed.stash).toJSON(),
           loadout: {

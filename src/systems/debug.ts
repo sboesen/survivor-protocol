@@ -2,6 +2,7 @@ import { SaveData } from './saveData';
 import { CHARACTERS } from '../data/characters';
 import { CONFIG } from '../config';
 import { Game } from '../game';
+import { ShopManager } from './shopManager';
 
 class DebugSystem {
   private lootBoostEnabled = false;
@@ -47,6 +48,19 @@ class DebugSystem {
       localStorage.setItem(this.lootBoostKey, this.lootBoostEnabled ? 'true' : 'false');
     }
     this.syncLootBoostUi();
+  }
+
+  freeShopRefresh(): void {
+    ShopManager.refreshAfterRun();
+    const shopGold = document.getElementById('shop-gold-display');
+    if (shopGold) shopGold.textContent = SaveData.data.gold.toString();
+    console.log('Debug: Free shop refresh');
+  }
+
+  saveAllItems(): void {
+    SaveData.data.shop.safeSlotsCount = 999;
+    SaveData.save();
+    console.log('Debug: Save all items on death enabled');
   }
 
   private syncLootBoostUi(): void {

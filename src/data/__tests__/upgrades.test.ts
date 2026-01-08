@@ -111,6 +111,13 @@ describe('UPGRADES', () => {
       expect(UPGRADES.projectile.desc).toBe('+1 Projectile for all weapons');
       expect(UPGRADES.projectile.projectileCount).toBe(1);
     });
+
+    it('should have projectileSpeed item', () => {
+      expect(UPGRADES.projectileSpeed).toBeDefined();
+      expect(UPGRADES.projectileSpeed.name).toBe('Swift Arrows');
+      expect(UPGRADES.projectileSpeed.type).toBe('Item');
+      expect(UPGRADES.projectileSpeed.desc).toBe('+20% projectile speed (all weapons)');
+    });
   });
 
   describe('upgrade count', () => {
@@ -119,13 +126,13 @@ describe('UPGRADES', () => {
       expect(weapons.length).toBe(7);
     });
 
-    it('should have 5 items', () => {
+    it('should have 6 items', () => {
       const items = Object.values(UPGRADES).filter(u => u.type === 'Item');
-      expect(items.length).toBe(5);
+      expect(items.length).toBe(6);
     });
 
-    it('should have 12 total upgrades', () => {
-      expect(Object.keys(UPGRADES).length).toBe(12);
+    it('should have 13 total upgrades', () => {
+      expect(Object.keys(UPGRADES).length).toBe(13);
     });
   });
 
@@ -214,6 +221,12 @@ describe('UPGRADES', () => {
       expect(UPGRADES.projectile.projectileCount).toBeDefined();
       expect(typeof UPGRADES.projectile.projectileCount).toBe('number');
     });
+
+    it('should have projectileSpeed property on projectileSpeed item', () => {
+      expect(UPGRADES.projectileSpeed).toBeDefined();
+      expect(UPGRADES.projectileSpeed.name).toBe('Swift Arrows');
+      expect(UPGRADES.projectileSpeed.type).toBe('Item');
+    });
   });
 
   describe('weapon types variety', () => {
@@ -257,7 +270,7 @@ describe('UPGRADES', () => {
     });
 
     it('should have matching keys for item types', () => {
-      const itemKeys = ['pierce', 'scope', 'damage', 'cooldown', 'projectile'];
+      const itemKeys = ['pierce', 'scope', 'damage', 'cooldown', 'projectile', 'projectileSpeed'];
       itemKeys.forEach(key => {
         expect(UPGRADES[key]).toBeDefined();
       });

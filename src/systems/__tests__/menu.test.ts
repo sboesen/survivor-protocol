@@ -16,6 +16,13 @@ vi.mock('../saveData', () => ({
         damage: 0,
         speed: 0,
         magnet: 0,
+        safeSlotsCount: 1,
+      },
+      shopInventory: {
+        items: [],
+        gamblerItems: [],
+        lastRefresh: 0,
+        lastDailyRefresh: 0,
       },
     },
     save: vi.fn(),

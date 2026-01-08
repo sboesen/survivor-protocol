@@ -11,6 +11,15 @@ vi.mock('../saveData', () => ({
     data: {
       gold: 0,
       ownedChars: [],
+      shop: {
+        safeSlotsCount: 1,
+      },
+      shopInventory: {
+        items: [],
+        gamblerItems: [],
+        lastRefresh: 0,
+        lastDailyRefresh: 0,
+      },
     },
     save: vi.fn(),
   },
@@ -30,6 +39,12 @@ vi.mock('../../game', () => ({
   Game: {
     player: null,
     enemies: [],
+  },
+}));
+
+vi.mock('../shopManager', () => ({
+  ShopManager: {
+    refreshAfterRun: vi.fn(),
   },
 }));
 

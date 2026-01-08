@@ -100,9 +100,33 @@ describe('SHOP_ITEMS', () => {
     });
   });
 
+  describe('safeSlots shop item', () => {
+    it('should exist', () => {
+      expect(SHOP_ITEMS.safeSlots).toBeDefined();
+    });
+
+    it('should have correct properties', () => {
+      expect(SHOP_ITEMS.safeSlots.name).toBe('Safe Container');
+      expect(SHOP_ITEMS.safeSlots.desc).toBe('+1 Auto-Safe Slot');
+      expect(typeof SHOP_ITEMS.safeSlots.cost).toBe('function');
+      expect(SHOP_ITEMS.safeSlots.max).toBe(5);
+    });
+
+    it('should calculate non-linear cost correctly', () => {
+      expect(SHOP_ITEMS.safeSlots.cost(1)).toBe(500);
+      expect(SHOP_ITEMS.safeSlots.cost(2)).toBe(1000);
+      expect(SHOP_ITEMS.safeSlots.cost(3)).toBe(3000);
+      expect(SHOP_ITEMS.safeSlots.cost(4)).toBe(4000);
+    });
+
+    it('should have max level 5', () => {
+      expect(SHOP_ITEMS.safeSlots.max).toBe(5);
+    });
+  });
+
   describe('shop item count', () => {
-    it('should have 4 shop items', () => {
-      expect(Object.keys(SHOP_ITEMS).length).toBe(4);
+    it('should have 5 shop items', () => {
+      expect(Object.keys(SHOP_ITEMS).length).toBe(5);
     });
   });
 
@@ -150,9 +174,10 @@ describe('SHOP_ITEMS', () => {
       });
     });
 
-    it('should use linear cost scaling', () => {
+    it('should use linear cost scaling for most items', () => {
       // Cost should be: base * (level + 1)
-      Object.values(SHOP_ITEMS).forEach(item => {
+      // safeSlots has non-linear cost, so we skip it
+      Object.entries(SHOP_ITEMS).filter(([key]) => key !== 'safeSlots').forEach(([, item]) => {
         const cost0 = item.cost(0);
         const cost1 = item.cost(1);
         const baseCost = cost0;
@@ -170,6 +195,9 @@ describe('SHOP_ITEMS', () => {
       // Speed and Magnet: max 3 (more powerful upgrades)
       expect(SHOP_ITEMS.speed.max).toBe(3);
       expect(SHOP_ITEMS.magnet.max).toBe(3);
+
+      // safeSlots: max 5
+      expect(SHOP_ITEMS.safeSlots.max).toBe(5);
     });
 
     it('should not allow zero max level', () => {
@@ -184,14 +212,21 @@ describe('SHOP_ITEMS', () => {
       expect(SHOP_ITEMS.health.cost(0)).toBe(80); // Cheapest
       expect(SHOP_ITEMS.damage.cost(0)).toBe(100);
       expect(SHOP_ITEMS.magnet.cost(0)).toBe(100);
-      expect(SHOP_ITEMS.speed.cost(0)).toBe(150); // Most expensive base
+      expect(SHOP_ITEMS.speed.cost(0)).toBe(150); // Most expensive linear base
     });
 
-    it('should have reasonable max upgrade costs', () => {
+    it('should have reasonable max upgrade costs for linear items', () => {
       expect(SHOP_ITEMS.health.cost(4)).toBe(400); // 80 * 5
       expect(SHOP_ITEMS.damage.cost(4)).toBe(500); // 100 * 5
       expect(SHOP_ITEMS.magnet.cost(2)).toBe(300); // 100 * 3
       expect(SHOP_ITEMS.speed.cost(2)).toBe(450); // 150 * 3
+    });
+
+    it('should have reasonable max upgrade costs for safeSlots (non-linear)', () => {
+      expect(SHOP_ITEMS.safeSlots.cost(1)).toBe(500);
+      expect(SHOP_ITEMS.safeSlots.cost(2)).toBe(1000);
+      expect(SHOP_ITEMS.safeSlots.cost(3)).toBe(3000);
+      expect(SHOP_ITEMS.safeSlots.cost(4)).toBe(4000);
     });
   });
 
@@ -201,6 +236,7 @@ describe('SHOP_ITEMS', () => {
       expect(SHOP_ITEMS.health.desc).toContain('HP');
       expect(SHOP_ITEMS.speed.desc).toContain('%');
       expect(SHOP_ITEMS.magnet.desc).toContain('%');
+      expect(SHOP_ITEMS.safeSlots.desc).toContain('Slot');
     });
   });
 
@@ -210,12 +246,13 @@ describe('SHOP_ITEMS', () => {
       expect(SHOP_ITEMS.health.name).toBe('Vitality');
       expect(SHOP_ITEMS.speed.name).toBe('Haste');
       expect(SHOP_ITEMS.magnet.name).toBe('Magnet');
+      expect(SHOP_ITEMS.safeSlots.name).toBe('Safe Container');
     });
   });
 
   describe('shop item keys', () => {
     it('should have matching keys for upgrade types', () => {
-      const upgradeKeys = ['damage', 'health', 'speed', 'magnet'];
+      const upgradeKeys = ['damage', 'health', 'speed', 'magnet', 'safeSlots'];
       upgradeKeys.forEach(key => {
         expect(SHOP_ITEMS[key]).toBeDefined();
       });
@@ -247,14 +284,21 @@ describe('SHOP_ITEMS', () => {
       expect(total).toBe(600);
     });
 
-    it('should calculate total cost to max all upgrades', () => {
+    it('should calculate total cost to max all linear upgrades', () => {
       // 1500 + 1200 + 900 + 600 = 4200
+      // safeSlots has non-linear cost, so it's excluded
       const damageTotal = [0, 1, 2, 3, 4].reduce((sum, level) => sum + SHOP_ITEMS.damage.cost(level), 0);
       const healthTotal = [0, 1, 2, 3, 4].reduce((sum, level) => sum + SHOP_ITEMS.health.cost(level), 0);
       const speedTotal = [0, 1, 2].reduce((sum, level) => sum + SHOP_ITEMS.speed.cost(level), 0);
       const magnetTotal = [0, 1, 2].reduce((sum, level) => sum + SHOP_ITEMS.magnet.cost(level), 0);
       const grandTotal = damageTotal + healthTotal + speedTotal + magnetTotal;
       expect(grandTotal).toBe(4200);
+    });
+
+    it('should calculate total cost to max safeSlots (non-linear)', () => {
+      // 500 + 1000 + 3000 + 4000 = 9500
+      const total = [1, 2, 3, 4].reduce((sum, level) => sum + SHOP_ITEMS.safeSlots.cost(level), 0);
+      expect(total).toBe(8500);
     });
   });
 });

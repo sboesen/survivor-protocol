@@ -33,6 +33,13 @@ const createEmptyLoadout = () => ({
   accessory3: null,
 });
 
+const createEmptyShopInventory = () => ({
+  items: [],
+  gamblerItems: [],
+  lastRefresh: 0,
+  lastDailyRefresh: 0,
+});
+
 describe('SaveData', () => {
   const STORAGE_KEY = 'survivor_protocol_v2';
   let originalLocalStorage: Storage | undefined;
@@ -49,7 +56,8 @@ describe('SaveData', () => {
       gold: 0,
       ownedChars: ['wizard'],
       selectedChar: 'wizard',
-      shop: { damage: 0, health: 0, speed: 0, magnet: 0 },
+      shop: { damage: 0, health: 0, speed: 0, magnet: 0, safeSlotsCount: 1 },
+      shopInventory: createEmptyShopInventory(),
       stash: createEmptyStash(),
       loadout: createEmptyLoadout(),
     };
@@ -267,7 +275,8 @@ describe('SaveData', () => {
         gold: 1000,
         ownedChars: ['paladin', 'rogue'],
         selectedChar: 'paladin',
-        shop: { damage: 3, health: 2, speed: 1, magnet: 1 },
+        shop: { damage: 3, health: 2, speed: 1, magnet: 1, safeSlotsCount: 1 },
+        shopInventory: createEmptyShopInventory(),
         stash: createEmptyStash(),
         loadout: createEmptyLoadout(),
       };
@@ -301,7 +310,8 @@ describe('SaveData', () => {
         gold: 2500,
         ownedChars: ['paladin', 'rogue', 'knight', 'berserker'],
         selectedChar: 'knight',
-        shop: { damage: 5, health: 3, speed: 2, magnet: 4 },
+        shop: { damage: 5, health: 3, speed: 2, magnet: 4, safeSlotsCount: 1 },
+        shopInventory: createEmptyShopInventory(),
         stash: createEmptyStash(),
         loadout: createEmptyLoadout(),
       };
@@ -314,7 +324,8 @@ describe('SaveData', () => {
         gold: 0,
         ownedChars: ['wizard'],
         selectedChar: 'wizard',
-        shop: { damage: 0, health: 0, speed: 0, magnet: 0 },
+        shop: { damage: 0, health: 0, speed: 0, magnet: 0, safeSlotsCount: 1 },
+        shopInventory: createEmptyShopInventory(),
         stash: createEmptyStash(),
         loadout: createEmptyLoadout(),
       };
@@ -332,7 +343,8 @@ describe('SaveData', () => {
         gold: 100,
         ownedChars: ['paladin'],
         selectedChar: 'paladin',
-        shop: { damage: 1, health: 0, speed: 0, magnet: 0 },
+        shop: { damage: 1, health: 0, speed: 0, magnet: 0, safeSlotsCount: 1 },
+        shopInventory: createEmptyShopInventory(),
         stash: createEmptyStash(),
         loadout: createEmptyLoadout(),
       };
@@ -354,7 +366,8 @@ describe('SaveData', () => {
         gold: 10000,
         ownedChars: ['wizard'],
         selectedChar: 'wizard',
-        shop: { damage: 5, health: 5, speed: 3, magnet: 3 },
+        shop: { damage: 5, health: 5, speed: 3, magnet: 3, safeSlotsCount: 1 },
+        shopInventory: createEmptyShopInventory(),
         stash: createEmptyStash(),
         loadout: createEmptyLoadout(),
       };
@@ -372,7 +385,8 @@ describe('SaveData', () => {
         gold: 0,
         ownedChars: ['wizard'],
         selectedChar: 'wizard',
-        shop: { damage: 0, health: 0, speed: 0, magnet: 0 },
+        shop: { damage: 0, health: 0, speed: 0, magnet: 0, safeSlotsCount: 1 },
+        shopInventory: createEmptyShopInventory(),
         stash: createEmptyStash(),
         loadout: createEmptyLoadout(),
       };

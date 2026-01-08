@@ -184,8 +184,8 @@ export class Player extends Entity {
 
           // Per-weapon upgrade effects from data
           const levels = WEAPON_LEVELS[weaponType];
-          if (levels && levels[w.level]?.apply) {
-            levels[w.level].apply!(w);
+          if (levels && levels[w.level]) {
+            Object.assign(w, levels[w.level]);
           }
 
           this.inventory[weaponType]++;

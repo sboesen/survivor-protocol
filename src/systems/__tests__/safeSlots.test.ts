@@ -37,10 +37,22 @@ const autoSelectSafeItems = (collectedLoot: Item[], safeSlotCount: number): stri
   return sorted.slice(0, safeSlotCount).map(item => item.id);
 };
 
+const createEmptyShopInventory = () => ({
+  items: [],
+  gamblerItems: [],
+  lastRefresh: 0,
+  lastDailyRefresh: 0,
+});
+
 describe('Safe Slots System', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.clear();
+    vi.stubGlobal('localStorage', {
+      clear: vi.fn(),
+      getItem: vi.fn(),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+    });
     SaveData.data = {
       gold: 1000,
       ownedChars: ['wizard'],
@@ -52,6 +64,7 @@ describe('Safe Slots System', () => {
         magnet: 0,
         safeSlotsCount: 1,
       },
+      shopInventory: createEmptyShopInventory(),
       stash: [],
       loadout: {
         relic: null,
@@ -81,6 +94,7 @@ describe('Safe Slots System', () => {
           speed: 0,
           magnet: 1,
         },
+        shopInventory: createEmptyShopInventory(),
         stash: [],
         loadout: {
           relic: null,

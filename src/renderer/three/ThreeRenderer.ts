@@ -10,6 +10,7 @@ import type { FireballProjectile } from '../../entities/fireballProjectile';
 import type { Loot } from '../../entities/loot';
 import type { Obstacle } from '../../entities/obstacle';
 import type { Particle } from '../../entities/particle';
+import type { ExtractionZone } from '../../types';
 import { bubbleVertexShader } from './water/shaders/bubbleVertex';
 import { bubbleFragmentShader } from './water/shaders/bubbleFragment';
 import { flameConeVertexShader } from './shaders/flame/FlameConeVertex';
@@ -42,6 +43,10 @@ export class ThreeRenderer {
   private activeFireballs = new Set<FireballProjectile>();
   private activeObstacles = new Set<Obstacle>();
   private activeFlameCones: Set<string> = new Set();
+
+  private extractionGroup: THREE.Group | null = null;
+  private extractionRing: THREE.Mesh | null = null;
+  private extractionCore: THREE.Mesh | null = null;
 
   // Player view and aim indicator
   private playerView: THREE.Group | null = null;
@@ -162,7 +167,8 @@ export class ThreeRenderer {
     width: number,
     height: number,
     alpha = 1,
-    aimAngle = 0
+    aimAngle = 0,
+    extractionZone: ExtractionZone | null = null
   ): void {
     if (!ThreeRenderer.enabled) return;
 
@@ -186,6 +192,7 @@ export class ThreeRenderer {
     this.renderFireballs(fireballs, alpha);
     this.renderParticles(particles, alpha);
     this.renderObstacles(obstacles);
+    this.renderExtractionZone(extractionZone);
     if (player) {
       this.renderFlameCones(player, alpha, aimAngle);
     }
@@ -193,6 +200,61 @@ export class ThreeRenderer {
 
     // Finally render the scene
     this.sceneManager.render();
+  }
+
+  private renderExtractionZone(zone: ExtractionZone | null): void {
+    if (!zone || !zone.active) {
+      if (this.extractionGroup) this.extractionGroup.visible = false;
+      return;
+    }
+
+    this.ensureExtractionGroup();
+    if (!this.extractionGroup) return;
+
+    const { x, y } = this.cameraController.getWrappedRenderPosition(zone.x, zone.y);
+    const pulse = 1 + Math.sin(Date.now() / 250) * 0.08;
+    this.extractionGroup.position.set(x, y, 1);
+    this.extractionGroup.scale.set(zone.radius * pulse, zone.radius * pulse, 1);
+    this.extractionGroup.rotation.z = Date.now() / 1000;
+    this.extractionGroup.visible = true;
+
+    if (this.extractionRing) {
+      const material = this.extractionRing.material as THREE.MeshBasicMaterial;
+      material.opacity = 0.4 + Math.sin(Date.now() / 300) * 0.15;
+    }
+
+    if (this.extractionCore) {
+      const material = this.extractionCore.material as THREE.MeshBasicMaterial;
+      material.opacity = 0.12 + Math.cos(Date.now() / 400) * 0.06;
+    }
+  }
+
+  private ensureExtractionGroup(): void {
+    if (this.extractionGroup) return;
+
+    const group = new THREE.Group();
+    const ringGeometry = new THREE.RingGeometry(0.7, 1, 64);
+    const ringMaterial = new THREE.MeshBasicMaterial({
+      color: 0x22c55e,
+      transparent: true,
+      opacity: 0.5,
+      side: THREE.DoubleSide,
+    });
+    const coreGeometry = new THREE.CircleGeometry(0.7, 48);
+    const coreMaterial = new THREE.MeshBasicMaterial({
+      color: 0x22c55e,
+      transparent: true,
+      opacity: 0.18,
+    });
+
+    this.extractionRing = new THREE.Mesh(ringGeometry, ringMaterial);
+    this.extractionCore = new THREE.Mesh(coreGeometry, coreMaterial);
+    group.add(this.extractionCore);
+    group.add(this.extractionRing);
+    group.visible = false;
+
+    this.extractionGroup = group;
+    this.sceneManager.addToScene(group);
   }
 
   renderIllumination(_particles: Particle[], fireballs: FireballProjectile[], alpha = 1): void {
