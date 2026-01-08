@@ -1,6 +1,6 @@
 export type ItemType = 'weapon' | 'helm' | 'armor' | 'accessory' | 'relic';
 
-export type ItemRarity = 'common' | 'magic' | 'rare' | 'legendary';
+export type ItemRarity = 'common' | 'magic' | 'rare' | 'legendary' | 'corrupted';
 
 export type AffixType =
   | 'flatDamage'

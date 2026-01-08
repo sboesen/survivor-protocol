@@ -1,4 +1,6 @@
 import type { StashSlot } from '../items/types';
+import { CraftingSystem } from './crafting';
+import { SaveData } from './saveData';
 
 class StashUISystem {
   private selectedIndex: number | null = null;
@@ -24,8 +26,25 @@ class StashUISystem {
         this.selectedIndex = index;
         this.render(stash);
         if (detail) {
+          detail.innerHTML = '';
           if (slot) {
-            detail.textContent = `${slot.name} (${slot.rarity})`;
+            const title = document.createElement('div');
+            title.textContent = `${slot.name} (${slot.rarity.toUpperCase()})`;
+            detail.appendChild(title);
+
+            const salvageBtn = document.createElement('button');
+            const value = CraftingSystem.getSalvageValue(slot.rarity);
+            salvageBtn.textContent = `Salvage for ${value} Scrap`;
+            salvageBtn.className = 'btn-salvage';
+            salvageBtn.onclick = (e) => {
+              e.stopPropagation();
+              if (confirm(`Really salvage ${slot.name}?`)) {
+                CraftingSystem.salvage(index);
+                this.selectedIndex = null;
+                this.render(SaveData.data.stash);
+              }
+            };
+            detail.appendChild(salvageBtn);
           } else {
             detail.textContent = 'Empty slot.';
           }

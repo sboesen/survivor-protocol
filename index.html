@@ -32,6 +32,7 @@
                 <div class="hud-right">
                     <div class="hud-row">
                         <span id="hud-gold" style="color:var(--gold)">💰 0</span>
+                        <span id="hud-scrap" style="color:var(--rare); margin-left:10px;">⚙️ 0</span>
                         <button class="loot-inv-btn" onclick="Game.toggleLootInventory()">LOOT [I]</button>
                     </div>
                     <div class="hud-row">
@@ -144,7 +145,10 @@
         <!-- Shop Screen -->
         <div id="shop-screen" class="screen">
             <h1>ARMORY</h1>
-            <h2>Gold: <span id="shop-gold-display">0</span></h2>
+            <div style="display:flex; justify-content:center; gap:20px;">
+                <h2>Gold: <span id="shop-gold-display">0</span></h2>
+                <h2>Scrap: <span id="shop-scrap-display">0</span></h2>
+            </div>
 
             <div class="shop-tabs">
                 <button class="shop-tab active" data-tab="upgrades">UPGRADES</button>

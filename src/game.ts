@@ -383,7 +383,7 @@ class GameCore {
     if (this.collectedLoot.length === 0) return [];
 
     const safeSlotCount = SaveData.data.shop.safeSlotsCount;
-    const rarityOrder = { 'legendary': 4, 'relic': 3, 'rare': 2, 'magic': 1, 'common': 0 };
+    const rarityOrder: Record<string, number> = { 'corrupted': 5, 'legendary': 4, 'relic': 3, 'rare': 2, 'magic': 1, 'common': 0 };
 
     const sorted = [...this.collectedLoot].sort((a, b) => {
       const rarityDiff = rarityOrder[b.rarity] - rarityOrder[a.rarity];
@@ -408,6 +408,17 @@ class GameCore {
       kills: this.kills,
       bossKills: this.bossKills,
     });
+
+    // Phase 0: Guaranteed first relic on successful extraction
+    if (extracted && SaveData.data.isFirstSuccessfulRun) {
+      const relic = ItemGenerator.generate({
+        itemType: 'relic',
+        luck: 0,
+        rarityBoost: 3, // Legendary
+      });
+      this.collectedLoot.push(relic);
+      SaveData.data.isFirstSuccessfulRun = false;
+    }
 
     const stash = Stash.fromJSON(SaveData.data.stash);
     let itemsToStore = this.collectedLoot;

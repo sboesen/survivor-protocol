@@ -5,6 +5,9 @@ import { createEmptyStats, type StatBlock } from '../items/stats';
 import { Entity, type ScreenPosition } from './entity';
 import { Renderer } from '../systems/renderer';
 import { WEAPON_LEVELS, UNIVERSAL_UPGRADES } from '../data/leveling';
+import { SaveData } from '../systems/saveData';
+import { STARTER_GEAR, DEFAULT_STARTER } from '../data/starterGear';
+import { ItemStats } from '../items/stats';
 
 export interface PlayerItems {
   pierce: number;
@@ -110,7 +113,37 @@ export class Player extends Entity {
     this.auraAttackFrame = 0;
 
     this.updateLoadoutStats(loadoutStats, true);
+
+    // Apply starter gear if loadout is empty
+    if (this.isLoadoutEmpty(SaveData.data.loadout)) {
+      this.applyStarterGear();
+    }
+
     this.addUpgrade(weapon);
+  }
+
+  private isLoadoutEmpty(loadout: any): boolean {
+    return !loadout.weapon && !loadout.armor && !loadout.accessory1 && !loadout.relic;
+  }
+
+  private applyStarterGear(): void {
+    const gearSet = STARTER_GEAR[this.charId] || DEFAULT_STARTER;
+
+    // Apply stats directly for the first run since loadout won't be saved until after the run
+    // But ideally we should update the SaveData.loadout so it's persistent
+    if (!SaveData.data.loadout.weapon && gearSet.weapon) {
+      SaveData.data.loadout.weapon = gearSet.weapon as any;
+    }
+    if (!SaveData.data.loadout.armor && gearSet.armor) {
+      SaveData.data.loadout.armor = gearSet.armor as any;
+    }
+    if (!SaveData.data.loadout.accessory1 && gearSet.accessory) {
+      SaveData.data.loadout.accessory1 = gearSet.accessory as any;
+    }
+
+    // Re-calculate stats after applying starter gear
+    const stats = ItemStats.calculate(SaveData.data.loadout);
+    this.updateLoadoutStats(stats, true);
   }
 
   get hp(): number { return this._hp; }

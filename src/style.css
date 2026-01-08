@@ -935,7 +935,7 @@ canvas {
     linear-gradient(180deg, #0c0f1f 0%, #070912 50%, #05060c 100%);
   justify-content: flex-start;
   align-items: center;
-  padding: 28px 20px 8px;
+  padding: 28px 24px;
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -1223,7 +1223,7 @@ canvas {
   gap: 6px;
   width: 100%;
   max-width: 900px;
-  max-height: none;
+  max-height: calc(100vh - 280px);
   flex: 1;
   min-height: 0;
   overflow-y: auto;

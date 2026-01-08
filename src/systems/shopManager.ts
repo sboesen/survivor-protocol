@@ -103,7 +103,9 @@ class ShopManagerSystem {
     let lastItem: Item | null = null;
 
     for (let i = 0; i < maxAttempts; i++) {
-      const item = ItemGenerator.generate({ itemType: listing.type, luck: 0 });
+      const item = listing.rarity === 'corrupted'
+        ? ItemGenerator.generateCorrupted({ itemType: listing.type, luck: 0 })
+        : ItemGenerator.generate({ itemType: listing.type, luck: 0 });
       lastItem = item;
       if (item.rarity === listing.rarity) {
         return item;

@@ -20,8 +20,10 @@ const createDefaultShopInventory = (): ShopInventoryData => ({
 
 const createDefaultSaveData = (): SaveGameData => ({
   gold: 0,
+  scrap: 0,
   ownedChars: ['wizard'],
   selectedChar: 'wizard',
+  isFirstSuccessfulRun: true,
   shop: { damage: 0, health: 0, speed: 0, magnet: 0, safeSlotsCount: 1 },
   shopInventory: createDefaultShopInventory(),
   stash: new Stash().toJSON(),
@@ -58,8 +60,10 @@ class SaveDataSystem {
 
         this.data = {
           gold: parsed.gold ?? 0,
+          scrap: (parsed as any).scrap ?? 0,
           ownedChars: migratedOwnedChars,
           selectedChar: migratedSelectedChar,
+          isFirstSuccessfulRun: (parsed as any).isFirstSuccessfulRun ?? true,
           shop: {
             damage: parsed.shop?.damage ?? 0,
             health: parsed.shop?.health ?? 0,

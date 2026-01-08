@@ -15,6 +15,7 @@ export function calculateShopPrice(rarity: ItemRarity, isVeiled: boolean): numbe
     magic: 400,
     rare: 1000,
     legendary: 2500,
+    corrupted: 5000,
   };
 
   let price = basePrices[rarity];

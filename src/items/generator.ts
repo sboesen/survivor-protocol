@@ -16,6 +16,7 @@ const PREFIXES: Record<ItemRarity, string[]> = {
   magic: ['Mystic', 'Gleaming', 'Enchanted', 'Starforged', 'Runed', 'Whispering'],
   rare: ['Vicious', 'Royal', 'Grim', 'Bloodstained', 'Voidtouched', 'Graveborn'],
   legendary: ['Mythic', 'Ancient', 'Legendary', 'Doomsworn', 'Eclipse', 'Godsplit'],
+  corrupted: ['Damned', 'Cursed', 'Blighted', 'Sinister', 'Wicked', 'Forbidden'],
 };
 
 const SUFFIXES: Record<ItemRarity, string[]> = {
@@ -23,6 +24,7 @@ const SUFFIXES: Record<ItemRarity, string[]> = {
   magic: ['of Embers', 'of Frost', 'of Insight', 'of Storms', 'of Whispers', 'of Ashes'],
   rare: ['of Ruin', 'of Valor', 'of Shadows', 'of the Maw', 'of the Pit', 'of the Eclipse'],
   legendary: ['of the Phoenix', 'of Eternity', 'of the Void', 'of the Titan', 'of the Abyss', 'of the Blood Moon'],
+  corrupted: ['of the Damned', 'of the Abyss', 'of the Void', 'of the Dark Moon', 'of the Pit', 'of the Grave'],
 };
 
 const PREFIX_AFFIX_NAMES: Record<AffixType, string[]> = {
@@ -116,6 +118,7 @@ function getTierBounds(rarity: ItemRarity): { min: number; max: number } {
     case 'rare':
       return { min: 2, max: 4 };
     case 'legendary':
+    case 'corrupted':
       return { min: 2, max: 5 };
   }
 }
@@ -253,6 +256,33 @@ export class ItemGenerator {
       implicits: base.implicits,
       baseTint: base.tint,
     };
+  }
+
+  static generateCorrupted(options: GenerateOptions): Item {
+    const item = this.generate({ ...options, rarityBoost: 3 }); // Force legendary stats
+    item.rarity = 'corrupted';
+
+    // Add exactly one drawback affix
+    const pool = collectAffixPool(item.type);
+    const random = options.random || Math.random;
+    const definition = pool[Math.floor(random() * pool.length)];
+
+    const { tier } = rollAffixTier(definition, 'legendary', random);
+    const bracket = AFFIX_TIER_BRACKETS[definition.type]?.[tier - 1];
+
+    // Corrupted items have negative values for the last affix
+    const baseValue = bracket ? (bracket.min + bracket.max) / 2 : 10;
+    const drawback: ItemAffix = {
+      type: definition.type,
+      tier,
+      value: -Math.abs(baseValue) * 1.5, // Significant drawback
+      isPercent: definition.isPercent,
+    };
+
+    item.affixes.push(drawback);
+    item.name = `Corrupted ${item.name}`;
+
+    return item;
   }
 }
 

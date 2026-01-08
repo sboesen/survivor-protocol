@@ -103,8 +103,10 @@ export interface ShopItem {
 
 export interface SaveGameData {
   gold: number;
+  scrap: number;
   ownedChars: string[];
   selectedChar: string;
+  isFirstSuccessfulRun: boolean;
   shop: ShopUpgrades;
   shopInventory: ShopInventoryData;
   stash: Array<Item | null>;

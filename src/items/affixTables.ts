@@ -1,12 +1,13 @@
 import type { AffixDefinition, AffixType, ItemRarity, ItemType } from './types';
 
-export const RARITY_ORDER: ItemRarity[] = ['common', 'magic', 'rare', 'legendary'];
+export const RARITY_ORDER: ItemRarity[] = ['common', 'magic', 'rare', 'legendary', 'corrupted'];
 
 export const RARITY_WEIGHTS: Record<ItemRarity, number> = {
   common: 600,
   magic: 300,
   rare: 90,
   legendary: 10,
+  corrupted: 0, // Generated via special logic, not random pool
 };
 
 export const RARITY_LUCK_FACTORS: Record<ItemRarity, number> = {
@@ -14,6 +15,7 @@ export const RARITY_LUCK_FACTORS: Record<ItemRarity, number> = {
   magic: 1.2,
   rare: 1.5,
   legendary: 2,
+  corrupted: 2,
 };
 
 export const AFFIX_TIER_WEIGHTS = [0.4, 0.3, 0.2, 0.08, 0.02];
@@ -23,6 +25,7 @@ export const AFFIX_COUNT_TABLE: Record<ItemRarity, { options: number[]; weights:
   magic: { options: [1, 2], weights: [0.5, 0.5] },
   rare: { options: [3, 4], weights: [0.6, 0.4] },
   legendary: { options: [5, 6], weights: [0.7, 0.3] },
+  corrupted: { options: [5, 6], weights: [0.7, 0.3] },
 };
 
 const affixValues = {

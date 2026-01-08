@@ -40,9 +40,12 @@ export function generateShopInventory(now = Date.now()): {
 
   const gamblerCount = 4 + Math.floor(Math.random() * 3);
   for (let i = 0; i < gamblerCount; i++) {
-    const rarity = rollRarity();
+    const rarityRoll = Math.random();
+    const rarity = rarityRoll < 0.05 ? 'corrupted' : rollRarity(); // 5% chance for corrupted in gambler
     const type = randomItemType();
 
+    // Gambler items are always veiled in the shop inventory data initially
+    // but the ShopManager will generate the item on purchase.
     gamblerItems.push(createListing({
       item: null,
       veiled: true,

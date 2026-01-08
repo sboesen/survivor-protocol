@@ -387,6 +387,12 @@ class LoadoutUISystem {
     updateValue('summary-amount', formatSigned(stats.projectiles));
     updateValue('summary-greed', formatRatio(stats.percentGold));
     updateValue('summary-armor', formatSigned(stats.armor));
+
+    // Update scrap display
+    const scrapEl = document.getElementById('shop-scrap-display');
+    if (scrapEl) scrapEl.textContent = SaveData.data.scrap.toString();
+    const hudScrap = document.getElementById('hud-scrap');
+    if (hudScrap) hudScrap.textContent = `⚙️ ${SaveData.data.scrap}`;
   }
 
   private populateDetail(detailEl: HTMLElement, item: Item, heading?: string): void {
