@@ -990,7 +990,8 @@ class UISystem {
         <div class="level-row ${currentLevel === i ? 'current' : ''}">
           <div class="level-num">Level ${i}</div>
           <div class="level-details">
-            <div class="level-bonus-prop">+30% Damage, -10% Cooldown</div>
+            <div class="level-bonus-prop">+30% Damage</div>
+            <div class="level-bonus-prop">-10% Cooldown</div>
             ${descLines.map(line => `<div style="color:#06b6d4">${line}</div>`).join('')}
           </div>
         </div>
