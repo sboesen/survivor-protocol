@@ -19,10 +19,10 @@ export const WEAPON_LEVELS: Record<string, Record<number, LevelBonus>> = {
         5: { desc: '+Size', apply: (w) => { w.size = 14; } },
     },
     thrown_cds: {
-        2: { desc: '+1 CD', apply: (w) => { w.projectileCount = 2; } },
+        2: { desc: '+1 Projectile', apply: (w) => { w.projectileCount = 2; } },
         3: { desc: '+40% Speed', apply: (w) => { w.speedMult = 1.4; } },
         4: { desc: '+1 Pierce', apply: (w) => { w.pierce = 1; } }, // Now actually applied
-        5: { desc: '+1 CD', apply: (w) => { w.projectileCount = 3; } },
+        5: { desc: '+1 Projectile', apply: (w) => { w.projectileCount = 3; } },
     },
     bow: {
         2: { desc: '+1 Arrow', apply: (w) => { w.projectileCount = 2; } },
