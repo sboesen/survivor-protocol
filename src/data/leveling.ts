@@ -1,5 +1,14 @@
 import type { Weapon } from '../types';
 
+/**
+ * Universal scaling applied to every weapon level-up.
+ */
+export const UNIVERSAL_UPGRADES = {
+    dmg: 1.3,
+    cd: 0.9,
+    auraArea: 15,
+};
+
 export type LevelBonus = Partial<Weapon>;
 
 /**

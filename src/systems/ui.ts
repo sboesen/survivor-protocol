@@ -1,6 +1,6 @@
 import { CHARACTERS } from '../data/characters';
 import { UPGRADES } from '../data/upgrades';
-import { WEAPON_LEVELS, ATTRIBUTE_LABELS } from '../data/leveling';
+import { WEAPON_LEVELS, ATTRIBUTE_LABELS, UNIVERSAL_UPGRADES } from '../data/leveling';
 import type { Item, ItemAffix } from '../items/types';
 import { AFFIX_TIER_BRACKETS } from '../items/affixTables';
 import { Utils } from '../utils';
@@ -1003,8 +1003,9 @@ class UISystem {
 
       for (let i = 2; i <= level; i++) {
         state.level = i;
-        state.baseDmg *= 1.3;
-        state.cd *= 0.9;
+        state.baseDmg *= UNIVERSAL_UPGRADES.dmg;
+        state.cd *= UNIVERSAL_UPGRADES.cd;
+        if (state.type === 'aura' && state.area) state.area += UNIVERSAL_UPGRADES.auraArea;
         const bonus = levels ? levels[i] : null;
         if (bonus) {
           Object.assign(state, bonus);
@@ -1028,8 +1029,10 @@ class UISystem {
       // Generate "NEW" bonus lines by comparing current state to previous state
       const dynamicBonuses: string[] = [];
       if (prevState) {
-        dynamicBonuses.push('+30% Damage');
-        dynamicBonuses.push('-10% Cooldown');
+        const dmgPct = Math.round((UNIVERSAL_UPGRADES.dmg - 1) * 100);
+        const cdPct = Math.round((1 - UNIVERSAL_UPGRADES.cd) * 100);
+        dynamicBonuses.push(`+${dmgPct}% Damage`);
+        dynamicBonuses.push(`-${cdPct}% Cooldown`);
 
         // Dynamically detect changes based on ATTRIBUTE_LABELS
         for (const [attr, label] of Object.entries(ATTRIBUTE_LABELS)) {

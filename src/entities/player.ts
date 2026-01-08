@@ -4,7 +4,7 @@ import type { Weapon, WeaponType, ItemType, UpgradeType } from '../types';
 import { createEmptyStats, type StatBlock } from '../items/stats';
 import { Entity, type ScreenPosition } from './entity';
 import { Renderer } from '../systems/renderer';
-import { WEAPON_LEVELS } from '../data/leveling';
+import { WEAPON_LEVELS, UNIVERSAL_UPGRADES } from '../data/leveling';
 
 export interface PlayerItems {
   pierce: number;
@@ -178,9 +178,9 @@ export class Player extends Entity {
         const w = this.weapons.find(w => w.id === weaponType);
         if (w) {
           w.level++;
-          w.baseDmg *= 1.3;
-          w.cd *= 0.9;
-          if (w.type === 'aura' && w.area) w.area += 15;
+          w.baseDmg *= UNIVERSAL_UPGRADES.dmg;
+          w.cd *= UNIVERSAL_UPGRADES.cd;
+          if (w.type === 'aura' && w.area) w.area += UNIVERSAL_UPGRADES.auraArea;
 
           // Per-weapon upgrade effects from data
           const levels = WEAPON_LEVELS[weaponType];
