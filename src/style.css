@@ -947,8 +947,7 @@ canvas {
   align-items: stretch;
   justify-content: stretch;
   align-content: stretch;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  overflow: hidden;
 }
 
 #stash-screen::before {
@@ -985,6 +984,8 @@ canvas {
   min-height: 0;
   height: 100%;
   align-self: stretch;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .stash-panel::before {
@@ -1400,6 +1401,8 @@ canvas {
 
   .stash-grid {
     grid-template-columns: repeat(6, minmax(0, 1fr));
+    max-height: none;
+    overflow: visible;
   }
 
   .loadout-summary {
