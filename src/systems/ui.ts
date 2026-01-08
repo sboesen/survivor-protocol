@@ -145,11 +145,11 @@ class UISystem {
 
     const rarityOrder = ['legendary', 'relic', 'rare', 'magic', 'common'];
     const rarityIcons: Record<string, string> = {
-      legendary: '💎',
+      legendary: '★',
       relic: '★',
-      rare: '●',
-      magic: '●',
-      common: '●'
+      rare: '★',
+      magic: '★',
+      common: '★'
     };
 
     let html = '';

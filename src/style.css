@@ -115,6 +115,7 @@ canvas {
   display: inline-flex;
   align-items: center;
   gap: 2px;
+  font-size: 8px;
 }
 
 .loot-rarity-tag.rarity-legendary {
