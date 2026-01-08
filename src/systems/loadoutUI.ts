@@ -45,6 +45,7 @@ class LoadoutUISystem {
   private salvageHoldStartTime: number = 0;
   private lastStashHash: string = '';
   private lastLoadoutHash: string = '';
+  private isSalvageMode = false;
   private weaponIconSources: Record<WeaponIconKey, string> = {
     dagger: '/weapons/dagger.png',
     sword: '/weapons/sword.png',
@@ -86,26 +87,30 @@ class LoadoutUISystem {
       this.lastStashHash = stashHash;
       this.lastLoadoutHash = loadoutHash;
     } else {
-      this.updateSelectionStyles();
+      const stashGrid = document.getElementById('stash-grid')!;
+      const loadoutGrid = document.getElementById('loadout-grid')!;
+
+      stashGrid.querySelectorAll('.stash-slot').forEach((cell, index) => {
+        cell.classList.remove('selected');
+        if (this.selected?.type === 'stash' && this.selected.index === index) {
+          cell.classList.add('selected');
+        }
+      });
+
+      loadoutGrid.querySelectorAll('.loadout-slot').forEach((cell) => {
+        cell.classList.remove('selected');
+        if (this.selected?.type === 'loadout' && this.selected.slot === (cell as HTMLElement).dataset.slotId) {
+          cell.classList.add('selected');
+        }
+      });
     }
 
     this.updateSummary(loadout);
     this.hideTooltip(tooltip);
-    this.renderItemDetail(this.selected, stash, loadout);
+    this.renderBulkActions(document.getElementById('item-details-panel')!, stash);
   }
 
-  private updateSelectionStyles(): void {
-    const allSlots = document.querySelectorAll('.stash-slot, .loadout-slot');
-    allSlots.forEach(slot => slot.classList.remove('selected'));
 
-    if (this.selected) {
-      const selector = this.selected.type === 'stash'
-        ? `.stash-slot[data-slot-id="${this.selected.index}"]`
-        : `.loadout-slot[data-slot-id="${this.selected.slot}"]`;
-      const selectedEl = document.querySelector(selector);
-      if (selectedEl) selectedEl.classList.add('selected');
-    }
-  }
 
   private fullRenderGrids(stash: StashSlot[], loadout: LoadoutData, tooltip: HTMLElement): void {
     const stashGrid = document.getElementById('stash-grid')!;
@@ -118,6 +123,25 @@ class LoadoutUISystem {
 
     loadoutGrid.innerHTML = '';
     stashGrid.innerHTML = '';
+
+    stashGrid.onclick = (e) => {
+      if (this.isSalvageMode) {
+        const target = (e.target as HTMLElement);
+        if (!target.closest('.stash-slot') || !target.closest('.filled')) {
+          this.isSalvageMode = false;
+          document.body.style.cursor = '';
+          this.render(stash, loadout);
+        }
+      }
+    };
+
+    loadoutGrid.onclick = () => {
+      if (this.isSalvageMode) {
+        this.isSalvageMode = false;
+        document.body.style.cursor = '';
+        this.render(stash, loadout);
+      }
+    };
 
     for (const slotId of LOADOUT_SLOT_ORDER) {
       const cell = document.createElement('div');
@@ -223,88 +247,12 @@ class LoadoutUISystem {
       stashGrid.appendChild(cell);
     });
 
-    this.updateSelectionStyles();
+
   }
 
-  private renderItemDetail(selection: Selection | null, stash: StashSlot[], loadout: LoadoutData): void {
-    const detailPanel = document.getElementById('item-details-panel');
-    if (!detailPanel) return;
 
-    detailPanel.innerHTML = '';
 
-    if (!selection) {
-      this.renderBulkActions(detailPanel, stash);
-      return;
-    }
 
-    const item = this.resolveSelectionItem(selection, stash, loadout);
-    if (!item) {
-      const placeholder = document.createElement('div');
-      placeholder.className = 'details-placeholder';
-      placeholder.textContent = 'Empty slot';
-      detailPanel.appendChild(placeholder);
-      return;
-    }
-
-    this.populateDetail(detailPanel, item);
-
-    // Add Salvage button if it's a stash item
-    if (selection.type === 'stash') {
-      const salvageBtn = document.createElement('button');
-      const value = CraftingSystem.getSalvageValue(item.rarity);
-      salvageBtn.className = 'btn-salvage';
-
-      const progress = document.createElement('div');
-      progress.className = 'salvage-progress';
-      salvageBtn.appendChild(progress);
-
-      const text = document.createElement('span');
-      text.className = 'btn-text';
-      text.textContent = `HOLD TO SALVAGE (+${value})`;
-      salvageBtn.appendChild(text);
-
-      const start = (e: Event) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.startSalvageHold(selection.index, progress, salvageBtn);
-      };
-
-      const stop = () => {
-        this.stopSalvageHold(progress);
-      };
-
-      salvageBtn.onmousedown = start;
-      salvageBtn.ontouchstart = start;
-      salvageBtn.onmouseup = stop;
-      salvageBtn.onmouseleave = stop;
-      salvageBtn.ontouchend = stop;
-
-      detailPanel.appendChild(salvageBtn);
-    }
-  }
-
-  private startSalvageHold(index: number, progressEl: HTMLElement, btnEl: HTMLElement): void {
-    this.stopSalvageHold(progressEl);
-
-    const DURATION = 800; // ms
-    this.salvageHoldStartTime = Date.now();
-
-    this.salvageHoldInterval = window.setInterval(() => {
-      const elapsed = Date.now() - this.salvageHoldStartTime;
-      const pct = Math.min(100, (elapsed / DURATION) * 100);
-      progressEl.style.width = `${pct}%`;
-    }, 16);
-
-    this.salvageHoldTimer = window.setTimeout(() => {
-      this.stopSalvageHold(progressEl);
-      btnEl.classList.add('complete');
-      setTimeout(() => {
-        CraftingSystem.salvage(index);
-        this.selected = null;
-        this.render(SaveData.data.stash, SaveData.data.loadout);
-      }, 150);
-    }, DURATION);
-  }
 
   private stopSalvageHold(progressEl: HTMLElement): void {
     if (this.salvageHoldTimer) {
@@ -320,19 +268,20 @@ class LoadoutUISystem {
 
 
   private renderBulkActions(container: HTMLElement, stash: StashSlot[]): void {
+    container.innerHTML = '';
     const title = document.createElement('div');
     title.className = 'loadout-detail-title';
     title.style.textAlign = 'center';
-    title.style.fontSize = '14px';
-    title.style.marginBottom = '20px';
+    title.style.fontSize = '12px';
+    title.style.marginBottom = '16px';
     title.textContent = 'FORGE ACTIONS';
     container.appendChild(title);
 
     const desc = document.createElement('div');
     desc.className = 'details-placeholder';
     desc.style.marginTop = '0';
-    desc.style.marginBottom = '20px';
-    desc.textContent = 'Bulk salvage items by rarity to quickly gain scrap.';
+    desc.style.marginBottom = '16px';
+    desc.textContent = 'Hold buttons below to batch-salvage items by rarity.';
     container.appendChild(desc);
 
     const commonCount = stash.filter(s => s?.rarity === 'common').length;
@@ -340,7 +289,36 @@ class LoadoutUISystem {
 
     this.createBulkButton(container, 'SALVAGE ALL COMMONS', ['common'], commonCount);
     this.createBulkButton(container, 'SALVAGE ALL MAGIC', ['magic'], magicCount);
-    this.createBulkButton(container, 'CLEAR ALL LOW-TIER', ['common', 'magic'], commonCount + magicCount);
+    this.createBulkButton(container, 'SALVAGE LOW-TIER (C+M)', ['common', 'magic'], commonCount + magicCount);
+
+    const separator = document.createElement('div');
+    separator.style.height = '1px';
+    separator.style.background = 'rgba(255, 255, 255, 0.1)';
+    separator.style.margin = '20px 0';
+    container.appendChild(separator);
+
+    const manualSalvageBtn = document.createElement('button');
+    manualSalvageBtn.className = 'btn-salvage';
+    manualSalvageBtn.style.marginTop = '10px';
+    manualSalvageBtn.innerHTML = `
+      <span class="btn-icon">🔨</span>
+      <span class="btn-text">${this.isSalvageMode ? 'CANCEL SALVAGE' : 'MANUAL SALVAGE'}</span>
+    `;
+    if (this.isSalvageMode) {
+      manualSalvageBtn.style.background = 'rgba(255, 100, 100, 0.3)';
+    }
+    manualSalvageBtn.onclick = () => this.toggleSalvageMode();
+    container.appendChild(manualSalvageBtn);
+
+    if (this.isSalvageMode) {
+      const modeDesc = document.createElement('div');
+      modeDesc.style.marginTop = '10px';
+      modeDesc.style.fontSize = '11px';
+      modeDesc.style.color = '#ff6b6b';
+      modeDesc.style.textAlign = 'center';
+      modeDesc.textContent = 'Click an item to salvage instantly, or click empty space to cancel.';
+      container.appendChild(modeDesc);
+    }
   }
 
   private createBulkButton(container: HTMLElement, label: string, rarities: ItemRarity[], count: number): void {
@@ -405,7 +383,24 @@ class LoadoutUISystem {
     }, DURATION);
   }
 
+  private toggleSalvageMode(): void {
+    this.isSalvageMode = !this.isSalvageMode;
+    document.body.style.cursor = this.isSalvageMode ? 'url(/weapons/hammer.png), crosshair' : '';
+    this.render(SaveData.data.stash, SaveData.data.loadout);
+  }
+
   private handleSlotClick(selection: Selection, stash: StashSlot[], loadout: LoadoutData): void {
+    if (this.isSalvageMode) {
+      if (selection.type === 'stash') {
+        const item = stash[selection.index];
+        if (item) {
+          CraftingSystem.salvage(selection.index);
+          this.render(SaveData.data.stash, SaveData.data.loadout);
+        }
+      }
+      return;
+    }
+
     if (this.pendingClick) {
       const same = this.isSameSelection(this.pendingClick.selection, selection);
       window.clearTimeout(this.pendingClick.timer);
@@ -436,13 +431,8 @@ class LoadoutUISystem {
     this.showTooltip(this.hovered, this.currentTooltip, this.currentStash, this.currentLoadout, null, this.hoverAnchor ?? undefined);
   };
 
-  private handleSingleClick(selection: Selection, stash: StashSlot[], loadout: LoadoutData): void {
-    if (selection.type === 'stash') {
-      this.handleStashClick(selection.index, stash, loadout);
-    } else {
-      this.handleLoadoutClick(selection.slot, stash, loadout);
-    }
-    this.renderItemDetail(this.selected, stash, loadout);
+  private handleSingleClick(_selection: Selection, _stash: StashSlot[], _loadout: LoadoutData): void {
+    // Inspection removed in favor of tooltips
   }
 
   private handleDoubleClick(selection: Selection, stash: StashSlot[], loadout: LoadoutData): void {
@@ -902,6 +892,13 @@ class LoadoutUISystem {
     return loadout[id as LoadoutSlotId] ?? null;
   }
 
+  private resolveSelectionItem(selection: Selection, stash: StashSlot[], loadout: LoadoutData): Item | null {
+    if (selection.type === 'stash') {
+      return stash[selection.index] ?? null;
+    }
+    return loadout[selection.slot] ?? null;
+  }
+
   private setItemAt(
     type: 'stash' | 'loadout',
     id: number | LoadoutSlotId,
@@ -943,16 +940,7 @@ class LoadoutUISystem {
     this.render(stash, loadout);
   }
 
-  private resolveSelectionItem(
-    selection: Selection,
-    stash: StashSlot[],
-    loadout: LoadoutData
-  ): Item | null {
-    if (selection.type === 'stash') {
-      return stash[selection.index] ?? null;
-    }
-    return loadout[selection.slot] ?? null;
-  }
+
 
   private applyTooltipTheme(tooltip: HTMLElement, item: Item | null): void {
     tooltip.className = 'loadout-tooltip';
@@ -967,16 +955,7 @@ class LoadoutUISystem {
     tooltip.classList.add(`tooltip-${item.rarity}`);
   }
 
-  private handleStashClick(index: number, stash: StashSlot[], loadout: LoadoutData): void {
 
-    if (this.selected?.type === 'stash' && this.selected.index === index) {
-      this.selected = null;
-    } else {
-      this.selected = { type: 'stash', index };
-    }
-
-    this.render(stash, loadout);
-  }
 
   private handleStashDoubleClick(index: number, stash: StashSlot[], loadout: LoadoutData): void {
     const item = stash[index];
@@ -993,17 +972,7 @@ class LoadoutUISystem {
     this.render(stash, loadout);
   }
 
-  private handleLoadoutClick(slotId: LoadoutSlotId, stash: StashSlot[], loadout: LoadoutData): void {
-    const clickedItem = loadout[slotId];
 
-    if (this.selected?.type === 'loadout' && this.selected.slot === slotId) {
-      this.selected = null;
-    } else if (clickedItem) {
-      this.selected = { type: 'loadout', slot: slotId };
-    }
-
-    this.render(stash, loadout);
-  }
 
   private handleLoadoutDoubleClick(slotId: LoadoutSlotId, stash: StashSlot[], loadout: LoadoutData): void {
     const loadoutItem = loadout[slotId];
