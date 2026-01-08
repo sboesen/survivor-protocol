@@ -1,5 +1,5 @@
 import type { LoadoutData } from '../types';
-import type { Item, ItemAffix, StashSlot } from '../items/types';
+import type { Item, ItemAffix, StashSlot, ItemRarity } from '../items/types';
 import { AFFIX_TIER_BRACKETS } from '../items/affixTables';
 import { ItemStats } from '../items/stats';
 import { CHARACTERS } from '../data/characters';
@@ -43,6 +43,8 @@ class LoadoutUISystem {
   private salvageHoldTimer: number | null = null;
   private salvageHoldInterval: number | null = null;
   private salvageHoldStartTime: number = 0;
+  private lastStashHash: string = '';
+  private lastLoadoutHash: string = '';
   private weaponIconSources: Record<WeaponIconKey, string> = {
     dagger: '/weapons/dagger.png',
     sword: '/weapons/sword.png',
@@ -75,25 +77,56 @@ class LoadoutUISystem {
     this.currentTooltip = tooltip;
     this.bindListeners();
 
+    // Use hashing to skip full re-render of grids if item data hasn't changed
+    const stashHash = JSON.stringify(stash);
+    const loadoutHash = JSON.stringify(loadout);
+
+    if (stashHash !== this.lastStashHash || loadoutHash !== this.lastLoadoutHash) {
+      this.fullRenderGrids(stash, loadout, tooltip as HTMLElement);
+      this.lastStashHash = stashHash;
+      this.lastLoadoutHash = loadoutHash;
+    } else {
+      this.updateSelectionStyles();
+    }
+
+    this.updateSummary(loadout);
+    this.hideTooltip(tooltip);
+    this.renderItemDetail(this.selected, stash, loadout);
+  }
+
+  private updateSelectionStyles(): void {
+    const allSlots = document.querySelectorAll('.stash-slot, .loadout-slot');
+    allSlots.forEach(slot => slot.classList.remove('selected'));
+
+    if (this.selected) {
+      const selector = this.selected.type === 'stash'
+        ? `.stash-slot[data-slot-id="${this.selected.index}"]`
+        : `.loadout-slot[data-slot-id="${this.selected.slot}"]`;
+      const selectedEl = document.querySelector(selector);
+      if (selectedEl) selectedEl.classList.add('selected');
+    }
+  }
+
+  private fullRenderGrids(stash: StashSlot[], loadout: LoadoutData, tooltip: HTMLElement): void {
+    const stashGrid = document.getElementById('stash-grid')!;
+    const loadoutGrid = document.getElementById('loadout-grid')!;
+
     this.hideTooltip(tooltip);
     this.hovered = null;
     this.hoverAnchor = null;
     this.lastPointer = null;
+
     loadoutGrid.innerHTML = '';
     stashGrid.innerHTML = '';
 
     for (const slotId of LOADOUT_SLOT_ORDER) {
-      const slotItem = loadout[slotId];
       const cell = document.createElement('div');
       cell.className = 'loadout-slot';
       cell.classList.add(`slot-${slotId}`);
       cell.dataset.slotType = 'loadout';
       cell.dataset.slotId = slotId;
 
-      if (this.selected?.type === 'loadout' && this.selected.slot === slotId) {
-        cell.classList.add('selected');
-      }
-
+      const slotItem = loadout[slotId];
       if (slotItem) {
         cell.classList.add('filled');
         cell.classList.add(`rarity-${slotItem.rarity}`);
@@ -153,10 +186,6 @@ class LoadoutUISystem {
       cell.dataset.slotType = 'stash';
       cell.dataset.slotId = index.toString();
 
-      if (this.selected?.type === 'stash' && this.selected.index === index) {
-        cell.classList.add('selected');
-      }
-
       if (slot) {
         cell.classList.add('filled');
         cell.classList.add(`rarity-${slot.rarity}`);
@@ -194,9 +223,7 @@ class LoadoutUISystem {
       stashGrid.appendChild(cell);
     });
 
-    this.updateSummary(loadout);
-    this.hideTooltip(tooltip);
-    this.renderItemDetail(this.selected, stash, loadout);
+    this.updateSelectionStyles();
   }
 
   private renderItemDetail(selection: Selection | null, stash: StashSlot[], loadout: LoadoutData): void {
@@ -206,10 +233,7 @@ class LoadoutUISystem {
     detailPanel.innerHTML = '';
 
     if (!selection) {
-      const placeholder = document.createElement('div');
-      placeholder.className = 'details-placeholder';
-      placeholder.textContent = 'Select an item to inspect';
-      detailPanel.appendChild(placeholder);
+      this.renderBulkActions(detailPanel, stash);
       return;
     }
 
@@ -292,6 +316,93 @@ class LoadoutUISystem {
       this.salvageHoldInterval = null;
     }
     progressEl.style.width = '0%';
+  }
+
+
+  private renderBulkActions(container: HTMLElement, stash: StashSlot[]): void {
+    const title = document.createElement('div');
+    title.className = 'loadout-detail-title';
+    title.style.textAlign = 'center';
+    title.style.fontSize = '14px';
+    title.style.marginBottom = '20px';
+    title.textContent = 'FORGE ACTIONS';
+    container.appendChild(title);
+
+    const desc = document.createElement('div');
+    desc.className = 'details-placeholder';
+    desc.style.marginTop = '0';
+    desc.style.marginBottom = '20px';
+    desc.textContent = 'Bulk salvage items by rarity to quickly gain scrap.';
+    container.appendChild(desc);
+
+    const commonCount = stash.filter(s => s?.rarity === 'common').length;
+    const magicCount = stash.filter(s => s?.rarity === 'magic').length;
+
+    this.createBulkButton(container, 'SALVAGE ALL COMMONS', ['common'], commonCount);
+    this.createBulkButton(container, 'SALVAGE ALL MAGIC', ['magic'], magicCount);
+    this.createBulkButton(container, 'CLEAR ALL LOW-TIER', ['common', 'magic'], commonCount + magicCount);
+  }
+
+  private createBulkButton(container: HTMLElement, label: string, rarities: ItemRarity[], count: number): void {
+    const btn = document.createElement('button');
+    btn.className = 'btn-salvage';
+    btn.style.marginTop = '10px';
+
+    if (count === 0) {
+      btn.style.opacity = '0.5';
+      btn.style.pointerEvents = 'none';
+    }
+
+    const progress = document.createElement('div');
+    progress.className = 'salvage-progress';
+    btn.appendChild(progress);
+
+    const text = document.createElement('span');
+    text.className = 'btn-text';
+    text.textContent = `${label} (${count})`;
+    btn.appendChild(text);
+
+    const start = (e: Event) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.startBulkSalvageHold(rarities, progress, btn);
+    };
+
+    const stop = () => {
+      this.stopSalvageHold(progress);
+    };
+
+    btn.onmousedown = start;
+    btn.ontouchstart = start;
+    btn.onmouseup = stop;
+    btn.onmouseleave = stop;
+    btn.ontouchend = stop;
+
+    container.appendChild(btn);
+  }
+
+  private startBulkSalvageHold(rarities: ItemRarity[], progressEl: HTMLElement, btnEl: HTMLElement): void {
+    this.stopSalvageHold(progressEl);
+
+    const DURATION = 1200; // Longer for bulk
+    this.salvageHoldStartTime = Date.now();
+
+    this.salvageHoldInterval = window.setInterval(() => {
+      const elapsed = Date.now() - this.salvageHoldStartTime;
+      const pct = Math.min(100, (elapsed / DURATION) * 100);
+      progressEl.style.width = `${pct}%`;
+    }, 16);
+
+    this.salvageHoldTimer = window.setTimeout(() => {
+      this.stopSalvageHold(progressEl);
+      btnEl.classList.add('complete');
+      setTimeout(() => {
+        const result = CraftingSystem.salvageAllByRarity(rarities);
+        console.log(`Salvaged ${result.count} items for ${result.scrap} scrap.`);
+        this.selected = null;
+        this.render(SaveData.data.stash, SaveData.data.loadout);
+      }, 150);
+    }, DURATION);
   }
 
   private handleSlotClick(selection: Selection, stash: StashSlot[], loadout: LoadoutData): void {

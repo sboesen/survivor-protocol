@@ -32,4 +32,28 @@ export class CraftingSystem {
     static getSalvageValue(rarity: ItemRarity): number {
         return SCRAP_VALUES[rarity] || 0;
     }
+
+    static salvageAllByRarity(rarities: ItemRarity[]): { count: number, scrap: number } {
+        const stash = Stash.fromJSON(SaveData.data.stash);
+        let count = 0;
+        let totalScrap = 0;
+
+        for (let i = stash.slots.length - 1; i >= 0; i--) {
+            const item = stash.slots[i];
+            if (item && rarities.includes(item.rarity)) {
+                const scrap = SCRAP_VALUES[item.rarity] || 0;
+                stash.removeItem(i);
+                count++;
+                totalScrap += scrap;
+            }
+        }
+
+        if (count > 0) {
+            SaveData.data.scrap = (SaveData.data.scrap || 0) + totalScrap;
+            SaveData.data.stash = stash.toJSON();
+            SaveData.save();
+        }
+
+        return { count, scrap: totalScrap };
+    }
 }
