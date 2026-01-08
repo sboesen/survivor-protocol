@@ -1006,22 +1006,34 @@ class UISystem {
       const isCurrent = currentLevel === i;
       const descLines = (i > 1 && levels && levels[i]) ? levels[i].desc.split('\n') : [];
 
+      const renderStat = (label: string, value: string | number, highlight: boolean = false) => `
+        <div class="level-stat-line">
+          <span class="level-stat-label">${label}:</span>
+          <span class="level-stat-value ${highlight ? 'highlight' : ''}">${value}</span>
+        </div>
+      `;
+
       html += `
         <div class="level-row ${isCurrent ? 'current' : ''}">
           <div class="level-num">Level ${i}${isCurrent ? ' (Current)' : ''}</div>
           <div class="level-details">
-            <div class="level-bonus-prop">Dmg: ${Math.round(mockWeapon.baseDmg)}</div>
-            <div class="level-bonus-prop">CD: ${(mockWeapon.cd / 60).toFixed(2)}s</div>
-            ${mockWeapon.projectileCount > 1 ? `<div>Projectiles: ${mockWeapon.projectileCount}</div>` : ''}
-            ${mockWeapon.pierce > 0 ? `<div>Pierce: ${mockWeapon.pierce}</div>` : ''}
-            ${mockWeapon.bounces > 0 ? `<div>Bounces: ${mockWeapon.bounces}</div>` : ''}
-            ${mockWeapon.explodeRadius > 0 ? `<div>Aoe: ${mockWeapon.explodeRadius}px</div>` : ''}
-            ${mockWeapon.splits ? `<div>Splits on hit</div>` : ''}
-            ${mockWeapon.trailDamage > 0 ? `<div>Trail Dmg: ${mockWeapon.trailDamage}</div>` : ''}
+            ${renderStat('Dmg', Math.round(mockWeapon.baseDmg), true)}
+            ${renderStat('CD', (mockWeapon.cd / 60).toFixed(2) + 's', true)}
+            ${mockWeapon.projectileCount > 1 ? renderStat('Projectiles', mockWeapon.projectileCount) : ''}
+            ${mockWeapon.pierce > 0 ? renderStat('Pierce', mockWeapon.pierce) : ''}
+            ${mockWeapon.bounces > 0 ? renderStat('Bounces', mockWeapon.bounces) : ''}
+            ${mockWeapon.explodeRadius > 0 ? renderStat('Aoe', mockWeapon.explodeRadius + 'px') : ''}
+            ${mockWeapon.splits ? renderStat('Splits', 'YES') : ''}
+            ${mockWeapon.trailDamage > 0 ? renderStat('Trail Dmg', mockWeapon.trailDamage) : ''}
             
             ${descLines.length > 0 ? `
-              <div style="margin-top:4px; padding-top:4px; border-top:1px solid rgba(255,255,255,0.05); color:#06b6d4;">
-                ${descLines.map(line => `<div>NEW: ${line}</div>`).join('')}
+              <div class="new-bonus-section">
+                ${descLines.map(line => `
+                  <div class="new-bonus-line">
+                    <span class="new-bonus-tag">NEW</span>
+                    <span>${line}</span>
+                  </div>
+                `).join('')}
               </div>
             ` : ''}
           </div>
