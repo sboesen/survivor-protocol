@@ -155,7 +155,7 @@ class UISystem {
 
     let html = '<span style="color:#aaa;margin-right:2px">LOOT:</span>';
     rarityOrder.forEach(rarity => {
-      html += `<span class="loot-rarity-tag rarity-${rarity}">${rarityIcons[rarity]}${counts[rarity]}</span> `;
+      html += `<span class="loot-rarity-tag rarity-${rarity}"><span class="star-icon">${rarityIcons[rarity]}</span>${counts[rarity]}</span> `;
     });
     el.innerHTML = html;
   }
