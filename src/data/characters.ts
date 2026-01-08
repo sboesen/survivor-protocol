@@ -8,7 +8,7 @@ export const CHARACTERS: Record<string, Character> = {
     weapon: 'fireball',
     hpMod: 0.75,
     spdMod: 0.95,
-    ult: 'MeteorSwarm',
+    ult: 'Meteor Swarm',
     desc: 'Arcane power. Start: Fireball.'
   },
   paladin: {
@@ -18,7 +18,7 @@ export const CHARACTERS: Record<string, Character> = {
     weapon: 'bubble_stream',
     hpMod: 1.2,
     spdMod: 0.9,
-    ult: 'DivineShield',
+    ult: 'Divine Shield',
     desc: 'Tanky. Start: Holy Aura.'
   },
   rogue: {
@@ -28,7 +28,7 @@ export const CHARACTERS: Record<string, Character> = {
     weapon: 'thrown_cds',
     hpMod: 0.8,
     spdMod: 1.3,
-    ult: 'ShadowStep',
+    ult: 'Shadow Step',
     desc: 'Fast. Start: Dagger Throw.'
   },
   knight: {
@@ -38,7 +38,7 @@ export const CHARACTERS: Record<string, Character> = {
     weapon: 'shield_bash',
     hpMod: 1.5,
     spdMod: 0.8,
-    ult: 'IronWill',
+    ult: 'Iron Will',
     desc: 'High HP. Start: Shield Bash.'
   },
   berserker: {
@@ -58,7 +58,7 @@ export const CHARACTERS: Record<string, Character> = {
     weapon: 'lighter',
     hpMod: 0.9,
     spdMod: 1.1,
-    ult: 'SmokeScreen',
+    ult: 'Smoke Screen',
     desc: 'Reckless. Start: Flame Burst.'
   },
   ranger: {

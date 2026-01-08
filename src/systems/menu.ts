@@ -10,6 +10,34 @@ import type { ShopItemListing } from '../types';
 class MenuSystem {
   private shopTabsBound = false;
 
+  private getWeaponIconHtml(weaponId: string): string {
+    const mapping: Record<string, string> = {
+      fireball: '/weapons/wand.png',
+      bubble_stream: '/weapons/spear.png',
+      thrown_cds: '/weapons/dagger.png',
+      shield_bash: '/weapons/hammer.png',
+      frying_pan: '/weapons/club.png',
+      lighter: '/weapons/torch.png',
+      bow: '/weapons/bow.png',
+    };
+    const src = mapping[weaponId];
+    if (src) return `<div class="mini-icon"><img src="${src}" alt=""></div>`;
+    return `<div class="mini-icon">⚔️</div>`;
+  }
+
+  private getUltIconHtml(ult: string): string {
+    const mapping: Record<string, string> = {
+      'Meteor Swarm': '☄️',
+      'Divine Shield': '🛡️',
+      'Shadow Step': '👣',
+      'Iron Will': '💪',
+      'Inferno': '🔥',
+      'Smoke Screen': '💨',
+      'Volley': '🏹',
+    };
+    return `<div class="mini-icon">${mapping[ult] || '✨'}</div>`;
+  }
+
   renderCharSelect(): void {
     const list = document.getElementById('char-select-list');
     if (!list) return;
@@ -22,15 +50,43 @@ class MenuSystem {
 
       const el = document.createElement('div');
       el.className = `char-card ${owned ? 'owned' : ''} ${selected ? 'selected' : ''}`;
-      // Use image sprite for wizard only, emoji for others
-      const iconHtml = c.id === 'wizard'
-        ? `<img src="/${c.id}.png" style="width: 40px; height: 40px; image-rendering: pixelated;">`
-        : `<div class="char-icon">${c.icon}</div>`;
+
+      const portraitHtml = c.id === 'wizard'
+        ? `<img src="/${c.id}.png" class="pixelated">`
+        : `<div class="char-portrait-emoji">${c.icon}</div>`;
+
+      // Extract first word/sentence for description improvement
+      const shortDesc = c.desc.split('.')[0] + '.';
+
       el.innerHTML = `
-        ${iconHtml}
-        <div style="color:#fff;font-size:10px;">${c.name}</div>
-        <div class="char-stats">${c.desc}<br>Ult: ${c.ult}</div>
-        <div class="info-btn" title="View Level Path">i</div>
+        <div class="char-card-header">
+          <div class="char-name">${c.name}</div>
+          <div class="info-btn" title="View Level Path">i</div>
+        </div>
+        <div class="char-card-body">
+          <div class="char-portrait-frame">
+            ${portraitHtml}
+          </div>
+        </div>
+        <div class="char-card-footer">
+          <div class="char-desc">${shortDesc}</div>
+          
+          <div class="char-info-row">
+            <div class="char-info-label">Starter</div>
+            <div class="char-info-value">
+              ${this.getWeaponIconHtml(c.weapon)}
+              <div class="char-info-text">${c.weapon.replace(/_/g, ' ')}</div>
+            </div>
+          </div>
+
+          <div class="char-info-row">
+            <div class="char-info-label">Ultimate</div>
+            <div class="char-info-value">
+              ${this.getUltIconHtml(c.ult)}
+              <div class="char-info-text ult">${c.ult}</div>
+            </div>
+          </div>
+        </div>
       `;
 
       // Attach selection listener to the card

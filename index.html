@@ -84,24 +84,32 @@
 
         <!-- Main Menu -->
         <div id="menu-screen" class="screen active">
-            <img src="/logo.png" alt="Survivor Protocol" style="width: 560px; height: auto;">
-            <h2 style="color:#aaa">v2.4: Pyromancer & Fireballs</h2>
-            <div
-                style="font-size:10px; color:#888; max-width:600px; margin:0 auto 10px; padding:10px; background:#222; border:1px solid #444; border-radius:4px;">
-                <strong>💎 AUTO-SAFE SLOTS:</strong> When you die, your best items are automatically saved to stash.
-                Upgrade to save more items on death! Priority: Legendary > Relic > Rare > Magic > Common. Same rarity:
-                Random selection.
-            </div>
+            <img src="/logo.png" alt="Survivor Protocol" class="menu-logo">
             <div class="char-scroll" id="char-select-list"></div>
-            <div style="margin-top:20px;">
-                <button onclick="Game.start()" style="font-size:12px; padding:15px 30px;">START MISSION</button>
+
+            <div class="menu-actions-grid">
+                <button onclick="Game.start()" class="btn-start">
+                    <span class="btn-icon">🚀</span>
+                    <span class="btn-text">START</span>
+                </button>
+                <button onclick="Menu.openGacha()" class="btn-secondary">
+                    <span class="btn-icon">🧬</span>
+                    <span class="btn-text">SUMMON</span>
+                </button>
+                <button onclick="Menu.openShop()" class="btn-secondary">
+                    <span class="btn-icon">🛠</span>
+                    <span class="btn-text">UPGRADES</span>
+                </button>
+                <button onclick="Menu.openStash()" class="btn-secondary">
+                    <span class="btn-icon">📦</span>
+                    <span class="btn-text">STASH</span>
+                </button>
             </div>
-            <div style="margin-top:10px;">
-                <button onclick="Menu.openGacha()">SUMMON HERO (500G)</button>
-                <button onclick="Menu.openShop()">ITEM UPGRADES</button>
-                <button onclick="Menu.openStash()">STASH</button>
+
+            <div class="menu-footer">
+                <button class="debug-btn-toggle btn-debug" onclick="Menu.openDebug()">[ DEBUG TERMINAL ]</button>
+                <div class="menu-version-footer">v2.4: Pyromancer & Fireballs</div>
             </div>
-            <button class="debug-btn-toggle" onclick="Menu.openDebug()">[ DEBUG MENU ]</button>
         </div>
 
         <!-- Debug Screen -->
