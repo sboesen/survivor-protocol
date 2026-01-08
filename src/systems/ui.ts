@@ -959,6 +959,18 @@ class UISystem {
     const name = upgrade.name.replace(/[A-Z]/g, m => ' ' + m).trim();
     let currentLevel = 1;
 
+    // Map weapon ID to pretty projectile name
+    const PROJ_NAMES: Record<string, string> = {
+      'bow': 'Arrow',
+      'thrown_cds': 'Disk',
+      'fireball': 'Fireball',
+      'bubble_stream': 'Bubble',
+      'frying_pan': 'Pan',
+      'lighter': 'Flame',
+      'shield_bash': 'Bash'
+    };
+    const projName = PROJ_NAMES[weaponId] || 'Projectile';
+
     // Find current level from game state
     const w = (window as any).Game?.player?.weapons.find((w: any) => w.id === weaponId);
     if (w) currentLevel = w.level;
@@ -970,65 +982,106 @@ class UISystem {
     `;
 
     // Simulate weapon growth for cumulative stats
-    // Create a mock weapon starting at Level 1 base stats
-    const mockWeapon: any = {
-      id: weaponId,
-      level: 1,
-      baseDmg: upgrade.dmg || 0,
-      cd: upgrade.cd || 0,
-      projectileCount: upgrade.projectileCount || 1,
-      bounces: upgrade.bounces || 0,
-      pierce: upgrade.pierce || 0,
-      speedMult: 1.0,
-      explodeRadius: upgrade.explodeRadius || 0,
-      knockback: upgrade.knockback || 0,
-      size: upgrade.size || 0,
-      splits: upgrade.splits || false,
-      trailDamage: upgrade.trailDamage || 0,
-      coneLength: upgrade.coneLength || 0,
-      coneWidth: upgrade.coneWidth || 0,
+    const getWeaponState = (level: number) => {
+      const state: any = {
+        level: 1,
+        baseDmg: upgrade.dmg || 0,
+        cd: upgrade.cd || 0,
+        projectileCount: upgrade.projectileCount || 1,
+        bounces: upgrade.bounces || 0,
+        pierce: upgrade.pierce || 0,
+        speedMult: 1.0,
+        explodeRadius: upgrade.explodeRadius || 0,
+        knockback: upgrade.knockback || 0,
+        size: upgrade.size || 0,
+        splits: upgrade.splits || false,
+        trailDamage: upgrade.trailDamage || 0,
+        coneLength: upgrade.coneLength || 0,
+        coneWidth: upgrade.coneWidth || 0,
+        spread: upgrade.spread || 0
+      };
+
+      for (let i = 2; i <= level; i++) {
+        state.level = i;
+        state.baseDmg *= 1.3;
+        state.cd *= 0.9;
+        const bonus = levels ? levels[i] : null;
+        if (bonus && bonus.apply) bonus.apply(state);
+      }
+      return state;
     };
 
-    for (let i = 1; i <= 5; i++) {
-      if (i > 1) {
-        // Apply level-up universal bonuses
-        mockWeapon.level = i;
-        mockWeapon.baseDmg *= 1.3;
-        mockWeapon.cd *= 0.9;
+    const renderStat = (label: string, value: string | number, highlight: boolean = false) => `
+      <div class="level-stat-line">
+        <span class="level-stat-label">${label}:</span>
+        <span class="level-stat-value ${highlight ? 'highlight' : ''}">${value}</span>
+      </div>
+    `;
 
-        // Apply weapon-specific unique bonuses
-        const bonus = levels ? levels[i] : null;
-        if (bonus && bonus.apply) {
-          bonus.apply(mockWeapon);
+    for (let i = 1; i <= 5; i++) {
+      const state = getWeaponState(i);
+      const prevState = i > 1 ? getWeaponState(i - 1) : null;
+      const isCurrent = currentLevel === i;
+
+      // Generate "NEW" bonus lines by comparing current state to previous state
+      const dynamicBonuses: string[] = [];
+      if (prevState) {
+        // We handle universal Dmg/CD separately or just show them
+        dynamicBonuses.push('+30% Damage');
+        dynamicBonuses.push('-10% Cooldown');
+
+        if (state.projectileCount > prevState.projectileCount) {
+          dynamicBonuses.push(`+${state.projectileCount - prevState.projectileCount} ${projName}${state.projectileCount - prevState.projectileCount > 1 ? 's' : ''}`);
+        }
+        if (state.pierce > prevState.pierce) {
+          dynamicBonuses.push(`+${state.pierce - prevState.pierce} Pierce`);
+        }
+        if (state.bounces > prevState.bounces) {
+          dynamicBonuses.push(`+${state.bounces - prevState.bounces} Bounce${state.bounces - prevState.bounces > 1 ? 's' : ''}`);
+        }
+        if (state.explodeRadius > prevState.explodeRadius) {
+          dynamicBonuses.push(`+Explosion Radius`);
+        }
+        if (state.coneLength > prevState.coneLength) {
+          dynamicBonuses.push(`+Range`);
+        }
+        if (state.spread > prevState.spread || state.coneWidth > prevState.coneWidth) {
+          dynamicBonuses.push(`+Width`);
+        }
+        if (state.speedMult > prevState.speedMult) {
+          const pct = Math.round((state.speedMult / prevState.speedMult - 1) * 100);
+          dynamicBonuses.push(`+${pct}% Speed`);
+        }
+        if (state.splits && !prevState.splits) {
+          dynamicBonuses.push(`Splits on hit`);
+        }
+        if (state.trailDamage > prevState.trailDamage) {
+          dynamicBonuses.push(`Trail deals damage`);
+        }
+        if (state.knockback > prevState.knockback) {
+          dynamicBonuses.push(`+Knockback`);
+        }
+        if (state.size > prevState.size) {
+          dynamicBonuses.push(`+Size`);
         }
       }
-
-      const isCurrent = currentLevel === i;
-      const descLines = (i > 1 && levels && levels[i]) ? levels[i].desc.split('\n') : [];
-
-      const renderStat = (label: string, value: string | number, highlight: boolean = false) => `
-        <div class="level-stat-line">
-          <span class="level-stat-label">${label}:</span>
-          <span class="level-stat-value ${highlight ? 'highlight' : ''}">${value}</span>
-        </div>
-      `;
 
       html += `
         <div class="level-row ${isCurrent ? 'current' : ''}">
           <div class="level-num">Level ${i}${isCurrent ? ' (Current)' : ''}</div>
           <div class="level-details">
-            ${renderStat('Dmg', Math.round(mockWeapon.baseDmg), true)}
-            ${renderStat('CD', (mockWeapon.cd / 60).toFixed(2) + 's', true)}
-            ${mockWeapon.projectileCount > 1 ? renderStat('Projectiles', mockWeapon.projectileCount) : ''}
-            ${mockWeapon.pierce > 0 ? renderStat('Pierce', mockWeapon.pierce) : ''}
-            ${mockWeapon.bounces > 0 ? renderStat('Bounces', mockWeapon.bounces) : ''}
-            ${mockWeapon.explodeRadius > 0 ? renderStat('Aoe', mockWeapon.explodeRadius + 'px') : ''}
-            ${mockWeapon.splits ? renderStat('Splits', 'YES') : ''}
-            ${mockWeapon.trailDamage > 0 ? renderStat('Trail Dmg', mockWeapon.trailDamage) : ''}
+            ${renderStat('Dmg', Math.round(state.baseDmg), true)}
+            ${renderStat('CD', (state.cd / 60).toFixed(2) + 's', true)}
+            ${state.projectileCount > 1 ? renderStat('Projectiles', state.projectileCount) : ''}
+            ${state.pierce > 0 ? renderStat('Pierce', state.pierce) : ''}
+            ${state.bounces > 0 ? renderStat('Bounces', state.bounces) : ''}
+            ${state.explodeRadius > 0 ? renderStat('Aoe', state.explodeRadius + 'px') : ''}
+            ${state.splits ? renderStat('Splits', 'YES') : ''}
+            ${state.trailDamage > 0 ? renderStat('Trail Dmg', state.trailDamage) : ''}
             
-            ${descLines.length > 0 ? `
+            ${dynamicBonuses.length > 0 ? `
               <div class="new-bonus-section">
-                ${descLines.map(line => `
+                ${dynamicBonuses.map(line => `
                   <div class="new-bonus-line">
                     <span class="new-bonus-tag">NEW</span>
                     <span>${line}</span>

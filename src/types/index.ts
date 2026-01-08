@@ -61,6 +61,7 @@ export interface Upgrade {
   trailDamage?: number;
   coneLength?: number;
   coneWidth?: number;
+  spread?: number;
 }
 
 export type Upgrades = Record<string, Upgrade>;
