@@ -6,7 +6,7 @@ import { threeRenderer } from '../renderer/three';
 // Mock all the imported modules that have side effects
 vi.mock('../renderer/three', () => ({
   threeRenderer: {
-    init: vi.fn(async () => {}),
+    init: vi.fn(async () => { }),
     dispose: vi.fn(),
     render: vi.fn(),
     renderUI: vi.fn(),
@@ -29,6 +29,13 @@ vi.mock('../systems/saveData', () => ({
         damage: 0,
         speed: 0,
         magnet: 0,
+        safeSlotsCount: 1,
+      },
+      shopInventory: {
+        items: [],
+        gamblerItems: [],
+        lastRefresh: 0,
+        lastDailyRefresh: 0,
       },
       loadout: {
         relic: null,
@@ -65,6 +72,9 @@ vi.mock('../systems/ui', () => ({
     hideExtractionScreen: vi.fn(),
     showExtractionScreen: vi.fn(),
     showLootInventory: vi.fn(),
+    setPlayer: vi.fn(),
+    hideExtractionHud: vi.fn(),
+    updateExtractionHud: vi.fn(),
   },
 }));
 
@@ -73,6 +83,13 @@ vi.mock('../systems/menu', () => ({
     renderCharSelect: vi.fn(),
     show: vi.fn(),
     hide: vi.fn(),
+  },
+}));
+
+vi.mock('../systems/shopManager', () => ({
+  ShopManager: {
+    init: vi.fn(),
+    refreshAfterRun: vi.fn(),
   },
 }));
 
