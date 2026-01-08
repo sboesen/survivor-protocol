@@ -127,14 +127,9 @@ class UISystem {
     if (arrowEl) arrowEl.style.display = 'none';
   }
 
-  updateSecuredHud(securedItems: Item[], safeSlotCount: number): void {
-    const el = this.getEl('hud-secured');
+  updateLootSummaryHud(items: Item[]): void {
+    const el = this.getEl('hud-loot-summary');
     if (!el) return;
-
-    if (securedItems.length === 0) {
-      el.innerHTML = '';
-      return;
-    }
 
     const counts: Record<string, number> = {
       legendary: 0,
@@ -144,7 +139,7 @@ class UISystem {
       common: 0
     };
 
-    securedItems.forEach(item => {
+    items.forEach(item => {
       if (counts[item.rarity] !== undefined) counts[item.rarity]++;
     });
 
@@ -157,13 +152,10 @@ class UISystem {
       common: '●'
     };
 
-    let html = `Secured: `;
+    let html = '';
     rarityOrder.forEach(rarity => {
-      if (counts[rarity] > 0) {
-        html += `<span class="secured-rarity rarity-${rarity}">${rarityIcons[rarity]}${counts[rarity]}</span> `;
-      }
+      html += `<span class="loot-rarity-tag rarity-${rarity}">${rarityIcons[rarity]}${counts[rarity]}</span> `;
     });
-    html += `(${securedItems.length}/${safeSlotCount})`;
     el.innerHTML = html;
   }
 

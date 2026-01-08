@@ -99,26 +99,43 @@ canvas {
   align-self: flex-end;
 }
 
-.hud-secured-row {
+.hud-loot-summary-row {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   font-size: 8px;
   color: #888;
   align-self: flex-end;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 4px 8px;
+  border-radius: 4px;
 }
 
-.secured-rarity {
+.loot-rarity-tag {
   display: inline-flex;
   align-items: center;
   gap: 2px;
 }
 
-.secured-rarity.rarity-legendary { color: var(--gold); }
-.secured-rarity.rarity-relic { color: #f97316; }
-.secured-rarity.rarity-rare { color: var(--rare); }
-.secured-rarity.rarity-magic { color: #60a5fa; }
-.secured-rarity.rarity-common { color: #e5e7eb; }
+.loot-rarity-tag.rarity-legendary {
+  color: var(--gold);
+}
+
+.loot-rarity-tag.rarity-relic {
+  color: #f97316;
+}
+
+.loot-rarity-tag.rarity-rare {
+  color: var(--rare);
+}
+
+.loot-rarity-tag.rarity-magic {
+  color: #60a5fa;
+}
+
+.loot-rarity-tag.rarity-common {
+  color: #e5e7eb;
+}
 
 #hud-veiled {
   color: var(--rare);
@@ -482,6 +499,7 @@ canvas {
   font-size: 9px;
   line-height: 12px;
 }
+
 .extract-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -657,6 +675,7 @@ canvas {
     transform: scale(0.9);
     filter: brightness(0.7);
   }
+
   100% {
     transform: scale(1);
     filter: brightness(1);
@@ -668,10 +687,12 @@ canvas {
     transform: scale(1);
     filter: brightness(0.7);
   }
+
   60% {
     transform: scale(1.02);
     filter: brightness(1.1);
   }
+
   100% {
     transform: scale(1);
     filter: brightness(1);
@@ -679,11 +700,25 @@ canvas {
 }
 
 @keyframes unveil-wiggle {
-  0% { transform: translateX(0); }
-  25% { transform: translateX(-3px); }
-  50% { transform: translateX(3px); }
-  75% { transform: translateX(-2px); }
-  100% { transform: translateX(0); }
+  0% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-3px);
+  }
+
+  50% {
+    transform: translateX(3px);
+  }
+
+  75% {
+    transform: translateX(-2px);
+  }
+
+  100% {
+    transform: translateX(0);
+  }
 }
 
 @keyframes confetti-fall {
@@ -691,9 +726,11 @@ canvas {
     transform: translateY(-10vh) rotate(0deg);
     opacity: 0;
   }
+
   20% {
     opacity: 1;
   }
+
   100% {
     transform: translateY(110vh) rotate(520deg);
     opacity: 0;
@@ -863,11 +900,9 @@ canvas {
 
 #stash-screen {
   background:
-    repeating-linear-gradient(
-      135deg,
+    repeating-linear-gradient(135deg,
       rgba(255, 255, 255, 0.03) 0 2px,
-      rgba(8, 10, 18, 0.03) 2px 6px
-    ),
+      rgba(8, 10, 18, 0.03) 2px 6px),
     radial-gradient(circle at 50% -5%, rgba(120, 49, 196, 0.18), transparent 60%),
     radial-gradient(circle at 50% 85%, rgba(15, 23, 42, 0.9), transparent 55%),
     linear-gradient(180deg, #0c0f1f 0%, #070912 50%, #05060c 100%);
@@ -1495,11 +1530,13 @@ button:disabled {
     opacity: 0;
     background-position: 0% 50%;
   }
+
   50% {
     transform: scale(1.02);
     opacity: 1;
     background-position: 100% 50%;
   }
+
   100% {
     transform: scale(1);
     opacity: 1;

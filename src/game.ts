@@ -1211,9 +1211,7 @@ class GameCore {
     UI.updateExtractionHud(this.extractionState, p.x, p.y, this.frames);
 
     // Update secured loot HUD
-    const securedIds = new Set(this.autoSelectSafeItems());
-    const securedItems = this.collectedLoot.filter(item => securedIds.has(item.id));
-    UI.updateSecuredHud(securedItems, SaveData.data.shop.safeSlotsCount);
+    UI.updateLootSummaryHud(this.collectedLoot);
   }
 
   hitEnemy(e: Enemy, dmg: number, isCrit: boolean): void {
