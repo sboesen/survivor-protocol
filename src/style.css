@@ -260,6 +260,31 @@ canvas {
   white-space: nowrap;
 }
 
+.info-btn {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 14px;
+  height: 14px;
+  background: #333;
+  border: 1px solid #666;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  z-index: 5;
+  pointer-events: auto;
+  transition: 0.2s;
+}
+
+.info-btn:hover {
+  background: var(--debug);
+  border-color: #fff;
+}
+
 
 .item-slot {
   width: 40px;
@@ -1891,4 +1916,85 @@ button:disabled {
 .debug-action-btn {
   background: #312e81;
   border-color: var(--debug);
+}
+
+.level-info-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(320px, 90vw);
+  background: rgba(10, 15, 30, 0.98);
+  border: 2px solid var(--debug);
+  border-radius: 8px;
+  padding: 16px;
+  z-index: 2000;
+  display: none;
+  flex-direction: column;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.8), 0 0 10px rgba(99, 102, 241, 0.2);
+  pointer-events: auto;
+}
+
+.level-info-popup.active {
+  display: flex;
+}
+
+.level-info-title {
+  font-size: 14px;
+  color: var(--debug);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.level-info-desc {
+  font-size: 9px;
+  color: #aaa;
+  margin-bottom: 12px;
+}
+
+.level-row {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 8px;
+  border-bottom: 1px solid #333;
+  margin-bottom: 4px;
+}
+
+.level-row:last-child {
+  border-bottom: none;
+}
+
+.level-row.current {
+  background: rgba(99, 102, 241, 0.1);
+  border-left: 3px solid var(--debug);
+}
+
+.level-num {
+  font-size: 10px;
+  color: var(--gold);
+  margin-bottom: 2px;
+}
+
+.level-details {
+  font-size: 9px;
+  color: #eee;
+}
+
+.level-details div {
+  margin-top: 2px;
+}
+
+.info-popup-close {
+  margin-top: 16px;
+  padding: 8px;
+  font-size: 10px;
+  background: #222;
+  border: 1px solid #444;
+  color: #fff;
+  cursor: pointer;
+}
+
+.info-popup-close:hover {
+  background: #333;
+  border-color: #666;
 }

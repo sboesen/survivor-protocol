@@ -1,5 +1,6 @@
 import { CHARACTERS } from '../data/characters';
 import { UPGRADES } from '../data/upgrades';
+import { WEAPON_LEVELS } from '../data/leveling';
 import type { Item, ItemAffix } from '../items/types';
 import { AFFIX_TIER_BRACKETS } from '../items/affixTables';
 import { Utils } from '../utils';
@@ -776,9 +777,19 @@ class UISystem {
         const upgrade = UPGRADES[w.id];
         name.textContent = upgrade ? upgrade.name.replace(/[A-Z]/g, m => ' ' + m).trim() : w.id;
 
+        const infoBtn = document.createElement('div');
+        infoBtn.className = 'info-btn';
+        infoBtn.textContent = 'i';
+        infoBtn.title = 'View Level Path';
+        infoBtn.onclick = (e) => {
+          e.stopPropagation();
+          this.showLevelInfo(w.id);
+        };
+
         slot.appendChild(icon);
         slot.appendChild(level);
         slot.appendChild(name);
+        slot.appendChild(infoBtn);
         container.appendChild(slot);
       });
     }
@@ -936,10 +947,71 @@ class UISystem {
     }
   }
 
-  private player: { dmgMult: number } | null = null;
-  setPlayer(player: { dmgMult: number }): void {
+  showLevelInfo(weaponId: string): void {
+    const popup = this.getEl('level-info-popup');
+    if (!popup) return;
+
+    const upgrade = UPGRADES[weaponId];
+    const levels = WEAPON_LEVELS[weaponId];
+    if (!upgrade) return;
+
+    const name = upgrade.name.replace(/[A-Z]/g, m => ' ' + m).trim();
+    let currentLevel = 1;
+
+    // Find current level from game state
+    const w = (window as any).Game?.player?.weapons.find((w: any) => w.id === weaponId);
+    if (w) currentLevel = w.level;
+
+    let html = `
+      <div class="level-info-title">${name}</div>
+      <div class="level-info-desc">${upgrade.desc}</div>
+      <div class="level-list">
+    `;
+
+    // Level 1 (Base)
+    html += `
+      <div class="level-row ${currentLevel === 1 ? 'current' : ''}">
+        <div class="level-num">Level 1 (Base)</div>
+        <div class="level-details">
+          <div>Damage: ${upgrade.dmg || 0}</div>
+          <div>Cooldown: ${((upgrade.cd || 0) / 60).toFixed(1)}s</div>
+        </div>
+      </div>
+    `;
+
+    // Levels 2-5
+    for (let i = 2; i <= 5; i++) {
+      const bonus = levels ? levels[i] : null;
+      html += `
+        <div class="level-row ${currentLevel === i ? 'current' : ''}">
+          <div class="level-num">Level ${i}</div>
+          <div class="level-details">
+            <div>+30% Damage, -10% Cooldown</div>
+            ${bonus ? `<div style="color:var(--debug)">${bonus.desc}</div>` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    html += `
+      </div>
+      <button class="info-popup-close" onclick="UI.hideLevelInfo()">CLOSE</button>
+    `;
+
+    popup.innerHTML = html;
+    popup.classList.add('active');
+  }
+
+  hideLevelInfo(): void {
+    const popup = this.getEl('level-info-popup');
+    if (popup) popup.classList.remove('active');
+  }
+
+  private player: { dmgMult: number; weapons: any[] } | null = null;
+  setPlayer(player: { dmgMult: number; weapons: any[] }): void {
     this.player = player;
   }
 }
 
 export const UI = new UISystem();
+(window as any).UI = UI;

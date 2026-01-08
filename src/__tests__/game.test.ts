@@ -76,6 +76,8 @@ vi.mock('../systems/ui', () => ({
     hideExtractionHud: vi.fn(),
     updateExtractionHud: vi.fn(),
     updateLootSummaryHud: vi.fn(),
+    showLevelInfo: vi.fn(),
+    hideLevelInfo: vi.fn(),
   },
 }));
 

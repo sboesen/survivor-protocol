@@ -4,6 +4,7 @@ import type { Weapon, WeaponType, ItemType, UpgradeType } from '../types';
 import { createEmptyStats, type StatBlock } from '../items/stats';
 import { Entity, type ScreenPosition } from './entity';
 import { Renderer } from '../systems/renderer';
+import { WEAPON_LEVELS } from '../data/leveling';
 
 export interface PlayerItems {
   pierce: number;
@@ -18,6 +19,10 @@ export interface PlayerInventory {
 
 export class Player extends Entity {
   charId: string;
+  private baseHp: number;
+  private baseSpeed: number;
+  private basePickup: number;
+  private baseDmgMult: number;
   maxHp: number;
   speed: number;
   pickupRange: number;
@@ -64,30 +69,35 @@ export class Player extends Entity {
     const basePickup = 60 * (1 + (shopUpgrades.magnet * 0.2));
     const baseDmgMult = 1 + (shopUpgrades.damage * 0.1);
 
-    this.loadoutStats = loadoutStats;
-    this.maxHp = baseHp * (1 + loadoutStats.allStats) + loadoutStats.maxHp;
+    this.baseHp = baseHp;
+    this.baseSpeed = baseSpeed;
+    this.basePickup = basePickup;
+    this.baseDmgMult = baseDmgMult;
+
+    this.loadoutStats = createEmptyStats();
+    this.maxHp = baseHp;
     this.hp = this.maxHp;
-    this.speed = baseSpeed + loadoutStats.speed + (baseSpeed * loadoutStats.allStats);
-    this.pickupRange = basePickup + loadoutStats.magnet + loadoutStats.pickupRadius + (basePickup * loadoutStats.allStats);
-    this.dmgMult = baseDmgMult + loadoutStats.percentDamage + (baseDmgMult * loadoutStats.allStats);
-    this.flatDamage = loadoutStats.flatDamage;
+    this.speed = baseSpeed;
+    this.pickupRange = basePickup;
+    this.dmgMult = baseDmgMult;
+    this.flatDamage = 0;
     this.critChance = 0;
     this.items = {
-      pierce: loadoutStats.pierce,
-      cooldown: loadoutStats.cooldownReduction,
-      projectile: loadoutStats.projectiles,
-      projectileSpeed: loadoutStats.projectileSpeed,
+      pierce: 0,
+      cooldown: 0,
+      projectile: 0,
+      projectileSpeed: 0,
     };
-    this.ricochetDamageBonus = loadoutStats.ricochetDamage;
-    this.luck = loadoutStats.luck;
-    this.armor = loadoutStats.armor;
-    this.hpRegen = loadoutStats.hpRegen;
-    this.areaFlat = loadoutStats.areaFlat;
-    this.areaPercent = loadoutStats.areaPercent;
-    this.durationBonus = loadoutStats.duration * 10;
-    this.healMult = 1 + loadoutStats.percentHealing;
-    this.goldMult = loadoutStats.percentGold;
-    this.xpMult = loadoutStats.percentXp;
+    this.ricochetDamageBonus = 0;
+    this.luck = 0;
+    this.armor = 0;
+    this.hpRegen = 0;
+    this.areaFlat = 0;
+    this.areaPercent = 0;
+    this.durationBonus = 0;
+    this.healMult = 1;
+    this.goldMult = 0;
+    this.xpMult = 0;
     this.xp = 0;
     this.level = 1;
     this.nextXp = 5;
@@ -99,6 +109,7 @@ export class Player extends Entity {
     this.ultActiveTime = 0;
     this.auraAttackFrame = 0;
 
+    this.updateLoadoutStats(loadoutStats, true);
     this.addUpgrade(weapon);
   }
 
@@ -171,63 +182,49 @@ export class Player extends Entity {
           w.cd *= 0.9;
           if (w.type === 'aura' && w.area) w.area += 15;
 
-          // Per-weapon upgrade effects
-          switch (weaponType) {
-            case 'bubble_stream':
-              // Level 2: +1 projectile, Level 3: +speed, Level 4: splits, Level 5: +2 projectiles
-              if (w.level === 2) w.projectileCount = 2;
-              if (w.level === 3) w.speedMult = 1.5;
-              if (w.level === 4) w.splits = true;
-              if (w.level === 5) w.projectileCount = 3;
-              break;
-            case 'frying_pan':
-              // Level 2: explosion, Level 3: knockback, Level 4: +1 projectile, Level 5: +size
-              if (w.level === 2) w.explodeRadius = 40;
-              if (w.level === 3) w.knockback = 5;
-              if (w.level === 4) w.projectileCount = 2;
-              if (w.level === 5) w.size = 14;
-              break;
-            case 'thrown_cds':
-              // Level 2: +1 CD, Level 3: +speed, Level 4: pierce (handled by passive), Level 5: +2 CDs
-              if (w.level === 2) w.projectileCount = 2;
-              if (w.level === 3) w.speedMult = 1.4;
-              if (w.level === 5) w.projectileCount = 3;
-              break;
-            case 'bow':
-              // Level 2: +1 arrow, Level 3: +speed, Level 4: pierce, Level 5: ricochet
-              if (w.level === 2) w.projectileCount = 2;
-              if (w.level === 3) w.speedMult = 1.3;
-              if (w.level === 5) {
-                w.projectileCount = 3;
-                w.bounces = 1;
-              }
-              break;
-            case 'fireball':
-              // Level 2: +explosion radius, Level 3: +duration, Level 4: trail damage, Level 5: +1 fireball
-              if (w.level === 2) w.explodeRadius = 50;
-              if (w.level === 3) w.speedMult = 1.3; // Also affects duration via longer travel
-              if (w.level === 4) w.trailDamage = 5;
-              if (w.level === 5) w.projectileCount = 2;
-              break;
-            case 'lighter':
-              // Level 2: +cone length, Level 3: +cone width, Level 4: fire particles travel even farther, Level 5: +burn damage
-              if (w.level === 2) w.coneLength = 150;
-              if (w.level === 3) w.spread = 1.8;
-              if (w.level === 4) w.coneLength = 200;
-              if (w.level === 5) w.speedMult = 2.0;
-              break;
-            case 'shield_bash':
-              // Level 2: +range, Level 3: wider cone, Level 4: +knockback, Level 5: +damage and knockback
-              if (w.level === 2) w.coneLength = 80;
-              if (w.level === 3) w.coneWidth = 0.9;
-              if (w.level === 4) w.knockback = 12;
-              if (w.level === 5) { w.coneLength = 100; w.knockback = 15; }
-              break;
+          // Per-weapon upgrade effects from data
+          const levels = WEAPON_LEVELS[weaponType];
+          if (levels && levels[w.level]?.apply) {
+            levels[w.level].apply!(w);
           }
+
           this.inventory[weaponType]++;
         }
       }
     }
+  }
+
+  updateLoadoutStats(stats: StatBlock, resetHp = false): void {
+    this.loadoutStats = stats;
+
+    const prevHp = this.hp;
+    this.maxHp = this.baseHp * (1 + stats.allStats) + stats.maxHp;
+    if (resetHp) {
+      this.hp = this.maxHp;
+    } else {
+      this.hp = Math.min(this.maxHp, prevHp);
+    }
+
+    this.speed = this.baseSpeed + stats.speed + (this.baseSpeed * stats.allStats);
+    this.pickupRange = this.basePickup + stats.magnet + stats.pickupRadius + (this.basePickup * stats.allStats);
+    this.dmgMult = this.baseDmgMult + stats.percentDamage + (this.baseDmgMult * stats.allStats);
+    this.flatDamage = stats.flatDamage;
+    this.items = {
+      pierce: stats.pierce,
+      cooldown: stats.cooldownReduction,
+      projectile: stats.projectiles,
+      projectileSpeed: stats.projectileSpeed,
+    };
+    this.ricochetDamageBonus = stats.ricochetDamage;
+    this.luck = stats.luck;
+    this.armor = stats.armor;
+    this.hpRegen = stats.hpRegen;
+    this.areaFlat = stats.areaFlat;
+    this.areaPercent = stats.areaPercent;
+    this.durationBonus = stats.duration * 10;
+    this.healMult = 1 + stats.percentHealing;
+    this.goldMult = stats.percentGold;
+    this.xpMult = stats.percentXp;
   }
 
   gainXp(amt: number, onLevelUp: () => void): void {
