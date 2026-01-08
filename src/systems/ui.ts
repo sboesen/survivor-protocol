@@ -949,7 +949,8 @@ class UISystem {
 
   showLevelInfo(weaponId: string): void {
     const popup = this.getEl('level-info-popup');
-    if (!popup) return;
+    const backdrop = this.getEl('level-info-backdrop');
+    if (!popup || !backdrop) return;
 
     const upgrade = UPGRADES[weaponId];
     const levels = WEAPON_LEVELS[weaponId];
@@ -982,12 +983,15 @@ class UISystem {
     // Levels 2-5
     for (let i = 2; i <= 5; i++) {
       const bonus = levels ? levels[i] : null;
+      // Split description by newline for multiple stat lines
+      const descLines = bonus ? bonus.desc.split('\n') : [];
+
       html += `
         <div class="level-row ${currentLevel === i ? 'current' : ''}">
           <div class="level-num">Level ${i}</div>
           <div class="level-details">
-            <div>+30% Damage, -10% Cooldown</div>
-            ${bonus ? `<div style="color:var(--debug)">${bonus.desc}</div>` : ''}
+            <div class="level-bonus-prop">+30% Damage, -10% Cooldown</div>
+            ${descLines.map(line => `<div style="color:#06b6d4">${line}</div>`).join('')}
           </div>
         </div>
       `;
@@ -1000,11 +1004,14 @@ class UISystem {
 
     popup.innerHTML = html;
     popup.classList.add('active');
+    backdrop.classList.add('active');
   }
 
   hideLevelInfo(): void {
     const popup = this.getEl('level-info-popup');
+    const backdrop = this.getEl('level-info-backdrop');
     if (popup) popup.classList.remove('active');
+    if (backdrop) backdrop.classList.remove('active');
   }
 
   private player: { dmgMult: number; weapons: any[] } | null = null;
