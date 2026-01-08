@@ -2262,8 +2262,8 @@ button:disabled {
 
 /* --- MOBILE RESPONSIVE STYLES --- */
 
-/* Menu Screen Styles */
-#menu-screen {
+/* Menu Screen Styles - Qualified with .active to ensure it can be hidden */
+#menu-screen.active {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -2433,7 +2433,9 @@ button:disabled {
 
 /* Mobile Landscape Optimization */
 @media (max-height: 500px) and (orientation: landscape) {
-  #menu-screen {
+
+  /* Qualified with .active to ensure it can be hidden in landscape */
+  #menu-screen.active {
     padding-top: 10px;
   }
 
