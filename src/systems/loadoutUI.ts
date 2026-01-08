@@ -788,35 +788,13 @@ class LoadoutUISystem {
   }
 
   private handleStashClick(index: number, stash: StashSlot[], loadout: LoadoutData): void {
-    const clickedItem = stash[index];
 
-    if (!this.selected) {
-      if (clickedItem) {
-        this.selected = { type: 'stash', index };
-      }
-      this.render(stash, loadout);
-      return;
+    if (this.selected?.type === 'stash' && this.selected.index === index) {
+      this.selected = null;
+    } else {
+      this.selected = { type: 'stash', index };
     }
 
-    if (this.selected.type === 'stash') {
-      if (this.selected.index === index) {
-        this.selected = null;
-      } else {
-        const sourceItem = stash[this.selected.index];
-        stash[this.selected.index] = clickedItem ?? null;
-        stash[index] = sourceItem ?? null;
-        this.selected = null;
-        SaveData.save();
-      }
-      this.render(stash, loadout);
-      return;
-    }
-
-    const loadoutItem = loadout[this.selected.slot];
-    loadout[this.selected.slot] = clickedItem ?? null;
-    stash[index] = loadoutItem ?? null;
-    this.selected = null;
-    SaveData.save();
     this.render(stash, loadout);
   }
 
@@ -838,50 +816,12 @@ class LoadoutUISystem {
   private handleLoadoutClick(slotId: LoadoutSlotId, stash: StashSlot[], loadout: LoadoutData): void {
     const clickedItem = loadout[slotId];
 
-    if (!this.selected) {
-      if (clickedItem) {
-        this.selected = { type: 'loadout', slot: slotId };
-      }
-      this.render(stash, loadout);
-      return;
-    }
-
-    if (this.selected.type === 'loadout') {
-      if (this.selected.slot === slotId) {
-        this.selected = null;
-        this.render(stash, loadout);
-        return;
-      }
-
-      const sourceItem = loadout[this.selected.slot];
-      if (sourceItem && isSlotCompatible(slotId, sourceItem)) {
-        if (!clickedItem || isSlotCompatible(this.selected.slot, clickedItem)) {
-          loadout[this.selected.slot] = clickedItem ?? null;
-          loadout[slotId] = sourceItem;
-          SaveData.save();
-        }
-      }
+    if (this.selected?.type === 'loadout' && this.selected.slot === slotId) {
       this.selected = null;
-      this.render(stash, loadout);
-      return;
+    } else if (clickedItem) {
+      this.selected = { type: 'loadout', slot: slotId };
     }
 
-    const sourceItem = stash[this.selected.index];
-    if (!sourceItem) {
-      this.selected = null;
-      this.render(stash, loadout);
-      return;
-    }
-
-    if (!isSlotCompatible(slotId, sourceItem)) {
-      this.render(stash, loadout);
-      return;
-    }
-
-    stash[this.selected.index] = clickedItem ?? null;
-    loadout[slotId] = sourceItem;
-    this.selected = null;
-    SaveData.save();
     this.render(stash, loadout);
   }
 

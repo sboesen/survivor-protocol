@@ -118,7 +118,8 @@ canvas {
   font-size: 8px;
 }
 
-.star-icon {
+.star-icon,
+.scrap-icon {
   display: inline-block;
   transform: translateY(-1px);
 }
