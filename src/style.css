@@ -1415,18 +1415,13 @@ canvas {
     gap: 12px;
     flex: 1;
     min-height: 0;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
   }
 
   .stash-panel {
     height: auto;
-    overflow-y: visible;
-  }
-
-  .inventory-panel {
-    height: auto;
-    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 200px;
   }
 
   .loadout-grid {
