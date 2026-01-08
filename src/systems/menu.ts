@@ -4,8 +4,12 @@ import { GachaAnim } from './gacha';
 import { SHOP_ITEMS } from '../data/shop';
 import { SpriteViewer } from './spriteViewer';
 import { LoadoutUI } from './loadoutUI';
+import { ShopManager } from './shopManager';
+import type { ShopItemListing } from '../types';
 
 class MenuSystem {
+  private shopTabsBound = false;
+
   renderCharSelect(): void {
     const list = document.getElementById('char-select-list');
     if (!list) return;
@@ -26,8 +30,10 @@ class MenuSystem {
         ${iconHtml}
         <div style="color:#fff;font-size:10px;">${c.name}</div>
         <div class="char-stats">${c.desc}<br>Ult: ${c.ult}</div>
+        <div class="info-btn" title="View Level Path">i</div>
       `;
 
+      // Attach selection listener to the card
       if (owned) {
         el.onclick = () => {
           SaveData.data.selectedChar = c.id;
@@ -36,47 +42,36 @@ class MenuSystem {
         };
       }
 
+      // Attach info listener to the "i" button
+      const infoBtn = el.querySelector('.info-btn') as HTMLElement;
+      if (infoBtn) {
+        infoBtn.onclick = (e) => {
+          e.stopPropagation();
+          (window as any).UI.showLevelInfo(c.weapon);
+        };
+      }
+
       list.appendChild(el);
     });
   }
 
   renderShop(): void {
-    const grid = document.getElementById('shop-grid');
     const goldDisplay = document.getElementById('shop-gold-display');
-
-    if (!grid) return;
-
-    grid.innerHTML = '';
-
     if (goldDisplay) goldDisplay.textContent = SaveData.data.gold.toString();
 
-    Object.keys(SHOP_ITEMS).forEach(k => {
-      const item = SHOP_ITEMS[k];
-      const lvl = SaveData.data.shop[k] || 0;
-      const cost = item.cost(lvl);
-      const max = lvl >= item.max;
+    this.renderUpgrades();
+    this.renderShopItems(ShopManager.data.items, 'shop-items-grid');
+    this.renderShopItems(ShopManager.data.gamblerItems, 'gambler-grid');
+    this.updateShopTimers();
+  }
 
-      const btn = document.createElement('button');
-      const goldColor = SaveData.data.gold >= cost ? '#fd0' : '#f00';
-      btn.innerHTML = `
-        <div>${item.name} ${lvl}/${item.max}</div>
-        <div style="font-size:8px;color:#aaa">${item.desc}</div>
-        <div style="color:${goldColor}">${max ? 'MAX' : cost + 'G'}</div>
-      `;
-
-      btn.onclick = () => {
-        if (!max && SaveData.data.gold >= cost) {
-          SaveData.data.gold -= cost;
-          SaveData.data.shop[k] = lvl + 1;
-          SaveData.save();
-          this.renderShop();
-        }
-      };
-
-      if (max) btn.disabled = true;
-
-      grid.appendChild(btn);
-    });
+  manualRefreshShop(): void {
+    const refreshed = ShopManager.manualRefresh();
+    if (!refreshed) {
+      console.warn('[Shop] Not enough gold to refresh.');
+      return;
+    }
+    this.renderShop();
   }
 
   openShop(): void {
@@ -86,7 +81,9 @@ class MenuSystem {
     if (menuScreen) menuScreen.classList.remove('active');
     if (shopScreen) shopScreen.classList.add('active');
 
+    ShopManager.ensureInventory();
     this.renderShop();
+    this.bindShopTabs();
   }
 
   closeShop(): void {
@@ -175,6 +172,155 @@ class MenuSystem {
     if (debugScreen) debugScreen.classList.add('active');
 
     SpriteViewer.close();
+  }
+
+  private renderUpgrades(): void {
+    const grid = document.getElementById('shop-grid');
+    if (!grid) return;
+
+    grid.innerHTML = '';
+
+    Object.keys(SHOP_ITEMS).forEach(k => {
+      const item = SHOP_ITEMS[k];
+      const lvl = SaveData.data.shop[k] || 0;
+      const cost = item.cost(lvl);
+      const max = lvl >= item.max;
+
+      const btn = document.createElement('button');
+      const goldColor = SaveData.data.gold >= cost ? '#fd0' : '#f00';
+      btn.innerHTML = `
+        <div>${item.name} ${lvl}/${item.max}</div>
+        <div style="font-size:8px;color:#aaa">${item.desc}</div>
+        <div style="color:${goldColor}">${max ? 'MAX' : cost + 'G'}</div>
+      `;
+
+      btn.onclick = () => {
+        if (!max && SaveData.data.gold >= cost) {
+          SaveData.data.gold -= cost;
+          SaveData.data.shop[k] = lvl + 1;
+          SaveData.save();
+          this.renderShop();
+        }
+      };
+
+      if (max) btn.disabled = true;
+
+      grid.appendChild(btn);
+    });
+  }
+
+  private renderShopItems(listings: ShopItemListing[], gridId: string): void {
+    const grid = document.getElementById(gridId);
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    if (listings.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'shop-empty';
+      empty.textContent = 'No items available.';
+      grid.appendChild(empty);
+      return;
+    }
+
+    listings.forEach(listing => {
+      const card = document.createElement('div');
+      card.className = `shop-item-card rarity-${listing.rarity} ${listing.veiled ? 'veiled' : 'revealed'}`;
+
+      if (listing.veiled) {
+        card.innerHTML = `
+          <div class="shop-item-title">VEILED</div>
+          <div class="shop-item-rarity">${listing.rarity.toUpperCase()}</div>
+          <div class="shop-item-type shop-item-reveal">${listing.type.toUpperCase()}</div>
+          <div class="shop-item-price">${listing.price}G</div>
+          <div class="shop-item-expiry" data-expires="${listing.expiresAt}">Expires: ${this.formatExpiry(listing.expiresAt)}</div>
+          <button class="shop-buy-btn">BUY</button>
+        `;
+      } else if (listing.item) {
+        card.innerHTML = `
+          <div class="shop-item-title">${listing.item.name}</div>
+          <div class="shop-item-rarity">${listing.item.rarity.toUpperCase()}</div>
+          <div class="shop-item-type">${listing.item.type.toUpperCase()}</div>
+          <div class="shop-item-price">${listing.price}G</div>
+          <div class="shop-item-expiry" data-expires="${listing.expiresAt}">Expires: ${this.formatExpiry(listing.expiresAt)}</div>
+          <button class="shop-buy-btn">BUY</button>
+        `;
+      }
+
+      const buyBtn = card.querySelector('.shop-buy-btn') as HTMLButtonElement | null;
+      if (buyBtn) {
+        buyBtn.onclick = () => {
+          const result = ShopManager.buyListing(listing);
+          if (!result.success) {
+            console.warn('[Shop] Purchase failed:', result.reason);
+            return;
+          }
+          this.renderShop();
+        };
+      }
+
+      grid.appendChild(card);
+    });
+  }
+
+  private bindShopTabs(): void {
+    if (this.shopTabsBound) return;
+    const tabs = document.querySelectorAll<HTMLButtonElement>('.shop-tab');
+    tabs.forEach(tab => {
+      tab.onclick = () => this.setActiveShopTab(tab.dataset.tab || 'upgrades');
+    });
+    this.shopTabsBound = true;
+  }
+
+  private setActiveShopTab(tabId: string): void {
+    const tabs = document.querySelectorAll<HTMLButtonElement>('.shop-tab');
+    tabs.forEach(tab => {
+      const isActive = tab.dataset.tab === tabId;
+      tab.classList.toggle('active', isActive);
+    });
+
+    const contents = document.querySelectorAll<HTMLElement>('.shop-tab-content');
+    contents.forEach(content => {
+      content.classList.toggle('active', content.id === `${tabId}-tab`);
+    });
+  }
+
+  private updateShopTimers(): void {
+    const dailyTimer = document.getElementById('daily-timer');
+    if (dailyTimer) {
+      const nextRefresh = ShopManager.data.lastDailyRefresh + 24 * 60 * 60 * 1000;
+      dailyTimer.textContent = this.formatCountdown(nextRefresh - Date.now());
+    }
+
+    const expiryEls = document.querySelectorAll<HTMLElement>('.shop-item-expiry');
+    expiryEls.forEach(el => {
+      const expiresAt = Number(el.dataset.expires || 0);
+      if (expiresAt > 0) {
+        el.textContent = `Expires: ${this.formatExpiry(expiresAt)}`;
+      }
+    });
+  }
+
+  private formatExpiry(expiresAt: number): string {
+    const remaining = Math.max(0, expiresAt - Date.now());
+    const totalMinutes = Math.ceil(remaining / (60 * 1000));
+    if (totalMinutes <= 0) return 'Expired';
+
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if (hours < 1) return `${minutes}m`;
+    if (minutes === 0) return `${hours}h`;
+    return `${hours}h ${minutes}m`;
+  }
+
+  private formatCountdown(remaining: number): string {
+    const clamped = Math.max(0, remaining);
+    const totalSeconds = Math.ceil(clamped / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m ${seconds}s`;
   }
 }
 

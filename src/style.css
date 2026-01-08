@@ -262,22 +262,23 @@ canvas {
 
 .info-btn {
   position: absolute;
-  top: -4px;
-  right: -4px;
-  width: 14px;
-  height: 14px;
-  background: #333;
-  border: 1px solid #666;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  background: var(--ui-bg);
+  border: 1px solid var(--debug);
   border-radius: 50%;
   color: #fff;
-  font-size: 8px;
+  font-size: 10px;
   display: flex;
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  z-index: 5;
+  z-index: 10;
   pointer-events: auto;
   transition: 0.2s;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
 .info-btn:hover {
