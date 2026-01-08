@@ -94,7 +94,10 @@ class MenuSystem {
         el.onclick = () => {
           SaveData.data.selectedChar = c.id;
           SaveData.save();
-          this.renderCharSelect();
+          // Update selection without re-rendering entire list
+          const allCards = document.querySelectorAll('.char-card');
+          allCards.forEach(card => card.classList.remove('selected'));
+          el.classList.add('selected');
         };
       }
 
