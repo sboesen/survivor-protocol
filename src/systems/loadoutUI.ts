@@ -40,6 +40,9 @@ class LoadoutUISystem {
   private currentStash: StashSlot[] = [];
   private currentLoadout: LoadoutData | null = null;
   private currentTooltip: HTMLElement | null = null;
+  private salvageHoldTimer: number | null = null;
+  private salvageHoldInterval: number | null = null;
+  private salvageHoldStartTime: number = 0;
   private weaponIconSources: Record<WeaponIconKey, string> = {
     dagger: '/weapons/dagger.png',
     sword: '/weapons/sword.png',
@@ -226,17 +229,69 @@ class LoadoutUISystem {
       const salvageBtn = document.createElement('button');
       const value = CraftingSystem.getSalvageValue(item.rarity);
       salvageBtn.className = 'btn-salvage';
-      salvageBtn.textContent = `SALVAGE (+${value} SCRAP)`;
-      salvageBtn.onclick = (e) => {
+
+      const progress = document.createElement('div');
+      progress.className = 'salvage-progress';
+      salvageBtn.appendChild(progress);
+
+      const text = document.createElement('span');
+      text.className = 'btn-text';
+      text.textContent = `HOLD TO SALVAGE (+${value})`;
+      salvageBtn.appendChild(text);
+
+      const start = (e: Event) => {
+        e.preventDefault();
         e.stopPropagation();
-        if (confirm(`REALLY SALVAGE ${item.name.toUpperCase()}?\n\nThis will grant ${value} Scrap and permanently destroy the item.`)) {
-          CraftingSystem.salvage(selection.index);
-          this.selected = null;
-          this.render(SaveData.data.stash, SaveData.data.loadout);
-        }
+        this.startSalvageHold(selection.index, progress, salvageBtn);
       };
+
+      const stop = () => {
+        this.stopSalvageHold(progress);
+      };
+
+      salvageBtn.onmousedown = start;
+      salvageBtn.ontouchstart = start;
+      salvageBtn.onmouseup = stop;
+      salvageBtn.onmouseleave = stop;
+      salvageBtn.ontouchend = stop;
+
       detailPanel.appendChild(salvageBtn);
     }
+  }
+
+  private startSalvageHold(index: number, progressEl: HTMLElement, btnEl: HTMLElement): void {
+    this.stopSalvageHold(progressEl);
+
+    const DURATION = 800; // ms
+    this.salvageHoldStartTime = Date.now();
+
+    this.salvageHoldInterval = window.setInterval(() => {
+      const elapsed = Date.now() - this.salvageHoldStartTime;
+      const pct = Math.min(100, (elapsed / DURATION) * 100);
+      progressEl.style.width = `${pct}%`;
+    }, 16);
+
+    this.salvageHoldTimer = window.setTimeout(() => {
+      this.stopSalvageHold(progressEl);
+      btnEl.classList.add('complete');
+      setTimeout(() => {
+        CraftingSystem.salvage(index);
+        this.selected = null;
+        this.render(SaveData.data.stash, SaveData.data.loadout);
+      }, 150);
+    }, DURATION);
+  }
+
+  private stopSalvageHold(progressEl: HTMLElement): void {
+    if (this.salvageHoldTimer) {
+      window.clearTimeout(this.salvageHoldTimer);
+      this.salvageHoldTimer = null;
+    }
+    if (this.salvageHoldInterval) {
+      window.clearInterval(this.salvageHoldInterval);
+      this.salvageHoldInterval = null;
+    }
+    progressEl.style.width = '0%';
   }
 
   private handleSlotClick(selection: Selection, stash: StashSlot[], loadout: LoadoutData): void {
@@ -438,11 +493,25 @@ class LoadoutUISystem {
     const scrapVal = SaveData.data.scrap.toString();
     ['shop-scrap-display', 'stash-scrap-counter'].forEach(id => {
       const el = document.getElementById(id);
-      if (el) el.textContent = scrapVal;
+      if (el) {
+        if (el.textContent !== scrapVal) {
+          el.classList.remove('counter-pop');
+          void el.offsetWidth; // Trigger reflow
+          el.classList.add('counter-pop');
+        }
+        el.textContent = scrapVal;
+      }
     });
 
     const hudScrap = document.getElementById('hud-scrap');
-    if (hudScrap) hudScrap.textContent = `⚙️ ${scrapVal}`;
+    if (hudScrap) {
+      if (hudScrap.textContent !== `⚙️ ${scrapVal}`) {
+        hudScrap.classList.remove('counter-pop');
+        void hudScrap.offsetWidth;
+        hudScrap.classList.add('counter-pop');
+      }
+      hudScrap.textContent = `⚙️ ${scrapVal}`;
+    }
   }
 
   private populateDetail(detailEl: HTMLElement, item: Item, heading?: string): void {
