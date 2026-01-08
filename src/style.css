@@ -102,12 +102,12 @@ canvas {
 .hud-loot-summary-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 8px;
   color: #888;
   align-self: flex-end;
-  background: rgba(0, 0, 0, 0.3);
-  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 4px 10px;
   border-radius: 4px;
 }
 
