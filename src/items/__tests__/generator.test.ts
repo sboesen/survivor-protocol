@@ -22,6 +22,7 @@ describe('ItemGenerator', () => {
         magic: 0,
         rare: 0,
         legendary: 0,
+        corrupted: 0,
       };
       for (let i = 0; i < 10000; i++) {
         const rarity = _test.rollRarity(luck, rng);
@@ -54,7 +55,7 @@ describe('ItemGenerator', () => {
   it('should apply rarity boost after rolling', () => {
     expect(_test.applyRarityBoost('common', 0)).toBe('common');
     expect(_test.applyRarityBoost('common', 2)).toBe('rare');
-    expect(_test.applyRarityBoost('rare', 5)).toBe('legendary');
+    expect(_test.applyRarityBoost('rare', 5)).toBe('corrupted');
   });
 
   it('should cap common tiers to T2', () => {

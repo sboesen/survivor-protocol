@@ -122,17 +122,18 @@ describe('Menu', () => {
 
       const list = document.getElementById('char-select-list');
       const firstCard = list?.children[0] as HTMLElement;
-      // Wizard uses img tag, others use char-icon div
-      expect(firstCard?.innerHTML).toMatch(/char-icon|<img/);
-      expect(firstCard?.innerHTML).toContain('</div>'); // contains name
+      // Wizard uses img tag, others use char-portrait-emoji
+      expect(firstCard?.innerHTML).toMatch(/char-portrait-emoji|<img/);
+      expect(firstCard?.innerHTML).toContain('char-name');
     });
 
-    it('should display character stats and ult', () => {
+    it('should display character description, starter, and ult', () => {
       Menu.renderCharSelect();
 
       const list = document.getElementById('char-select-list');
       const firstCard = list?.children[0] as HTMLElement;
-      expect(firstCard?.innerHTML).toContain('char-stats');
+      expect(firstCard?.innerHTML).toContain('char-card-footer');
+      expect(firstCard?.innerHTML).toContain('char-info-row');
     });
 
     it('should return early if list element not found', () => {

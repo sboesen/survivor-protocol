@@ -11,11 +11,13 @@ vi.mock('../../systems/renderer', () => ({
 }));
 
 vi.mock('../../items/stash', () => ({
-  Stash: {
-    fromJSON: vi.fn(() => ({
+  Stash: class {
+    static fromJSON = vi.fn(() => ({
       addItem: vi.fn(),
       toJSON: vi.fn(() => []),
-    })),
+    }));
+    addItem = vi.fn();
+    toJSON = vi.fn(() => []);
   },
 }));
 

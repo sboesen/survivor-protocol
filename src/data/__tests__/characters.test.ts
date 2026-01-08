@@ -14,7 +14,7 @@ describe('CHARACTERS', () => {
     expect(CHARACTERS.wizard.weapon).toBe('fireball');
     expect(CHARACTERS.wizard.hpMod).toBe(0.75);
     expect(CHARACTERS.wizard.spdMod).toBe(0.95);
-    expect(CHARACTERS.wizard.ult).toBe('MeteorSwarm');
+    expect(CHARACTERS.wizard.ult).toBe('Meteor Swarm');
     expect(CHARACTERS.wizard.desc).toBe('Arcane power. Start: Fireball.');
   });
 
@@ -26,7 +26,7 @@ describe('CHARACTERS', () => {
     expect(CHARACTERS.paladin.weapon).toBe('bubble_stream');
     expect(CHARACTERS.paladin.hpMod).toBe(1.2);
     expect(CHARACTERS.paladin.spdMod).toBe(0.9);
-    expect(CHARACTERS.paladin.ult).toBe('DivineShield');
+    expect(CHARACTERS.paladin.ult).toBe('Divine Shield');
     expect(CHARACTERS.paladin.desc).toBe('Tanky. Start: Holy Aura.');
   });
 
@@ -38,7 +38,7 @@ describe('CHARACTERS', () => {
     expect(CHARACTERS.rogue.weapon).toBe('thrown_cds');
     expect(CHARACTERS.rogue.hpMod).toBe(0.8);
     expect(CHARACTERS.rogue.spdMod).toBe(1.3);
-    expect(CHARACTERS.rogue.ult).toBe('ShadowStep');
+    expect(CHARACTERS.rogue.ult).toBe('Shadow Step');
     expect(CHARACTERS.rogue.desc).toBe('Fast. Start: Dagger Throw.');
   });
 
@@ -50,7 +50,7 @@ describe('CHARACTERS', () => {
     expect(CHARACTERS.knight.weapon).toBe('shield_bash');
     expect(CHARACTERS.knight.hpMod).toBe(1.5);
     expect(CHARACTERS.knight.spdMod).toBe(0.8);
-    expect(CHARACTERS.knight.ult).toBe('IronWill');
+    expect(CHARACTERS.knight.ult).toBe('Iron Will');
     expect(CHARACTERS.knight.desc).toBe('High HP. Start: Shield Bash.');
   });
 
@@ -74,7 +74,7 @@ describe('CHARACTERS', () => {
     expect(CHARACTERS.pyromancer.weapon).toBe('lighter');
     expect(CHARACTERS.pyromancer.hpMod).toBe(0.9);
     expect(CHARACTERS.pyromancer.spdMod).toBe(1.1);
-    expect(CHARACTERS.pyromancer.ult).toBe('SmokeScreen');
+    expect(CHARACTERS.pyromancer.ult).toBe('Smoke Screen');
     expect(CHARACTERS.pyromancer.desc).toBe('Reckless. Start: Flame Burst.');
   });
 
