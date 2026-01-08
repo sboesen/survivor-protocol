@@ -31,9 +31,17 @@
                 <span id="hud-veiled">Veiled: 0</span>
                 <button class="quit-btn" onclick="Game.quitRun()">ABORT</button>
             </div>
+            <div id="hud-secured" class="hud-secured-row"></div>
             <div id="debug-loot-indicator" class="debug-hud">DEBUG LOOT BOOST</div>
         </div>
     </div>
+
+        <div class="extraction-ui">
+            <div id="extract-warning" class="extract-warning" style="display:none;"></div>
+            <div id="extract-countdown" class="extract-countdown" style="display:none;"></div>
+            <div id="extract-progress" class="extract-progress" style="display:none;"></div>
+            <div id="extract-arrow" class="extract-arrow" style="display:none;"></div>
+        </div>
 
         <!-- Mobile Ultimate Button -->
         <div id="ult-btn" class="ult-btn" onclick="Game.triggerUlt()">
@@ -94,6 +102,8 @@
             <button class="debug-action-btn" onclick="Debug.addGold(5000)">ADD 5000 GOLD</button>
             <button class="debug-action-btn" onclick="Debug.unlockAll()">UNLOCK ALL PILOTS</button>
             <button id="debug-loot-boost" class="debug-action-btn" onclick="Debug.toggleLootBoost()">LOOT BOOST: OFF</button>
+            <button class="debug-action-btn" onclick="Debug.freeShopRefresh()">FREE SHOP REFRESH</button>
+            <button class="debug-action-btn" onclick="Debug.saveAllItems()">SAVE ALL ITEMS ON DEATH</button>
             <button class="debug-action-btn" onclick="Debug.resetProgress()" style="border-color: #f00;">WIPE ALL DATA</button>
         </div>
         <button onclick="Menu.closeDebug()" style="margin-top:20px;">EXIT DEBUG</button>
@@ -115,7 +125,28 @@
     <div id="shop-screen" class="screen">
         <h1>ARMORY</h1>
         <h2>Gold: <span id="shop-gold-display">0</span></h2>
-        <div id="shop-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; max-height:60vh; overflow-y:auto;"></div>
+
+        <div class="shop-tabs">
+            <button class="shop-tab active" data-tab="upgrades">UPGRADES</button>
+            <button class="shop-tab" data-tab="items">ITEMS</button>
+            <button class="shop-tab" data-tab="gambler">GAMBLER</button>
+        </div>
+
+        <div id="upgrades-tab" class="shop-tab-content active">
+            <div id="shop-grid" class="shop-grid"></div>
+        </div>
+        <div id="items-tab" class="shop-tab-content">
+            <div id="shop-items-grid" class="shop-items-grid"></div>
+        </div>
+        <div id="gambler-tab" class="shop-tab-content">
+            <div id="gambler-grid" class="shop-items-grid"></div>
+        </div>
+
+        <div class="shop-footer">
+            <button onclick="Menu.manualRefreshShop()">REFRESH (200G)</button>
+            <div class="shop-daily">Daily refresh: <span id="daily-timer">--</span></div>
+        </div>
+
         <button onclick="Menu.closeShop()" style="margin-top:20px;">BACK</button>
     </div>
 

@@ -75,6 +75,7 @@ vi.mock('../systems/ui', () => ({
     setPlayer: vi.fn(),
     hideExtractionHud: vi.fn(),
     updateExtractionHud: vi.fn(),
+    updateSecuredHud: vi.fn(),
   },
 }));
 

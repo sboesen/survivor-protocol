@@ -3,7 +3,8 @@ import { UPGRADES } from '../data/upgrades';
 import type { Item, ItemAffix } from '../items/types';
 import { AFFIX_TIER_BRACKETS } from '../items/affixTables';
 import { Utils } from '../utils';
-import type { Weapon } from '../types';
+import { wrapRelativePosition } from './movement';
+import type { Weapon, ExtractionState } from '../types';
 
 class UISystem {
   private cache: Record<string, HTMLElement | null> = {};
@@ -42,6 +43,128 @@ class UISystem {
       const char = CHARACTERS[selectedChar];
       if (char) charEl.textContent = char.name;
     }
+  }
+
+  updateExtractionHud(state: ExtractionState, playerX: number, playerY: number, frames: number): void {
+    const warningEl = this.getEl('extract-warning');
+    const countdownEl = this.getEl('extract-countdown');
+    const progressEl = this.getEl('extract-progress');
+    const arrowEl = this.getEl('extract-arrow');
+
+    const warningActive = state.warningEndTime > frames;
+    if (warningEl) {
+      if (warningActive) {
+        const seconds = Math.max(0, Math.ceil((state.warningEndTime - frames) / 60));
+        warningEl.textContent = `EXTRACT IN: ${seconds}s`;
+        warningEl.style.display = 'block';
+      } else {
+        warningEl.style.display = 'none';
+      }
+    }
+
+    const zone = state.currentZone && state.currentZone.active ? state.currentZone : null;
+    if (countdownEl) {
+      if (zone) {
+        const seconds = Math.max(0, Math.ceil((zone.expiresAt - frames) / 60));
+        countdownEl.textContent = `EXTRACT ZONE: ${seconds}s`;
+        countdownEl.style.display = 'block';
+      } else {
+        countdownEl.style.display = 'none';
+      }
+    }
+
+    if (progressEl) {
+      if (zone && zone.inZone) {
+        const progress = Math.min(100, Math.floor((zone.extractionProgress / (60 * 5)) * 100));
+        progressEl.textContent = `EXTRACTING: ${progress}%`;
+        progressEl.style.display = 'block';
+      } else {
+        progressEl.style.display = 'none';
+      }
+    }
+
+    const target = state.pendingZone
+      ? state.pendingZone
+      : zone
+        ? { x: zone.x, y: zone.y }
+        : null;
+
+    if (arrowEl) {
+      if (target) {
+        const dx = wrapRelativePosition(target.x - playerX);
+        const dy = wrapRelativePosition(target.y - playerY);
+        const onScreen = Math.abs(dx) < window.innerWidth / 2 - 140 &&
+          Math.abs(dy) < window.innerHeight / 2 - 140;
+
+        if (!onScreen) {
+          const angle = Math.atan2(dy, dx);
+          const radius = Math.min(window.innerWidth, window.innerHeight) / 2 - 40;
+          const centerX = window.innerWidth / 2;
+          const centerY = window.innerHeight / 2;
+
+          arrowEl.style.left = `${centerX + Math.cos(angle) * radius}px`;
+          arrowEl.style.top = `${centerY + Math.sin(angle) * radius}px`;
+          arrowEl.style.transform = `translate(-50%, -50%) rotate(${angle + Math.PI / 2}rad)`;
+          arrowEl.style.display = 'block';
+        } else {
+          arrowEl.style.display = 'none';
+        }
+      } else {
+        arrowEl.style.display = 'none';
+      }
+    }
+  }
+
+  hideExtractionHud(): void {
+    const warningEl = this.getEl('extract-warning');
+    const countdownEl = this.getEl('extract-countdown');
+    const progressEl = this.getEl('extract-progress');
+    const arrowEl = this.getEl('extract-arrow');
+
+    if (warningEl) warningEl.style.display = 'none';
+    if (countdownEl) countdownEl.style.display = 'none';
+    if (progressEl) progressEl.style.display = 'none';
+    if (arrowEl) arrowEl.style.display = 'none';
+  }
+
+  updateSecuredHud(securedItems: Item[], safeSlotCount: number): void {
+    const el = this.getEl('hud-secured');
+    if (!el) return;
+
+    if (securedItems.length === 0) {
+      el.innerHTML = '';
+      return;
+    }
+
+    const counts: Record<string, number> = {
+      legendary: 0,
+      relic: 0,
+      rare: 0,
+      magic: 0,
+      common: 0
+    };
+
+    securedItems.forEach(item => {
+      if (counts[item.rarity] !== undefined) counts[item.rarity]++;
+    });
+
+    const rarityOrder = ['legendary', 'relic', 'rare', 'magic', 'common'];
+    const rarityIcons: Record<string, string> = {
+      legendary: '💎',
+      relic: '★',
+      rare: '●',
+      magic: '●',
+      common: '●'
+    };
+
+    let html = `Secured: `;
+    rarityOrder.forEach(rarity => {
+      if (counts[rarity] > 0) {
+        html += `<span class="secured-rarity rarity-${rarity}">${rarityIcons[rarity]}${counts[rarity]}</span> `;
+      }
+    });
+    html += `(${securedItems.length}/${safeSlotCount})`;
+    el.innerHTML = html;
   }
 
   updateXp(current: number, max: number, level: number): void {

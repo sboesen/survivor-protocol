@@ -99,6 +99,27 @@ canvas {
   align-self: flex-end;
 }
 
+.hud-secured-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 8px;
+  color: #888;
+  align-self: flex-end;
+}
+
+.secured-rarity {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.secured-rarity.rarity-legendary { color: var(--gold); }
+.secured-rarity.rarity-relic { color: #f97316; }
+.secured-rarity.rarity-rare { color: var(--rare); }
+.secured-rarity.rarity-magic { color: #60a5fa; }
+.secured-rarity.rarity-common { color: #e5e7eb; }
+
 #hud-veiled {
   color: var(--rare);
 }
@@ -1534,6 +1555,11 @@ button:disabled {
 /* --- ARMORY / SHOP STYLES --- */
 #shop-grid {
   padding: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  max-height: 50vh;
+  overflow-y: auto;
 }
 
 #shop-grid button {
@@ -1606,6 +1632,191 @@ button:disabled {
   color: var(--gold);
   font-size: 10px;
   font-weight: bold;
+}
+
+.shop-tabs {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin: 10px 0 15px;
+}
+
+.shop-tab {
+  background: #1e293b;
+  border: 2px solid #334155;
+  color: #e2e8f0;
+  padding: 8px 14px;
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  transition: 0.2s;
+}
+
+.shop-tab.active {
+  border-color: var(--gold);
+  color: var(--gold);
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.35);
+}
+
+.shop-tab-content {
+  display: none;
+}
+
+.shop-tab-content.active {
+  display: block;
+}
+
+.shop-items-grid {
+  padding: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.shop-item-card {
+  background: linear-gradient(135deg, #111827 0%, #0f172a 100%);
+  border: 2px solid #374151;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: center;
+  position: relative;
+  transition: 0.2s;
+}
+
+.shop-item-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 12px rgba(14, 165, 233, 0.2);
+}
+
+.shop-item-card.rarity-common {
+  border-color: #e5e7eb;
+}
+
+.shop-item-card.rarity-magic {
+  border-color: #60a5fa;
+}
+
+.shop-item-card.rarity-rare {
+  border-color: var(--rare);
+}
+
+.shop-item-card.rarity-legendary {
+  border-color: var(--gold);
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.15);
+}
+
+.shop-item-title {
+  font-size: 9px;
+  color: #e2e8f0;
+  line-height: 1.2;
+}
+
+.shop-item-rarity {
+  font-size: 8px;
+  color: #fbbf24;
+}
+
+.shop-item-type {
+  font-size: 8px;
+  color: #94a3b8;
+}
+
+.shop-item-price {
+  font-size: 9px;
+  color: var(--gold);
+}
+
+.shop-item-expiry {
+  font-size: 7px;
+  color: #94a3b8;
+}
+
+.shop-item-card.veiled .shop-item-reveal {
+  opacity: 0.2;
+  transition: opacity 0.2s;
+}
+
+.shop-item-card.veiled:hover .shop-item-reveal {
+  opacity: 1;
+}
+
+.shop-buy-btn {
+  background: #0f172a;
+  border: 1px solid #475569;
+  color: #e2e8f0;
+  padding: 6px;
+  font-size: 8px;
+  transition: 0.2s;
+}
+
+.shop-buy-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.shop-empty {
+  grid-column: span 2;
+  color: #64748b;
+  font-size: 9px;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.shop-footer {
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.shop-daily {
+  font-size: 8px;
+  color: #94a3b8;
+}
+
+/* --- EXTRACTION HUD --- */
+.extraction-ui {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+  z-index: 15;
+}
+
+.extract-warning {
+  color: #4ade80;
+  font-size: 10px;
+  text-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
+  margin-bottom: 4px;
+}
+
+.extract-countdown {
+  color: #4ade80;
+  font-size: 10px;
+}
+
+.extract-progress {
+  color: #22d3ee;
+  font-size: 10px;
+  margin-top: 4px;
+}
+
+.extract-arrow {
+  position: fixed;
+  width: 28px;
+  height: 28px;
+  background: #4ade80;
+  clip-path: polygon(50% 0%, 100% 100%, 0 100%);
+  filter: drop-shadow(0 0 6px rgba(74, 222, 128, 0.6));
+  pointer-events: none;
+  z-index: 15;
 }
 
 /* --- DEBUG STYLES --- */

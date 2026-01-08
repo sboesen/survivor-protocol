@@ -7,6 +7,7 @@ import { UI } from './systems/ui';
 import { Menu } from './systems/menu';
 import { GachaAnim } from './systems/gacha';
 import { calculateGameOverRewards } from './systems/scoring';
+import { ShopManager } from './systems/shopManager';
 import { calculateSpawn } from './systems/spawning';
 import {
   isLootInRange,
@@ -54,7 +55,7 @@ import { FireballProjectile } from './entities/fireballProjectile';
 import { Loot } from './entities/loot';
 import { Obstacle } from './entities/obstacle';
 import { Particle, type ParticleSpawnConfig, type ParticleType } from './entities/particle';
-import type { InputState, DamageText } from './types';
+import type { InputState, DamageText, ExtractionState } from './types';
 import { ItemGenerator } from './items/generator';
 import type { Item } from './items/types';
 import { rollItemType, shouldDropItem } from './items/drops';
@@ -68,6 +69,7 @@ import {
   applyHealingBonus,
   applyXpBonus,
 } from './systems/statEffects';
+import { initExtractionState, updateExtraction, shouldExtract } from './systems/extraction';
 
 class GameCore {
   canvas: HTMLCanvasElement | null = null;
@@ -99,6 +101,7 @@ class GameCore {
   collectedLoot: Item[] = [];
   lootInventoryOpen = false;
   debugLootBoost = false;
+  extractionState: ExtractionState = initExtractionState();
 
   input: InputState = {
     x: 0,
@@ -119,6 +122,7 @@ class GameCore {
     window.onresize = () => this.resize();
 
     SaveData.load();
+    ShopManager.init();
     GachaAnim.init();
 
     // Keyboard input
@@ -237,6 +241,7 @@ class GameCore {
     this.timeFreeze = 0;
     this.lastTime = 0;
     this.accumulator = 0;
+    this.extractionState = initExtractionState();
 
     // Create player based on selected character
     const char = CHARACTERS[SaveData.data.selectedChar];
@@ -265,6 +270,7 @@ class GameCore {
     UI.updateVeiledCount(0);
     UI.hideLootInventory();
     UI.hideExtractionScreen();
+    UI.hideExtractionHud();
     // Clear any existing damage text DOM elements
     for (const dt of this.damageTexts) {
       dt.el.remove();
@@ -352,7 +358,7 @@ class GameCore {
   }
 
   quitRun(): void {
-    this.gameOver(true, false);
+    this.gameOver(false);
   }
 
   toggleLootInventory(): void {
@@ -389,10 +395,12 @@ class GameCore {
     return sorted.slice(0, safeSlotCount).map(item => item.id);
   }
 
-  gameOver(extracted = false, fullExtract = false): void {
+  gameOver(extracted = false): void {
     this.active = false;
     this.lootInventoryOpen = false;
     UI.hideLootInventory();
+    UI.hideExtractionScreen();
+    UI.hideExtractionHud();
 
     const rewards = calculateGameOverRewards({
       goldRun: this.goldRun,
@@ -402,20 +410,26 @@ class GameCore {
     });
 
     const stash = Stash.fromJSON(SaveData.data.stash);
-    const securedIds = (extracted && fullExtract) || !extracted
-      ? this.collectedLoot.map(item => item.id)
-      : this.autoSelectSafeItems();
-    const itemsToStore = this.collectedLoot.filter(item => securedIds.includes(item.id));
+    let itemsToStore = this.collectedLoot;
+    if (!extracted) {
+      const securedIds = new Set(this.autoSelectSafeItems());
+      itemsToStore = this.collectedLoot.filter(item => securedIds.has(item.id));
+    }
+
     itemsToStore.forEach(item => {
       stash.addItem(item);
     });
     SaveData.data.stash = stash.toJSON();
-
     SaveData.data.gold += rewards.total;
+
+    ShopManager.refreshAfterRun();
     SaveData.save();
 
-    UI.showExtractionScreen(itemsToStore, () => this.returnToMenu());
-    UI.showGameOverScreen(extracted, this.goldRun, this.mins, this.kills, this.bossKills);
+    if (extracted) {
+      UI.showExtractionScreen(itemsToStore, () => this.returnToMenu());
+    } else {
+      UI.showGameOverScreen(false, this.goldRun, this.mins, this.kills, this.bossKills);
+    }
   }
 
   returnToMenu(): void {
@@ -613,6 +627,30 @@ class GameCore {
 
     if (spawnDecision.shouldSpawn && spawnDecision.type) {
       this.enemies.push(new Enemy(p.x, p.y, spawnDecision.type, this.mins, this.obstacles));
+    }
+
+    const extractionResult = updateExtraction(
+      this.extractionState,
+      p.x,
+      p.y,
+      this.frames
+    );
+    this.extractionState = extractionResult.state;
+
+    if (extractionResult.enemiesToSpawn) {
+      for (const enemyData of extractionResult.enemiesToSpawn) {
+        const enemy = new Enemy(enemyData.x, enemyData.y, enemyData.type, this.mins, this.obstacles);
+        enemy.x = enemyData.x;
+        enemy.y = enemyData.y;
+        enemy.prevX = enemyData.x;
+        enemy.prevY = enemyData.y;
+        this.enemies.push(enemy);
+      }
+    }
+
+    if (shouldExtract(this.extractionState)) {
+      this.gameOver(true);
+      return;
     }
 
     // Weapons
@@ -1170,6 +1208,12 @@ class GameCore {
 
     // Update XP bar
     UI.updateXp(p.xp, p.nextXp, p.level);
+    UI.updateExtractionHud(this.extractionState, p.x, p.y, this.frames);
+
+    // Update secured loot HUD
+    const securedIds = new Set(this.autoSelectSafeItems());
+    const securedItems = this.collectedLoot.filter(item => securedIds.has(item.id));
+    UI.updateSecuredHud(securedItems, SaveData.data.shop.safeSlotsCount);
   }
 
   hitEnemy(e: Enemy, dmg: number, isCrit: boolean): void {
@@ -1264,7 +1308,8 @@ class GameCore {
       window.innerWidth,
       window.innerHeight,
       alpha,
-      this.input.aimAngle
+      this.input.aimAngle,
+      this.extractionState.currentZone
     );
 
     // Render UI (health bar, joysticks)
