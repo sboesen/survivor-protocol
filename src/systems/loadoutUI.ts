@@ -269,6 +269,8 @@ class LoadoutUISystem {
 
   private renderBulkActions(container: HTMLElement, stash: StashSlot[]): void {
     container.innerHTML = '';
+    const isMobile = window.innerWidth <= 820;
+
     const title = document.createElement('div');
     title.className = 'loadout-detail-title';
     title.style.textAlign = 'center';
@@ -287,11 +289,12 @@ class LoadoutUISystem {
     const commonCount = stash.filter(s => s?.rarity === 'common').length;
     const magicCount = stash.filter(s => s?.rarity === 'magic').length;
 
-    this.createBulkButton(container, 'SALVAGE ALL COMMONS', ['common'], commonCount);
-    this.createBulkButton(container, 'SALVAGE ALL MAGIC', ['magic'], magicCount);
-    this.createBulkButton(container, 'SALVAGE LOW-TIER (C+M)', ['common', 'magic'], commonCount + magicCount);
+    this.createBulkButton(container, isMobile ? 'SALVAGE C' : 'SALVAGE ALL COMMONS', ['common'], commonCount);
+    this.createBulkButton(container, isMobile ? 'SALVAGE M' : 'SALVAGE ALL MAGIC', ['magic'], magicCount);
+    this.createBulkButton(container, isMobile ? 'C+M' : 'SALVAGE LOW-TIER (C+M)', ['common', 'magic'], commonCount + magicCount);
 
     const separator = document.createElement('div');
+    separator.className = 'forge-separator';
     separator.style.height = '1px';
     separator.style.background = 'rgba(255, 255, 255, 0.1)';
     separator.style.margin = '20px 0';
@@ -302,7 +305,7 @@ class LoadoutUISystem {
     manualSalvageBtn.style.marginTop = '10px';
     manualSalvageBtn.innerHTML = `
       <span class="btn-icon">🔨</span>
-      <span class="btn-text">${this.isSalvageMode ? 'CANCEL SALVAGE' : 'MANUAL SALVAGE'}</span>
+      <span class="btn-text">${this.isSalvageMode ? (isMobile ? 'X' : 'CANCEL SALVAGE') : (isMobile ? '⚡' : 'MANUAL SALVAGE')}</span>
     `;
     if (this.isSalvageMode) {
       manualSalvageBtn.style.background = 'rgba(255, 100, 100, 0.3)';
@@ -312,11 +315,12 @@ class LoadoutUISystem {
 
     if (this.isSalvageMode) {
       const modeDesc = document.createElement('div');
+      modeDesc.className = 'salvage-mode-desc';
       modeDesc.style.marginTop = '10px';
       modeDesc.style.fontSize = '11px';
       modeDesc.style.color = '#ff6b6b';
       modeDesc.style.textAlign = 'center';
-      modeDesc.textContent = 'Click an item to salvage instantly, or click empty space to cancel.';
+      modeDesc.textContent = isMobile ? 'Tap item to salvage' : 'Click an item to salvage instantly, or click empty space to cancel.';
       container.appendChild(modeDesc);
     }
   }

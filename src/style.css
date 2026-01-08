@@ -1412,7 +1412,7 @@ canvas {
   .stash-panel {
     height: auto;
     overflow-y: visible;
-    padding-bottom: 35vh;
+    padding-bottom: 120px;
   }
 
   .loadout-grid {
@@ -1447,51 +1447,72 @@ canvas {
     left: 0;
     right: 0;
     z-index: 100;
-    max-height: 35vh;
+    height: auto;
+    max-height: 60px;
     overflow-y: auto;
     border-top: 3px solid #f87171;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
     -webkit-overflow-scrolling: touch;
-    padding: 8px;
+    padding: 4px 8px;
     border-radius: 12px 12px 0 0;
     background: rgba(10, 8, 18, 0.98);
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 4px;
+    align-items: center;
+    justify-content: space-between;
   }
 
   .inventory-panel {
-    padding-bottom: 0;
+    padding-bottom: 70px;
+  }
+
+  .details-panel .loadout-detail-title {
+    font-size: 8px;
+    margin-bottom: 4px;
+    display: none;
+  }
+
+  .details-panel .details-placeholder {
+    display: none;
   }
 
   .details-panel .btn-salvage {
     padding: 6px 8px;
-    font-size: 8px;
-    min-height: 36px;
-    margin-top: 6px;
+    font-size: 7px;
+    min-height: 42px;
+    margin-top: 0;
+    box-shadow: 0 2px 0 #450a0a;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .details-panel .btn-salvage .btn-text {
-    font-size: 8px;
+    font-size: 7px;
   }
 
   .details-panel .btn-salvage .btn-icon {
     font-size: 10px;
-  }
-
-  .details-panel .loadout-detail-title {
-    font-size: 9px;
-    margin-bottom: 6px;
-  }
-
-  .details-panel .details-placeholder {
-    font-size: 9px;
-    margin-top: 10%;
+    margin-right: 2px;
   }
 
   .details-panel .salvage-progress {
     display: none;
   }
 
-  .details-panel > div:not(:last-child) {
-    margin-bottom: 6px;
+  .details-panel > div:not(.btn-salvage) {
+    display: none;
+  }
+
+  .details-panel .salvage-mode-desc {
+    display: none;
+  }
+
+  .details-panel .forge-separator {
+    display: none;
   }
 }
 
