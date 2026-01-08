@@ -1453,10 +1453,10 @@ button:disabled {
   overflow-y: hidden;
   /* Prevent vertical scroll inside */
   max-width: 95vw;
-  padding: 10px 10px 20px 10px;
+  width: fit-content;
+  padding: 10px 10px 15px 10px;
   /* Extra bottom padding for scrollbar clearance */
-  align-items: stretch;
-  /* Equalize heights */
+  align-items: flex-start;
   flex-shrink: 0;
   /* Prevent container from shrinking and clipping cards */
 }
@@ -1466,8 +1466,8 @@ button:disabled {
   border: 1px solid #222;
   background: #111;
   padding: 0;
-  min-width: 180px;
-  max-width: 180px;
+  min-width: 150px;
+  max-width: 150px;
   cursor: pointer;
   opacity: 0.6;
   transition: opacity 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
@@ -1505,7 +1505,7 @@ button:disabled {
 
 /* Card Header - Hero Name & Info */
 .char-card-header {
-  height: 32px;
+  height: 24px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1555,7 +1555,7 @@ button:disabled {
 
 /* Card Body - Portrait */
 .char-card-body {
-  height: 85px;
+  height: 55px;
   background: radial-gradient(circle at center, #2c3e50 0%, #000 100%);
   display: flex;
   justify-content: center;
@@ -1575,8 +1575,8 @@ button:disabled {
 }
 
 .char-portrait-frame {
-  width: 55px;
-  height: 55px;
+  width: 40px;
+  height: 40px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1591,20 +1591,18 @@ button:disabled {
 }
 
 .char-portrait-emoji {
-  font-size: 36px;
+  font-size: 28px;
   filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.8));
 }
 
 /* Card Footer - Stats */
 .char-card-footer {
-  padding: 12px 14px;
+  padding: 8px 10px;
   background: #0f172a;
-  flex-grow: 1;
-  /* Fill stretched card height */
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  gap: 10px;
+  gap: 6px;
   text-align: left;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
@@ -1621,10 +1619,10 @@ button:disabled {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 3px;
+  gap: 2px;
   background: rgba(0, 0, 0, 0.3);
-  padding: 6px 12px;
-  border-radius: 6px;
+  padding: 4px 8px;
+  border-radius: 4px;
   border: 1px solid rgba(255, 255, 255, 0.05);
   width: 100%;
   box-sizing: border-box;
@@ -2269,7 +2267,8 @@ button:disabled {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  padding: 15px;
+  align-items: center;
+  padding: 5px;
   box-sizing: border-box;
   overflow-y: auto;
 }
@@ -2278,39 +2277,50 @@ button:disabled {
   width: auto;
   max-width: 80%;
   max-height: 12vh;
-  padding: 10px 0;
+  padding: 5px 0;
   height: auto;
-  margin: 0 auto 5px;
+  margin: 0 auto 3px;
   flex-shrink: 0;
 }
 
 .char-scroll {
-  flex-grow: 1;
-  min-height: 200px;
-  margin-bottom: 15px;
+  min-height: 0;
+  margin-bottom: 10px;
   width: 100%;
+}
+
+@media (min-width: 768px) {
+  .char-scroll {
+    justify-content: center;
+  }
 }
 
 .menu-actions-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
-  width: 100%;
-  max-width: 450px;
-  margin: 0 auto;
-  padding-bottom: 15px;
+  max-width: 900px;
+  width: fit-content;
+  padding-bottom: 10px;
+}
+
+@media (min-width: 600px) {
+  .menu-actions-grid {
+    grid-template-columns: repeat(4, 1fr);
+    max-width: 900px;
+  }
 }
 
 .btn-start,
 .btn-secondary {
-  aspect-ratio: 1.6 / 1;
+  aspect-ratio: 3.5 / 1;
   /* Equal rectangles, wider than tall */
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 10px;
-  gap: 5px;
+  padding: 6px;
+  gap: 3px;
   background: linear-gradient(180deg, #334155, #1e293b);
   border: 1px solid #475569;
   border-top: 1px solid #94a3b8;
@@ -2433,8 +2443,8 @@ button:disabled {
   }
 
   .char-scroll {
-    min-height: 120px;
-    margin-bottom: 10px;
+    min-height: 0;
+    margin-bottom: 8px;
   }
 
   .menu-actions-grid {
