@@ -11,6 +11,7 @@ import {
   isSlotCompatible,
 } from '../items/loadout';
 import { SaveData } from './saveData';
+import { CraftingSystem } from './crafting';
 
 type Selection =
   | { type: 'stash'; index: number }
@@ -192,6 +193,50 @@ class LoadoutUISystem {
 
     this.updateSummary(loadout);
     this.hideTooltip(tooltip);
+    this.renderItemDetail(this.selected, stash, loadout);
+  }
+
+  private renderItemDetail(selection: Selection | null, stash: StashSlot[], loadout: LoadoutData): void {
+    const detailPanel = document.getElementById('item-details-panel');
+    if (!detailPanel) return;
+
+    detailPanel.innerHTML = '';
+
+    if (!selection) {
+      const placeholder = document.createElement('div');
+      placeholder.className = 'details-placeholder';
+      placeholder.textContent = 'Select an item to inspect';
+      detailPanel.appendChild(placeholder);
+      return;
+    }
+
+    const item = this.resolveSelectionItem(selection, stash, loadout);
+    if (!item) {
+      const placeholder = document.createElement('div');
+      placeholder.className = 'details-placeholder';
+      placeholder.textContent = 'Empty slot';
+      detailPanel.appendChild(placeholder);
+      return;
+    }
+
+    this.populateDetail(detailPanel, item);
+
+    // Add Salvage button if it's a stash item
+    if (selection.type === 'stash') {
+      const salvageBtn = document.createElement('button');
+      const value = CraftingSystem.getSalvageValue(item.rarity);
+      salvageBtn.className = 'btn-salvage';
+      salvageBtn.textContent = `SALVAGE (+${value} SCRAP)`;
+      salvageBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (confirm(`REALLY SALVAGE ${item.name.toUpperCase()}?\n\nThis will grant ${value} Scrap and permanently destroy the item.`)) {
+          CraftingSystem.salvage(selection.index);
+          this.selected = null;
+          this.render(SaveData.data.stash, SaveData.data.loadout);
+        }
+      };
+      detailPanel.appendChild(salvageBtn);
+    }
   }
 
   private handleSlotClick(selection: Selection, stash: StashSlot[], loadout: LoadoutData): void {
@@ -231,6 +276,7 @@ class LoadoutUISystem {
     } else {
       this.handleLoadoutClick(selection.slot, stash, loadout);
     }
+    this.renderItemDetail(this.selected, stash, loadout);
   }
 
   private handleDoubleClick(selection: Selection, stash: StashSlot[], loadout: LoadoutData): void {
@@ -388,11 +434,15 @@ class LoadoutUISystem {
     updateValue('summary-greed', formatRatio(stats.percentGold));
     updateValue('summary-armor', formatSigned(stats.armor));
 
-    // Update scrap display
-    const scrapEl = document.getElementById('shop-scrap-display');
-    if (scrapEl) scrapEl.textContent = SaveData.data.scrap.toString();
+    // Update scrap displays
+    const scrapVal = SaveData.data.scrap.toString();
+    ['shop-scrap-display', 'stash-scrap-counter'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = scrapVal;
+    });
+
     const hudScrap = document.getElementById('hud-scrap');
-    if (hudScrap) hudScrap.textContent = `⚙️ ${SaveData.data.scrap}`;
+    if (hudScrap) hudScrap.textContent = `⚙️ ${scrapVal}`;
   }
 
   private populateDetail(detailEl: HTMLElement, item: Item, heading?: string): void {

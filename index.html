@@ -186,8 +186,15 @@
                         </div>
                     </div>
                     <div class="inventory-panel">
-                        <h2>STASH</h2>
+                        <div style="display:flex; justify-content: space-between; align-items: center; margin: 0 10px;">
+                            <h2 style="margin:0">STASH</h2>
+                            <span style="color:var(--rare); font-size:12px;">⚙️ <span
+                                    id="stash-scrap-counter">0</span></span>
+                        </div>
                         <div id="stash-grid" class="stash-grid"></div>
+                    </div>
+                    <div id="item-details-panel" class="details-panel">
+                        <div class="details-placeholder">Select an item to inspect</div>
                     </div>
                 </div>
             </div>

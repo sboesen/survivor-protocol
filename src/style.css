@@ -1000,7 +1000,7 @@ canvas {
 .stash-layout {
   width: 100%;
   display: grid;
-  grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
+  grid-template-columns: minmax(260px, 340px) 1fr 280px;
   grid-template-rows: 1fr;
   gap: 24px;
   align-items: stretch;
@@ -1415,6 +1415,52 @@ canvas {
     gap: 12px 16px;
   }
 }
+
+.details-panel {
+  background: rgba(10, 8, 18, 0.85);
+  border: 2px solid #3b2a52;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: #e5e7eb;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.details-placeholder {
+  color: #6b7280;
+  font-size: 11px;
+  text-align: center;
+  margin-top: 50%;
+  letter-spacing: 0.5px;
+  line-height: 1.5;
+}
+
+.btn-salvage {
+  margin-top: auto;
+  background: linear-gradient(180deg, #991b1b 0%, #7f1d1d 100%);
+  border: 1px solid #f87171;
+  color: #fee2e2;
+  padding: 10px;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #450a0a;
+  transition: all 0.1s;
+}
+
+.btn-salvage:hover {
+  background: linear-gradient(180deg, #b91c1c 0%, #991b1b 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 #450a0a;
+}
+
+.btn-salvage:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #450a0a;
+}
+
 
 h1 {
   color: var(--accent);
