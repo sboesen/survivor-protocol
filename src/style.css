@@ -1403,13 +1403,22 @@ canvas {
 }
 
 @media (max-width: 820px) {
+  #stash-screen {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0;
+  }
+
   .stash-layout {
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr;
+    gap: 12px;
   }
 
   .stash-panel {
     height: auto;
+    overflow-y: visible;
+    padding-bottom: 45vh;
   }
 
   .loadout-grid {
@@ -1439,18 +1448,39 @@ canvas {
   }
 
   .details-panel {
-    position: sticky;
+    position: fixed;
     bottom: 0;
-    z-index: 10;
-    max-height: 50vh;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    max-height: 45vh;
     overflow-y: auto;
     border-top: 3px solid #f87171;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
     -webkit-overflow-scrolling: touch;
+    padding: 12px;
+    border-radius: 12px 12px 0 0;
+    background: rgba(10, 8, 18, 0.98);
   }
 
   .inventory-panel {
     padding-bottom: 0;
+  }
+
+  .details-panel .btn-salvage {
+    padding: 10px;
+    font-size: 9px;
+    min-height: 48px;
+  }
+
+  .details-panel .loadout-detail-title {
+    font-size: 10px;
+    margin-bottom: 8px;
+  }
+
+  .details-panel .details-placeholder {
+    font-size: 10px;
+    margin-top: 20%;
   }
 }
 
