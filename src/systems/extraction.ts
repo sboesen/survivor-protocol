@@ -71,7 +71,7 @@ export function updateExtraction(
 }
 
 export function shouldExtract(state: ExtractionState): boolean {
-  return state.currentZone?.extractionProgress >= EXTRACT_TIME || false;
+  return !!(state.currentZone && state.currentZone.extractionProgress >= EXTRACT_TIME);
 }
 
 function createExtractionZone(x: number, y: number, frames: number): ExtractionZone {
