@@ -21,13 +21,13 @@ export const WEAPON_LEVELS: Record<string, Record<number, LevelBonus>> = {
     thrown_cds: {
         2: { desc: '+1 CD', apply: (w) => { w.projectileCount = 2; } },
         3: { desc: '+40% Speed', apply: (w) => { w.speedMult = 1.4; } },
-        4: { desc: '+1 Pierce' }, // Visual only as handled by passive
+        4: { desc: '+1 Pierce', apply: (w) => { w.pierce = 1; } }, // Now actually applied
         5: { desc: '+1 CD', apply: (w) => { w.projectileCount = 3; } },
     },
     bow: {
         2: { desc: '+1 Arrow', apply: (w) => { w.projectileCount = 2; } },
         3: { desc: '+30% Speed', apply: (w) => { w.speedMult = 1.3; } },
-        4: { desc: '+1 Pierce' },
+        4: { desc: '+1 Pierce', apply: (w) => { w.pierce = 1; } },
         5: { desc: '+1 Arrow\n+Ricochet', apply: (w) => { w.projectileCount = 3; w.bounces = 1; } },
     },
     fireball: {

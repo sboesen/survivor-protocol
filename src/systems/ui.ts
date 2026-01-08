@@ -969,30 +969,61 @@ class UISystem {
       <div class="level-list">
     `;
 
-    // Level 1 (Base)
-    html += `
-      <div class="level-row ${currentLevel === 1 ? 'current' : ''}">
-        <div class="level-num">Level 1 (Base)</div>
-        <div class="level-details">
-          <div>Damage: ${upgrade.dmg || 0}</div>
-          <div>Cooldown: ${((upgrade.cd || 0) / 60).toFixed(1)}s</div>
-        </div>
-      </div>
-    `;
+    // Simulate weapon growth for cumulative stats
+    // Create a mock weapon starting at Level 1 base stats
+    const mockWeapon: any = {
+      id: weaponId,
+      level: 1,
+      baseDmg: upgrade.dmg || 0,
+      cd: upgrade.cd || 0,
+      projectileCount: upgrade.projectileCount || 1,
+      bounces: upgrade.bounces || 0,
+      pierce: upgrade.pierce || 0,
+      speedMult: 1.0,
+      explodeRadius: upgrade.explodeRadius || 0,
+      knockback: upgrade.knockback || 0,
+      size: upgrade.size || 0,
+      splits: upgrade.splits || false,
+      trailDamage: upgrade.trailDamage || 0,
+      coneLength: upgrade.coneLength || 0,
+      coneWidth: upgrade.coneWidth || 0,
+    };
 
-    // Levels 2-5
-    for (let i = 2; i <= 5; i++) {
-      const bonus = levels ? levels[i] : null;
-      // Split description by newline for multiple stat lines
-      const descLines = bonus ? bonus.desc.split('\n') : [];
+    for (let i = 1; i <= 5; i++) {
+      if (i > 1) {
+        // Apply level-up universal bonuses
+        mockWeapon.level = i;
+        mockWeapon.baseDmg *= 1.3;
+        mockWeapon.cd *= 0.9;
+
+        // Apply weapon-specific unique bonuses
+        const bonus = levels ? levels[i] : null;
+        if (bonus && bonus.apply) {
+          bonus.apply(mockWeapon);
+        }
+      }
+
+      const isCurrent = currentLevel === i;
+      const descLines = (i > 1 && levels && levels[i]) ? levels[i].desc.split('\n') : [];
 
       html += `
-        <div class="level-row ${currentLevel === i ? 'current' : ''}">
-          <div class="level-num">Level ${i}</div>
+        <div class="level-row ${isCurrent ? 'current' : ''}">
+          <div class="level-num">Level ${i}${isCurrent ? ' (Current)' : ''}</div>
           <div class="level-details">
-            <div class="level-bonus-prop">+30% Damage</div>
-            <div class="level-bonus-prop">-10% Cooldown</div>
-            ${descLines.map(line => `<div style="color:#06b6d4">${line}</div>`).join('')}
+            <div class="level-bonus-prop">Dmg: ${Math.round(mockWeapon.baseDmg)}</div>
+            <div class="level-bonus-prop">CD: ${(mockWeapon.cd / 60).toFixed(2)}s</div>
+            ${mockWeapon.projectileCount > 1 ? `<div>Projectiles: ${mockWeapon.projectileCount}</div>` : ''}
+            ${mockWeapon.pierce > 0 ? `<div>Pierce: ${mockWeapon.pierce}</div>` : ''}
+            ${mockWeapon.bounces > 0 ? `<div>Bounces: ${mockWeapon.bounces}</div>` : ''}
+            ${mockWeapon.explodeRadius > 0 ? `<div>Aoe: ${mockWeapon.explodeRadius}px</div>` : ''}
+            ${mockWeapon.splits ? `<div>Splits on hit</div>` : ''}
+            ${mockWeapon.trailDamage > 0 ? `<div>Trail Dmg: ${mockWeapon.trailDamage}</div>` : ''}
+            
+            ${descLines.length > 0 ? `
+              <div style="margin-top:4px; padding-top:4px; border-top:1px solid rgba(255,255,255,0.05); color:#06b6d4;">
+                ${descLines.map(line => `<div>NEW: ${line}</div>`).join('')}
+              </div>
+            ` : ''}
           </div>
         </div>
       `;

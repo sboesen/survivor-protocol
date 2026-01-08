@@ -1,5 +1,5 @@
 // Core type definitions for Survivor Protocol
-import type { Item } from '../items/types';
+import type { Item, ItemRarity, ItemType as LootItemType } from '../items/types';
 
 export interface Config {
   worldSize: number;
@@ -54,6 +54,13 @@ export interface Upgrade {
   damageMult?: number;
   cooldownMult?: number;
   projectileCount?: number;
+  explodeRadius?: number;
+  knockback?: number;
+  size?: number;
+  splits?: boolean;
+  trailDamage?: number;
+  coneLength?: number;
+  coneWidth?: number;
 }
 
 export type Upgrades = Record<string, Upgrade>;
@@ -67,6 +74,7 @@ export interface Weapon {
   range?: number;
   falloff?: number;
   bounces?: number;
+  pierce?: number;
   curCd: number;
   level: number;
   baseDmg: number;
@@ -97,6 +105,7 @@ export interface SaveGameData {
   ownedChars: string[];
   selectedChar: string;
   shop: ShopUpgrades;
+  shopInventory: ShopInventoryData;
   stash: Array<Item | null>;
   loadout: LoadoutData;
 }
@@ -118,6 +127,43 @@ export interface ShopUpgrades {
   magnet: number;
   safeSlotsCount: number;
   [key: string]: number;
+}
+
+export interface ShopItemListing {
+  item: Item | null; // null for veiled items
+  veiled: boolean;
+  rarity: ItemRarity;
+  type: LootItemType;
+  price: number;
+  listedAt: number;
+  expiresAt: number;
+}
+
+export interface ShopInventoryData {
+  items: ShopItemListing[];
+  gamblerItems: ShopItemListing[];
+  lastRefresh: number;
+  lastDailyRefresh: number;
+}
+
+export interface ExtractionZone {
+  x: number;
+  y: number;
+  radius: number;
+  spawnTime: number;
+  expiresAt: number;
+  active: boolean;
+  extractionProgress: number;
+  inZone: boolean;
+  enemiesSpawned: boolean;
+}
+
+export interface ExtractionState {
+  currentZone: ExtractionZone | null;
+  lastSpawnTime: number;
+  nextSpawnTime: number;
+  warningEndTime: number;
+  pendingZone: { x: number; y: number } | null;
 }
 
 export interface EnemyType {

@@ -670,7 +670,7 @@ class GameCore {
 
       // Handle aura separately (returns early)
       if (w.type === 'aura' && w.area) {
-        const result = fireWeapon('aura', w.id, { x: p.x, y: p.y }, this.enemies, w, dmg, isCrit, 1 + p.items.pierce, this.input.lastDx, this.input.lastDy, this.input.aimAngle, this.frames, p.items.projectile, projectileSpeedMult);
+        const result = fireWeapon('aura', w.id, { x: p.x, y: p.y }, this.enemies, w, dmg, isCrit, 1 + p.items.pierce + (w.pierce || 0), this.input.lastDx, this.input.lastDy, this.input.aimAngle, this.frames, p.items.projectile, projectileSpeedMult);
         if (result.fired && result.auraDamage) {
           p.auraAttackFrame = 0;
           const auraArea = applyAreaBonus(result.auraDamage.area, p.areaFlat, p.areaPercent);
@@ -684,7 +684,7 @@ class GameCore {
       }
 
       if (w.curCd <= 0) {
-        const result = fireWeapon(w.type, w.id, { x: p.x, y: p.y }, this.enemies, w, dmg, isCrit, 1 + p.items.pierce, this.input.lastDx, this.input.lastDy, this.input.aimAngle, this.frames, p.items.projectile, projectileSpeedMult);
+        const result = fireWeapon(w.type, w.id, { x: p.x, y: p.y }, this.enemies, w, dmg, isCrit, 1 + p.items.pierce + (w.pierce || 0), this.input.lastDx, this.input.lastDy, this.input.aimAngle, this.frames, p.items.projectile, projectileSpeedMult);
 
         if (result.fired) {
           // Create projectiles from result data
