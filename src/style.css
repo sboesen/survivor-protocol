@@ -1545,6 +1545,8 @@ canvas {
     gap: 4px;
     width: 100%;
     max-width: 100%;
+    max-height: none;
+    overflow: visible;
     box-sizing: border-box;
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
