@@ -1483,6 +1483,13 @@ canvas {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 4px 8px;
     padding: 4px 8px;
+    position: fixed;
+    bottom: 50px;
+    left: 0;
+    right: 0;
+    z-index: 90;
+    background: rgba(10, 8, 18, 0.95);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .loadout-summary .summary-item {
@@ -1498,14 +1505,7 @@ canvas {
   }
 
   .stash-footer {
-    position: fixed;
-    bottom: 50px;
-    left: 0;
-    right: 0;
-    z-index: 90;
-    background: rgba(10, 8, 18, 0.95);
-    padding: 4px 6px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: none;
   }
 
   .stash-footer button {
