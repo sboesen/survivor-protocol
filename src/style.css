@@ -1425,6 +1425,20 @@ canvas {
     padding-bottom: 200px;
   }
 
+  .inventory-panel {
+    background: rgba(5, 6, 12, 0.6);
+    border: 2px solid #2f3349;
+    border-radius: 0;
+    padding: 10px;
+  }
+
+  .stash-grid {
+    background: transparent;
+    border: none;
+    padding: 0;
+    gap: 6px;
+  }
+
   .loadout-grid {
     width: 100%;
     max-width: 320px;
