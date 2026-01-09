@@ -1410,19 +1410,18 @@ canvas {
   }
 
   .stash-layout {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 12px;
     flex: 1;
     min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .stash-panel {
-    flex: 1;
-    min-height: 0;
-    height: 100%;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    height: auto;
+    overflow: visible;
     padding-bottom: 200px;
   }
 
