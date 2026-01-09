@@ -1456,7 +1456,7 @@ canvas {
   .stash-slot {
     box-sizing: border-box;
     min-width: 0;
-    min-height: 70px;
+    min-height: 80px;
   }
 
   .stash-icon {
