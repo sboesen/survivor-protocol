@@ -2588,11 +2588,11 @@ button:disabled {
 .menu-actions-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  max-width: min(90vw, 900px);
+  gap: 8px;
+  max-width: calc(100vw - 20px);
   width: 100%;
   margin: 0 auto;
-  padding-bottom: 10px;
+  padding: 0 10px 10px;
   box-sizing: border-box;
 }
 
@@ -2605,14 +2605,15 @@ button:disabled {
 
 .btn-start,
 .btn-secondary {
-  aspect-ratio: 3.5 / 1;
+  aspect-ratio: 2.5 / 1;
   /* Equal rectangles, wider than tall */
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 6px;
-  gap: 3px;
+  padding: 6px 4px;
+  gap: 2px;
+  min-width: 0;
   background: linear-gradient(180deg, #334155, #1e293b);
   border: 1px solid #475569;
   border-top: 1px solid #94a3b8;
