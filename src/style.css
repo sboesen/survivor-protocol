@@ -1530,10 +1530,11 @@ canvas {
     border: 2px solid #2f3349;
     border-radius: 0;
     padding: 4px;
-    min-height: 100%;
+    min-height: auto;
+    height: auto;
     width: 100%;
     max-width: 100%;
-    overflow-x: hidden;
+    overflow: visible;
     box-sizing: border-box;
   }
 
