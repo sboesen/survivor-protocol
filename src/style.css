@@ -1443,8 +1443,7 @@ canvas {
   .stash-grid {
     grid-template-columns: repeat(6, minmax(0, 1fr));
     max-height: none;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow-y: visible;
   }
 
   .loadout-summary {
