@@ -1495,17 +1495,24 @@ canvas {
     height: 100vh;
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
     overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    background:
+      repeating-linear-gradient(135deg,
+        rgba(255, 255, 255, 0.03) 0 2px,
+        rgba(8, 10, 18, 0.03) 2px 6px),
+      radial-gradient(circle at 50% -5%, rgba(120, 49, 196, 0.18), transparent 60%),
+      linear-gradient(180deg, #0c0f1f 0%, #070912 50%, #000 100%);
   }
 
   .stash-layout {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    flex: 1;
+    flex: 0 0 auto;
     min-height: 0;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow: visible;
     width: 100%;
   }
 
@@ -1569,7 +1576,7 @@ canvas {
 
   /* Add padding so content isn't hidden behind fixed footers */
   .stash-layout {
-    padding-bottom: 100px;
+    padding-bottom: 130px;
   }
 
   /* Stats bar - fixed at bottom above salvage buttons, single compact row */
@@ -1609,36 +1616,54 @@ canvas {
     text-align: center;
   }
 
-  /* Hide stash footer (back button) on mobile - use swipe/tap to go back */
+  /* Back button at top-left corner on mobile */
   .stash-footer {
-    display: none;
+    display: block;
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    right: auto;
+    bottom: auto;
+    width: auto;
+    z-index: 120;
+    margin: 0;
+    padding: 0;
+    background: transparent;
   }
 
   .stash-footer button {
-    display: none;
+    display: block;
+    padding: 8px 12px;
+    font-size: 9px;
+    margin: 0;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid #666;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
   }
 
-  /* Salvage buttons panel - compact bar at very bottom */
+  /* Salvage buttons panel - compact bar at very bottom with black bg */
   .details-panel {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
     z-index: 100;
-    height: 56px;
-    max-height: 56px;
+    height: auto;
+    min-height: 56px;
+    max-height: 70px;
     overflow: hidden;
     border-top: 2px solid #f87171;
     box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5);
-    padding: 4px 4px;
+    padding: 6px 8px;
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
     border-radius: 0;
-    background: linear-gradient(180deg, rgba(25, 15, 35, 0.98), rgba(15, 8, 20, 0.98));
+    background: #000;
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
-    gap: 4px;
+    gap: 6px;
     align-items: stretch;
-    justify-content: stretch;
+    justify-content: center;
   }
 
   .details-panel .loadout-detail-title,
@@ -1652,14 +1677,15 @@ canvas {
 
   /* Salvage buttons - two-line layout for clarity */
   .details-panel .btn-salvage {
-    padding: 4px 2px;
+    padding: 6px 4px;
     font-size: 7px;
-    min-height: 48px;
-    height: 48px;
+    min-height: 44px;
+    height: 44px;
     margin: 0;
     box-shadow: 0 2px 0 #450a0a;
-    flex: 1;
-    min-width: 0;
+    flex: 0 1 auto;
+    min-width: 60px;
+    max-width: 80px;
     white-space: normal;
     overflow: hidden;
     display: flex;
