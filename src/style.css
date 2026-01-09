@@ -11,9 +11,18 @@
   --debug: #6366f1;
 }
 
+html {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
+  width: 100%;
+  max-width: 100vw;
   overflow: hidden;
+  overflow-x: hidden;
   background-color: var(--bg-color);
   color: var(--text);
   font-family: 'Press Start 2P', cursive;
@@ -2580,9 +2589,11 @@ button:disabled {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
-  max-width: 900px;
-  width: fit-content;
+  max-width: min(90vw, 900px);
+  width: 100%;
+  margin: 0 auto;
   padding-bottom: 10px;
+  box-sizing: border-box;
 }
 
 @media (min-width: 600px) {
