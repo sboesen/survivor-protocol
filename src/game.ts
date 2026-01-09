@@ -113,31 +113,6 @@ class GameCore {
   };
 
   timeFreeze = 0;
-  private viewport = { width: 0, height: 0, left: 0, top: 0 };
-
-  private updateViewport(): void {
-    const container = document.getElementById('game-container');
-    if (container) {
-      const rect = container.getBoundingClientRect();
-      this.viewport.width = rect.width || window.innerWidth;
-      this.viewport.height = rect.height || window.innerHeight;
-      this.viewport.left = rect.left;
-      this.viewport.top = rect.top;
-      return;
-    }
-
-    this.viewport.width = window.innerWidth;
-    this.viewport.height = window.innerHeight;
-    this.viewport.left = 0;
-    this.viewport.top = 0;
-  }
-
-  private getViewport(): { width: number; height: number; left: number; top: number } {
-    if (this.viewport.width === 0 || this.viewport.height === 0) {
-      this.updateViewport();
-    }
-    return this.viewport;
-  }
 
   async init(): Promise<void> {
     // Initialize Three.js renderer (async for image loading)
@@ -164,9 +139,8 @@ class GameCore {
     window.onmousemove = (e) => {
       if (!this.player) return;
       // Calculate angle from center of screen (player position) to mouse
-      const { width, height, left, top } = this.getViewport();
-      const centerX = left + width / 2;
-      const centerY = top + height / 2;
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
       this.input.aimAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
       // Deactivate aim joystick when using mouse
       this.input.aimJoy.active = false;
@@ -174,19 +148,17 @@ class GameCore {
 
     // Touch/joystick input - split into two zones
     const getCanvasPos = (clientX: number, clientY: number) => {
-      const { left, top } = this.getViewport();
       return {
-        x: clientX - left,
-        y: clientY - top,
+        x: clientX,
+        y: clientY,
       };
     };
     window.ontouchstart = (e) => {
       e.preventDefault();
       for (const touch of e.changedTouches) {
         const pos = getCanvasPos(touch.clientX, touch.clientY);
-        const { width } = this.getViewport();
-        const halfWidth = width / 2;
-        if (pos.x < halfWidth) {
+        const halfWidth = window.innerWidth / 2;
+        if (touch.clientX < halfWidth) {
           // Left side: movement joystick
           this.input.joy.active = true;
           this.input.joy.ox = pos.x;
@@ -203,9 +175,8 @@ class GameCore {
       e.preventDefault();
       for (const touch of e.changedTouches) {
         const pos = getCanvasPos(touch.clientX, touch.clientY);
-        const { width } = this.getViewport();
-        const halfWidth = width / 2;
-        if (pos.x < halfWidth) {
+        const halfWidth = window.innerWidth / 2;
+        if (touch.clientX < halfWidth) {
           // Left side: movement joystick
           if (!this.input.joy.active) continue;
           const dx = pos.x - this.input.joy.ox;
@@ -229,10 +200,8 @@ class GameCore {
     };
     window.ontouchend = (e) => {
       for (const touch of e.changedTouches) {
-        const pos = getCanvasPos(touch.clientX, touch.clientY);
-        const { width } = this.getViewport();
-        const halfWidth = width / 2;
-        if (pos.x < halfWidth) {
+        const halfWidth = window.innerWidth / 2;
+        if (touch.clientX < halfWidth) {
           // Left side: movement joystick
           this.input.joy.active = false;
           this.input.joy.x = 0;
@@ -251,8 +220,7 @@ class GameCore {
   }
 
   resize(): void {
-    this.updateViewport();
-    threeRenderer.resize(this.viewport.width, this.viewport.height);
+    threeRenderer.resize(window.innerWidth, window.innerHeight);
   }
 
   start(): void {
@@ -1336,7 +1304,6 @@ class GameCore {
 
     const p = this.player;
     const interpPlayer = this.getInterpolatedPosition(p, alpha);
-    const { width, height } = this.getViewport();
 
     // Render main scene with Three.js - passing actual entity objects
     threeRenderer.render(
@@ -1347,8 +1314,8 @@ class GameCore {
       this.fireballs,
       this.particles,
       this.obstacles,
-      width,
-      height,
+      window.innerWidth,
+      window.innerHeight,
       alpha,
       this.input.aimAngle,
       this.extractionState.currentZone
@@ -1373,8 +1340,8 @@ class GameCore {
         aimJoyOx: this.input.aimJoy.ox,
         aimJoyOy: this.input.aimJoy.oy,
       },
-      width,
-      height
+      window.innerWidth,
+      window.innerHeight
     );
   }
 
