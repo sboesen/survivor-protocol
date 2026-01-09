@@ -33,7 +33,8 @@ export interface MovementResult {
 export function getInputDirection(input: InputState): Direction {
   // If joystick is active, use it
   if (input.joy.active) {
-    return { dx: input.joy.x, dy: input.joy.y };
+    const joySpeedMult = 0.85; // Keep touch max speed in line with keyboard.
+    return { dx: input.joy.x * joySpeedMult, dy: input.joy.y * joySpeedMult };
   }
 
   // Otherwise use keyboard

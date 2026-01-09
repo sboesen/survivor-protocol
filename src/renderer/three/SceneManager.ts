@@ -9,6 +9,11 @@ export class SceneManager {
   camera: THREE.OrthographicCamera;
   renderer!: THREE.WebGLRenderer;
 
+  private getViewSize(width: number, height: number): number {
+    const baseViewSize = 350;
+    return height > width ? baseViewSize * 1.5 : baseViewSize;
+  }
+
   constructor() {
     // Scene with dark background color
     this.scene = new THREE.Scene();
@@ -16,7 +21,7 @@ export class SceneManager {
 
     // Orthographic camera for 2D rendering
     const aspect = window.innerWidth / window.innerHeight;
-    const viewSize = 350;
+    const viewSize = this.getViewSize(window.innerWidth, window.innerHeight);
     this.camera = new THREE.OrthographicCamera(
       -viewSize * aspect,
       viewSize * aspect,
@@ -82,7 +87,7 @@ export class SceneManager {
 
   resize(width: number, height: number): void {
     const aspect = width / height;
-    const viewSize = 350;
+    const viewSize = this.getViewSize(width, height);
     this.camera.left = -viewSize * aspect;
     this.camera.right = viewSize * aspect;
     this.camera.top = viewSize;
