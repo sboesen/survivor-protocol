@@ -1099,7 +1099,7 @@ canvas {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 36px 0 14px;
+  padding: -10px 0 14px;
   box-sizing: border-box;
   min-height: 420px;
 }
