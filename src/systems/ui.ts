@@ -7,6 +7,30 @@ import { Utils } from '../utils';
 import { wrapRelativePosition } from './movement';
 import type { Weapon, ExtractionState } from '../types';
 
+const AFFIX_LABELS: Record<ItemAffix['type'], string> = {
+  flatDamage: 'Damage',
+  percentDamage: 'Damage',
+  areaFlat: 'Area',
+  areaPercent: 'Area',
+  cooldownReduction: 'Cooldown Reduction',
+  projectiles: 'Projectiles',
+  pierce: 'Pierce',
+  duration: 'Duration',
+  speed: 'Speed',
+  projectileSpeed: 'Projectile Speed',
+  maxHp: 'Max HP',
+  armor: 'Armor',
+  hpRegen: 'HP Regen',
+  percentHealing: 'Healing',
+  magnet: 'Magnet',
+  luck: 'Luck',
+  percentGold: 'Gold',
+  pickupRadius: 'Pickup Radius',
+  percentXp: 'XP',
+  allStats: 'All Stats',
+  ricochetDamage: 'Ricochet Damage',
+};
+
 class UISystem {
   private cache: Record<string, HTMLElement | null> = {};
 
@@ -15,6 +39,273 @@ class UISystem {
       this.cache[id] = document.getElementById(id);
     }
     return this.cache[id];
+  }
+
+  private formatAffix(affix: ItemAffix): string {
+    const bracket = AFFIX_TIER_BRACKETS[affix.type]?.[affix.tier - 1];
+    const sign = affix.value >= 0 ? '+' : '';
+    const value = affix.isPercent ? `${affix.value}%` : `${affix.value}`;
+    const bracketSuffix = bracket
+      ? ` (${bracket.min}${affix.isPercent ? '%' : ''}-${bracket.max}${affix.isPercent ? '%' : ''})`
+      : '';
+    const label = AFFIX_LABELS[affix.type] ?? affix.type;
+    return `T${affix.tier} ${sign}${value} ${label}${bracketSuffix}`;
+  }
+
+  private formatImplicit(affix: ItemAffix): string {
+    const sign = affix.value >= 0 ? '+' : '';
+    const value = affix.isPercent ? `${affix.value}%` : `${affix.value}`;
+    const label = AFFIX_LABELS[affix.type] ?? affix.type;
+    return `Implicit: ${sign}${value} ${label}`;
+  }
+
+  private hideExtractTooltip(tooltip: HTMLElement | null): void {
+    if (!tooltip) return;
+    tooltip.innerHTML = '';
+    tooltip.className = 'extract-tooltip';
+    tooltip.style.display = 'none';
+  }
+
+  private positionExtractTooltip(tooltip: HTMLElement, event?: MouseEvent, anchor?: HTMLElement): void {
+    const width = tooltip.offsetWidth;
+    const height = tooltip.offsetHeight;
+    let x = 12;
+    let y = 12;
+
+    if (event) {
+      x = event.clientX + 12;
+      y = event.clientY + 12;
+    } else if (anchor) {
+      const rect = anchor.getBoundingClientRect();
+      x = rect.right + 12;
+      y = rect.top + 8;
+    }
+
+    const maxX = window.innerWidth - width - 8;
+    const maxY = window.innerHeight - height - 8;
+    if (x > maxX) x = maxX;
+    if (y > maxY) y = maxY;
+    if (x < 8) x = 8;
+    if (y < 8) y = 8;
+
+    tooltip.style.left = `${x}px`;
+    tooltip.style.top = `${y}px`;
+  }
+
+  private showExtractTooltip(item: Item, tooltip: HTMLElement, event?: MouseEvent, anchor?: HTMLElement): void {
+    tooltip.innerHTML = '';
+    tooltip.className = 'extract-tooltip';
+    if (item.type === 'relic') {
+      tooltip.classList.add('tooltip-relic');
+    } else {
+      tooltip.classList.add(`tooltip-${item.rarity}`);
+    }
+
+    const title = document.createElement('div');
+    title.className = 'loadout-detail-title';
+    title.textContent = item.name;
+
+    const meta = document.createElement('div');
+    meta.className = 'loadout-detail-meta';
+    meta.textContent = `${item.rarity.toUpperCase()} ${item.type.toUpperCase()}`;
+
+    const base = document.createElement('div');
+    base.className = 'loadout-detail-base';
+    base.textContent = `Base: ${item.baseName} (T${item.tier})`;
+
+    const stats = document.createElement('div');
+    stats.className = 'loadout-detail-stats';
+    const implicits = item.implicits ?? [];
+    if (implicits.length > 0) {
+      implicits.forEach(affix => {
+        const line = document.createElement('div');
+        line.className = 'affix-line implicit-line';
+        line.textContent = this.formatImplicit(affix);
+        stats.appendChild(line);
+      });
+    }
+    if (item.affixes.length > 0) {
+      item.affixes.forEach(affix => {
+        const line = document.createElement('div');
+        line.className = `affix-line tier-${affix.tier}`;
+        line.textContent = this.formatAffix(affix);
+        stats.appendChild(line);
+      });
+    } else if (implicits.length === 0) {
+      stats.textContent = 'No affixes.';
+    }
+
+    tooltip.appendChild(title);
+    tooltip.appendChild(meta);
+    tooltip.appendChild(base);
+    tooltip.appendChild(stats);
+    tooltip.style.display = 'block';
+    this.positionExtractTooltip(tooltip, event, anchor);
+  }
+
+  private setupLootReveal(options: {
+    items: Item[];
+    grid: HTMLElement;
+    tooltip: HTMLElement | null;
+    revealBtn: HTMLButtonElement | null;
+    continueBtn?: HTMLButtonElement | null;
+    onContinue?: () => void;
+    confettiLayer?: HTMLElement | null;
+  }): void {
+    const {
+      items,
+      grid,
+      tooltip,
+      revealBtn,
+      continueBtn,
+      onContinue,
+      confettiLayer,
+    } = options;
+
+    if (!revealBtn) return;
+
+    let revealed = false;
+    let confettiTriggered = false;
+    let activeTooltipId: string | null = null;
+
+    const hideTooltip = (): void => {
+      activeTooltipId = null;
+      this.hideExtractTooltip(tooltip);
+    };
+
+    const showTooltip = (item: Item, event?: MouseEvent, anchor?: HTMLElement): void => {
+      if (!tooltip) return;
+      activeTooltipId = item.id;
+      this.showExtractTooltip(item, tooltip, event, anchor);
+    };
+
+    const spawnConfetti = (): void => {
+      if (!confettiLayer) return;
+      confettiLayer.innerHTML = '';
+
+      const colors = ['#fbbf24', '#f97316', '#60a5fa', '#a855f7', '#22c55e'];
+      for (let i = 0; i < 36; i++) {
+        const piece = document.createElement('div');
+        piece.className = 'confetti-piece';
+        const size = 4 + Math.random() * 6;
+        piece.style.width = `${size}px`;
+        piece.style.height = `${size * 1.6}px`;
+        piece.style.left = `${Math.random() * 100}%`;
+        piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+        piece.style.animationDelay = `${Math.random() * 0.3}s`;
+        confettiLayer.appendChild(piece);
+      }
+
+      window.setTimeout(() => {
+        confettiLayer.innerHTML = '';
+      }, 2000);
+    };
+
+    grid.innerHTML = '';
+    grid.classList.remove('revealing');
+
+    if (items.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'loot-empty';
+      empty.textContent = 'No secured items.';
+      grid.appendChild(empty);
+      revealBtn.disabled = true;
+      revealBtn.classList.add('btn-disabled');
+      if (continueBtn) {
+        continueBtn.disabled = false;
+        continueBtn.classList.remove('btn-disabled');
+      }
+      hideTooltip();
+      return;
+    }
+
+    const itemButtons: HTMLButtonElement[] = [];
+    items.forEach((item, index) => {
+      const button = document.createElement('button');
+      button.className = `extract-item rarity-${item.rarity} ${item.type === 'relic' ? 'type-relic' : ''}`;
+      button.textContent = 'VEILED';
+
+      button.onmouseenter = (event) => {
+        if (!revealed) return;
+        showTooltip(item, event);
+      };
+      button.onmousemove = (event) => {
+        if (!revealed) return;
+        showTooltip(item, event);
+      };
+      button.onmouseleave = () => {
+        if (activeTooltipId === item.id) hideTooltip();
+      };
+      button.onfocus = () => {
+        if (!revealed) return;
+        showTooltip(item, undefined, button);
+      };
+      button.onblur = () => hideTooltip();
+      button.onclick = (event) => {
+        if (!revealed) return;
+        if (activeTooltipId === item.id) {
+          hideTooltip();
+          return;
+        }
+        showTooltip(item, event);
+        event.stopPropagation();
+      };
+
+      grid.appendChild(button);
+      itemButtons[index] = button;
+    });
+
+    if (continueBtn) {
+      continueBtn.disabled = true;
+      continueBtn.classList.add('btn-disabled');
+    }
+    revealBtn.disabled = false;
+    revealBtn.classList.remove('btn-disabled');
+
+    revealBtn.onclick = () => {
+      if (revealed) return;
+      revealed = true;
+      hideTooltip();
+      if (continueBtn) {
+        continueBtn.disabled = false;
+        continueBtn.classList.remove('btn-disabled');
+      }
+      revealBtn.disabled = true;
+      revealBtn.classList.add('btn-disabled');
+      grid.classList.add('revealing');
+
+      itemButtons.forEach((button, index) => {
+        const item = items[index];
+        const delay = index * 80;
+        button.classList.add('unveiling');
+        window.setTimeout(() => {
+          button.classList.add('revealed');
+          button.innerHTML = `
+            ${item.type === 'relic' ? '<span class="extract-badge">★</span>' : ''}
+            <span class="extract-item-name">${item.name}</span>
+            <span class="extract-item-meta">${item.rarity.toUpperCase()} ${item.type.toUpperCase()}</span>
+          `;
+          button.classList.remove('unveiling');
+        }, delay);
+      });
+
+      if (!confettiTriggered && confettiLayer) {
+        const hasGoodLoot = items.some(item => item.type === 'relic' || item.rarity === 'rare' || item.rarity === 'legendary');
+        if (hasGoodLoot) {
+          confettiTriggered = true;
+          spawnConfetti();
+        }
+      }
+    };
+
+    if (continueBtn && onContinue) {
+      continueBtn.onclick = () => {
+        hideTooltip();
+        onContinue();
+      };
+    }
+
+    hideTooltip();
   }
 
   updateHud(
@@ -263,7 +554,8 @@ class UISystem {
     goldRun: number,
     mins: number,
     kills: number,
-    bossKills: number
+    bossKills: number,
+    securedItems: Item[] = []
   ): void {
     const survivalBonus = Math.floor(goldRun * (mins * 0.2));
     const killBonus = Math.floor(kills / 100) * 50;
@@ -291,6 +583,37 @@ class UISystem {
       `;
     }
 
+    const lootSection = this.getEl('go-loot');
+    const lootGrid = this.getEl('go-loot-grid');
+    const revealBtn = this.getEl('go-reveal-btn') as HTMLButtonElement | null;
+    const tooltip = this.getEl('extract-tooltip');
+
+    if (!success && lootSection && lootGrid) {
+      if (securedItems.length > 0) {
+        lootSection.classList.add('active');
+        this.setupLootReveal({
+          items: securedItems,
+          grid: lootGrid,
+          tooltip,
+          revealBtn,
+        });
+      } else {
+        lootSection.classList.remove('active');
+        lootGrid.innerHTML = '';
+        if (revealBtn) {
+          revealBtn.disabled = true;
+          revealBtn.classList.add('btn-disabled');
+        }
+      }
+    } else if (lootSection) {
+      lootSection.classList.remove('active');
+      if (lootGrid) lootGrid.innerHTML = '';
+      if (revealBtn) {
+        revealBtn.disabled = true;
+        revealBtn.classList.add('btn-disabled');
+      }
+    }
+
     const screen = this.getEl('gameover-screen');
     if (screen) screen.classList.add('active');
   }
@@ -301,244 +624,23 @@ class UISystem {
     const revealBtn = this.getEl('extract-reveal-btn') as HTMLButtonElement | null;
     const continueBtn = this.getEl('extract-continue-btn') as HTMLButtonElement | null;
     const tooltip = this.getEl('extract-tooltip');
+    const confettiLayer = this.getEl('extract-confetti');
 
     if (screen) screen.classList.add('active');
-    if (!grid || !revealBtn || !continueBtn) return;
+    if (!grid) return;
 
-    let revealed = false;
-    let confettiTriggered = false;
-
-    const formatAffix = (affix: ItemAffix): string => {
-      const labels: Record<ItemAffix['type'], string> = {
-        flatDamage: 'Damage',
-        percentDamage: 'Damage',
-        areaFlat: 'Area',
-        areaPercent: 'Area',
-        cooldownReduction: 'Cooldown Reduction',
-        projectiles: 'Projectiles',
-        pierce: 'Pierce',
-        duration: 'Duration',
-        speed: 'Speed',
-        projectileSpeed: 'Projectile Speed',
-        maxHp: 'Max HP',
-        armor: 'Armor',
-        hpRegen: 'HP Regen',
-        percentHealing: 'Healing',
-        magnet: 'Magnet',
-        luck: 'Luck',
-        percentGold: 'Gold',
-        pickupRadius: 'Pickup Radius',
-        percentXp: 'XP',
-        allStats: 'All Stats',
-        ricochetDamage: 'Ricochet Damage',
-      };
-      const bracket = AFFIX_TIER_BRACKETS[affix.type]?.[affix.tier - 1];
-      const sign = affix.value >= 0 ? '+' : '';
-      const value = affix.isPercent ? `${affix.value}%` : `${affix.value}`;
-      const bracketSuffix = bracket
-        ? ` (${bracket.min}${affix.isPercent ? '%' : ''}-${bracket.max}${affix.isPercent ? '%' : ''})`
-        : '';
-      return `T${affix.tier} ${sign}${value} ${labels[affix.type] ?? affix.type}${bracketSuffix}`;
-    };
-
-    const formatImplicit = (affix: ItemAffix): string => {
-      const labels: Record<ItemAffix['type'], string> = {
-        flatDamage: 'Damage',
-        percentDamage: 'Damage',
-        areaFlat: 'Area',
-        areaPercent: 'Area',
-        cooldownReduction: 'Cooldown Reduction',
-        projectiles: 'Projectiles',
-        pierce: 'Pierce',
-        duration: 'Duration',
-        speed: 'Speed',
-        projectileSpeed: 'Projectile Speed',
-        maxHp: 'Max HP',
-        armor: 'Armor',
-        hpRegen: 'HP Regen',
-        percentHealing: 'Healing',
-        magnet: 'Magnet',
-        luck: 'Luck',
-        percentGold: 'Gold',
-        pickupRadius: 'Pickup Radius',
-        percentXp: 'XP',
-        allStats: 'All Stats',
-        ricochetDamage: 'Ricochet Damage',
-      };
-      const sign = affix.value >= 0 ? '+' : '';
-      const value = affix.isPercent ? `${affix.value}%` : `${affix.value}`;
-      return `Implicit: ${sign}${value} ${labels[affix.type] ?? affix.type}`;
-    };
-
-    const hideTooltip = (): void => {
-      if (!tooltip) return;
-      tooltip.innerHTML = '';
-      tooltip.className = 'extract-tooltip';
-      tooltip.style.display = 'none';
-    };
-
-    const showTooltip = (item: Item, event?: MouseEvent): void => {
-      if (!tooltip) return;
-      tooltip.innerHTML = '';
-      tooltip.className = 'extract-tooltip';
-      if (item.type === 'relic') {
-        tooltip.classList.add('tooltip-relic');
-      } else {
-        tooltip.classList.add(`tooltip-${item.rarity}`);
-      }
-
-      const title = document.createElement('div');
-      title.className = 'loadout-detail-title';
-      title.textContent = item.name;
-
-      const meta = document.createElement('div');
-      meta.className = 'loadout-detail-meta';
-      meta.textContent = `${item.rarity.toUpperCase()} ${item.type.toUpperCase()}`;
-
-      const base = document.createElement('div');
-      base.className = 'loadout-detail-base';
-      base.textContent = `Base: ${item.baseName} (T${item.tier})`;
-
-      const stats = document.createElement('div');
-      stats.className = 'loadout-detail-stats';
-      const implicits = item.implicits ?? [];
-      if (implicits.length > 0) {
-        implicits.forEach(affix => {
-          const line = document.createElement('div');
-          line.className = 'affix-line implicit-line';
-          line.textContent = formatImplicit(affix);
-          stats.appendChild(line);
-        });
-      }
-      if (item.affixes.length > 0) {
-        item.affixes.forEach(affix => {
-          const line = document.createElement('div');
-          line.className = `affix-line tier-${affix.tier}`;
-          line.textContent = formatAffix(affix);
-          stats.appendChild(line);
-        });
-      } else if (implicits.length === 0) {
-        stats.textContent = 'No affixes.';
-      }
-
-      tooltip.appendChild(title);
-      tooltip.appendChild(meta);
-      tooltip.appendChild(base);
-      tooltip.appendChild(stats);
-      tooltip.style.display = 'block';
-
-      if (event) {
-        const width = tooltip.offsetWidth;
-        const height = tooltip.offsetHeight;
-        let x = event.clientX + 12;
-        let y = event.clientY + 12;
-        const maxX = window.innerWidth - width - 8;
-        const maxY = window.innerHeight - height - 8;
-        if (x > maxX) x = maxX;
-        if (y > maxY) y = maxY;
-        if (x < 8) x = 8;
-        if (y < 8) y = 8;
-        tooltip.style.left = `${x}px`;
-        tooltip.style.top = `${y}px`;
-      }
-    };
-
-    grid.innerHTML = '';
-    grid.classList.remove('revealing');
-
-    const itemButtons: HTMLButtonElement[] = [];
-    items.forEach((item, index) => {
-      const button = document.createElement('button');
-      button.className = `extract-item rarity-${item.rarity} ${item.type === 'relic' ? 'type-relic' : ''}`;
-      button.textContent = 'VEILED';
-
-      button.onmouseenter = (event) => {
-        if (!revealed) return;
-        showTooltip(item, event);
-      };
-      button.onmousemove = (event) => {
-        if (!revealed) return;
-        showTooltip(item, event);
-      };
-      button.onmouseleave = () => hideTooltip();
-      button.onfocus = () => {
-        if (!revealed) return;
-        showTooltip(item);
-      };
-      button.onblur = () => hideTooltip();
-
-      grid.appendChild(button);
-      itemButtons[index] = button;
+    this.setupLootReveal({
+      items,
+      grid,
+      tooltip,
+      revealBtn,
+      continueBtn: continueBtn ?? undefined,
+      onContinue: () => {
+        this.hideExtractionScreen();
+        onContinue();
+      },
+      confettiLayer: confettiLayer ?? undefined,
     });
-
-    continueBtn.disabled = true;
-    continueBtn.classList.add('btn-disabled');
-    revealBtn.disabled = false;
-    revealBtn.classList.remove('btn-disabled');
-
-    const spawnConfetti = (): void => {
-      const confettiLayer = this.getEl('extract-confetti');
-      if (!confettiLayer) return;
-      confettiLayer.innerHTML = '';
-
-      const colors = ['#fbbf24', '#f97316', '#60a5fa', '#a855f7', '#22c55e'];
-      for (let i = 0; i < 36; i++) {
-        const piece = document.createElement('div');
-        piece.className = 'confetti-piece';
-        const size = 4 + Math.random() * 6;
-        piece.style.width = `${size}px`;
-        piece.style.height = `${size * 1.6}px`;
-        piece.style.left = `${Math.random() * 100}%`;
-        piece.style.background = colors[Math.floor(Math.random() * colors.length)];
-        piece.style.animationDelay = `${Math.random() * 0.3}s`;
-        confettiLayer.appendChild(piece);
-      }
-
-      window.setTimeout(() => {
-        confettiLayer.innerHTML = '';
-      }, 2000);
-    };
-
-    revealBtn.onclick = () => {
-      if (revealed) return;
-      revealed = true;
-      hideTooltip();
-      continueBtn.disabled = false;
-      continueBtn.classList.remove('btn-disabled');
-      revealBtn.disabled = true;
-      revealBtn.classList.add('btn-disabled');
-      grid.classList.add('revealing');
-
-      itemButtons.forEach((button, index) => {
-        const item = items[index];
-        const delay = index * 80;
-        button.classList.add('unveiling');
-        window.setTimeout(() => {
-          button.classList.add('revealed');
-          button.innerHTML = `
-            ${item.type === 'relic' ? '<span class="extract-badge">★</span>' : ''}
-            <span class="extract-item-name">${item.name}</span>
-            <span class="extract-item-meta">${item.rarity.toUpperCase()} ${item.type.toUpperCase()}</span>
-          `;
-          button.classList.remove('unveiling');
-        }, delay);
-      });
-
-      if (!confettiTriggered) {
-        const hasGoodLoot = items.some(item => item.type === 'relic' || item.rarity === 'rare' || item.rarity === 'legendary');
-        if (hasGoodLoot) {
-          confettiTriggered = true;
-          spawnConfetti();
-        }
-      }
-    };
-
-    continueBtn.onclick = () => {
-      this.hideExtractionScreen();
-      onContinue();
-    };
-
-    hideTooltip();
   }
 
   hideExtractionScreen(): void {

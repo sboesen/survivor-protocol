@@ -2110,12 +2110,14 @@ void main() {
       aimJoyY: number;
       aimJoyOx: number;
       aimJoyOy: number;
-    }
+    },
+    width: number,
+    height: number
   ): void {
     if (!this.uiCamera || !this.uiScene) return;
 
-    const cw = window.innerWidth;
-    const ch = window.innerHeight;
+    const cw = width;
+    const ch = height;
 
     // Update health bar
     this.renderHealthBar(playerHp, playerMaxHp, playerX, playerY, cw, ch);
