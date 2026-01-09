@@ -1456,6 +1456,12 @@ canvas {
   .stash-slot {
     box-sizing: border-box;
     min-width: 0;
+    min-height: 70px;
+  }
+
+  .stash-icon {
+    width: 40px;
+    height: 40px;
   }
 
   .loadout-grid {
@@ -1475,17 +1481,30 @@ canvas {
 
   .loadout-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px 16px;
+    gap: 6px 10px;
+    padding: 8px 12px;
+  }
+
+  .loadout-summary .summary-item {
+    gap: 4px;
+  }
+
+  .loadout-summary .summary-label {
+    font-size: 7px;
+  }
+
+  .loadout-summary .summary-value {
+    font-size: 8px;
   }
 
   .stash-footer {
     position: fixed;
-    bottom: 64px;
+    bottom: 50px;
     left: 0;
     right: 0;
     z-index: 90;
     background: rgba(10, 8, 18, 0.95);
-    padding: 8px;
+    padding: 4px 6px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
   }
 
@@ -1500,17 +1519,17 @@ canvas {
     right: 0;
     z-index: 100;
     height: auto;
-    max-height: 64px;
+    max-height: 50px;
     overflow-y: auto;
     border-top: 3px solid #f87171;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
     -webkit-overflow-scrolling: touch;
-    padding: 4px 8px;
-    border-radius: 12px 12px 0 0;
+    padding: 3px 6px;
+    border-radius: 8px 8px 0 0;
     background: rgba(10, 8, 18, 0.98);
     display: flex;
     flex-wrap: nowrap;
-    gap: 4px;
+    gap: 3px;
     align-items: center;
     justify-content: space-between;
   }
