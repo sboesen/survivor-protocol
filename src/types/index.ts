@@ -115,6 +115,7 @@ export interface SaveGameData {
 
 export interface LoadoutData {
   relic: Item | null;
+  offhand: Item | null;
   weapon: Item | null;
   helm: Item | null;
   armor: Item | null;

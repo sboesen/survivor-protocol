@@ -145,4 +145,14 @@ export const AFFIX_POOLS: Record<ItemType, AffixDefinition[]> = {
     { type: 'projectileSpeed', weight: 45, tiers: [...affixValues.projectileSpeed], isPercent: true },
     { type: 'ricochetDamage', weight: 35, tiers: [...affixValues.ricochetDamage], isPercent: true },
   ],
+  offhand: [
+    { type: 'projectileSpeed', weight: 100, tiers: [...affixValues.projectileSpeed], isPercent: true },
+    { type: 'pierce', weight: 80, tiers: [...affixValues.pierce] },
+    { type: 'projectiles', weight: 50, tiers: [...affixValues.projectiles] },
+    { type: 'ricochetDamage', weight: 70, tiers: [...affixValues.ricochetDamage], isPercent: true },
+    { type: 'cooldownReduction', weight: 60, tiers: [...affixValues.cooldownReduction], isPercent: true },
+    { type: 'flatDamage', weight: 40, tiers: [...affixValues.flatDamage] },
+    { type: 'percentDamage', weight: 35, tiers: [...affixValues.percentDamage], isPercent: true },
+    { type: 'duration', weight: 45, tiers: [...affixValues.duration] },
+  ],
 };

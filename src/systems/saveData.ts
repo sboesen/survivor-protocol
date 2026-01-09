@@ -29,6 +29,7 @@ const createDefaultSaveData = (): SaveGameData => ({
   stash: new Stash().toJSON(),
   loadout: {
     relic: null,
+    offhand: null,
     weapon: null,
     helm: null,
     armor: null,
@@ -80,6 +81,7 @@ class SaveDataSystem {
           stash: Stash.fromJSON(parsed.stash).toJSON(),
           loadout: {
             relic: parsed.loadout?.relic ?? null,
+            offhand: parsed.loadout?.offhand ?? null,
             weapon: parsed.loadout?.weapon ?? null,
             helm: parsed.loadout?.helm ?? null,
             armor: parsed.loadout?.armor ?? null,

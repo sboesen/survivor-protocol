@@ -14,6 +14,7 @@ const ITEM_TYPE_WEIGHTS: Record<ItemType, number> = {
   armor: 1,
   accessory: 1,
   relic: 0,
+  offhand: 0.5,
 };
 
 export function calculateDropChance(

@@ -36,6 +36,7 @@ describe('ItemStats.calculate', () => {
 
     const loadout: LoadoutData = {
       relic: null,
+      offhand: null,
       weapon,
       helm: null,
       armor: null,

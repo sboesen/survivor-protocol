@@ -114,7 +114,6 @@ export class ThreeRenderer {
       this.uiCamera.right = width / 2;
       this.uiCamera.top = height / 2;
       this.uiCamera.bottom = -height / 2;
-      this.uiCamera.scale.y = -1; // Preserve Y-flip
       this.uiCamera.updateProjectionMatrix();
     }
   }
@@ -133,7 +132,7 @@ export class ThreeRenderer {
       100
     );
     this.uiCamera.position.z = 100;
-    this.uiCamera.scale.y = -1; // Flip Y to match main camera
+    // Note: No Y-flip needed for UI camera - we handle coordinate conversion in screenToUI
 
 
     // Create health bar group
@@ -2144,8 +2143,9 @@ void main() {
     const screenPos = this.cameraController.worldToScreen(playerX, playerY, _cw, ch);
 
     // Position health bar below player sprite (player is ~30px tall)
+    // Convert from screen coords where Y increases downward to UI coords where Y increases upward
     const barX = screenPos.x - _cw / 2;
-    const barY = screenPos.y - ch / 2 - 25;
+    const barY = ch / 2 - screenPos.y - 25; // Below player in screen space means lower Y in UI space
 
     const barWidth = 30;
     const barHeight = 4;
@@ -2198,7 +2198,7 @@ void main() {
 
     // Convert screen coordinates to UI camera coordinates
     // Screen: (0,0) is top-left, Y increases downward
-    // UI Camera: (0,0) is center, Y increases upward
+    // UI Camera: (0,0) is center, Y increases upward (standard OpenGL convention)
     const screenToUI = (screenX: number, screenY: number) => ({
       x: screenX - cw / 2,
       y: ch / 2 - screenY,

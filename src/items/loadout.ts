@@ -5,6 +5,7 @@ export type LoadoutSlotId = keyof LoadoutData;
 
 export const LOADOUT_SLOT_ORDER: LoadoutSlotId[] = [
   'relic',
+  'offhand',
   'weapon',
   'helm',
   'armor',
@@ -14,7 +15,8 @@ export const LOADOUT_SLOT_ORDER: LoadoutSlotId[] = [
 ];
 
 export const LOADOUT_SLOT_LABELS: Record<LoadoutSlotId, string> = {
-  relic: 'Offhand',
+  relic: 'Relic',
+  offhand: 'Offhand',
   weapon: 'Weapon',
   helm: 'Helm',
   armor: 'Armor',
@@ -25,6 +27,7 @@ export const LOADOUT_SLOT_LABELS: Record<LoadoutSlotId, string> = {
 
 export const LOADOUT_SLOT_TYPES: Record<LoadoutSlotId, ItemType | 'relic'> = {
   relic: 'relic',
+  offhand: 'offhand',
   weapon: 'weapon',
   helm: 'helm',
   armor: 'armor',
@@ -36,6 +39,7 @@ export const LOADOUT_SLOT_TYPES: Record<LoadoutSlotId, ItemType | 'relic'> = {
 export function createEmptyLoadout(): LoadoutData {
   return {
     relic: null,
+    offhand: null,
     weapon: null,
     helm: null,
     armor: null,

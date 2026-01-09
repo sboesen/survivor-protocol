@@ -1,4 +1,4 @@
-export type ItemType = 'weapon' | 'helm' | 'armor' | 'accessory' | 'relic';
+export type ItemType = 'weapon' | 'helm' | 'armor' | 'accessory' | 'relic' | 'offhand';
 
 export type ItemRarity = 'common' | 'magic' | 'rare' | 'legendary' | 'corrupted';
 

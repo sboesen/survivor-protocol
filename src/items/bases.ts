@@ -227,6 +227,47 @@ export const ITEM_BASES: ItemBase[] = [
     implicits: [{ type: 'allStats', tier: 1, value: 3, isPercent: true }],
     tint: relicTint,
   },
+  // Offhand items - quivers and orbs
+  {
+    id: 'leather_quiver',
+    name: 'Leather Quiver',
+    type: 'offhand',
+    tier: 1,
+    implicits: [{ type: 'projectileSpeed', tier: 1, value: 5, isPercent: true }],
+    tint: '#22c55e',
+  },
+  {
+    id: 'hunters_quiver',
+    name: "Hunter's Quiver",
+    type: 'offhand',
+    tier: 2,
+    implicits: [{ type: 'projectileSpeed', tier: 1, value: 10, isPercent: true }],
+    tint: '#22c55e',
+  },
+  {
+    id: 'rangers_quiver',
+    name: "Ranger's Quiver",
+    type: 'offhand',
+    tier: 3,
+    implicits: [{ type: 'projectileSpeed', tier: 1, value: 15, isPercent: true }],
+    tint: '#22c55e',
+  },
+  {
+    id: 'piercing_quiver',
+    name: 'Piercing Quiver',
+    type: 'offhand',
+    tier: 4,
+    implicits: [{ type: 'pierce', tier: 1, value: 1 }],
+    tint: '#22c55e',
+  },
+  {
+    id: 'ethereal_orb',
+    name: 'Ethereal Orb',
+    type: 'offhand',
+    tier: 5,
+    implicits: [{ type: 'projectiles', tier: 1, value: 1 }],
+    tint: '#22c55e',
+  },
 ];
 
 const BASES_BY_TYPE = ITEM_BASES.reduce<Record<ItemType, ItemBase[]>>((acc, base) => {

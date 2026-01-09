@@ -59,6 +59,7 @@ describe('Player Stats - allStats Calculations', () => {
       const item = createAllStatsItem(3);
       const loadout = {
         relic: null,
+        offhand: null,
         weapon: item,
         helm: null,
         armor: null,
@@ -100,6 +101,7 @@ describe('Player Stats - allStats Calculations', () => {
       const item = createAllStatsItem(5);
       const loadout = {
         relic: null,
+        offhand: null,
         weapon: item,
         helm: null,
         armor: null,
@@ -118,6 +120,7 @@ describe('Player Stats - allStats Calculations', () => {
       const item = createAllStatsItem(10);
       const loadout = {
         relic: null,
+        offhand: null,
         weapon: item,
         helm: null,
         armor: null,
@@ -137,6 +140,7 @@ describe('Player Stats - allStats Calculations', () => {
       const item = createAllStatsItem(15);
       const loadout = {
         relic: null,
+        offhand: null,
         weapon: item,
         helm: null,
         armor: null,
@@ -172,6 +176,7 @@ describe('Player Stats - allStats Calculations', () => {
       };
       const loadout = {
         relic: null,
+        offhand: null,
         weapon: item,
         helm: null,
         armor: null,
@@ -204,6 +209,7 @@ describe('Player Stats - allStats Calculations', () => {
       };
       const loadout = {
         relic: null,
+        offhand: null,
         weapon: null,
         helm: null,
         armor: null,
@@ -236,6 +242,7 @@ describe('Player Stats - allStats Calculations', () => {
       };
       const loadout = {
         relic: null,
+        offhand: null,
         weapon: null,
         helm: item,
         armor: null,
@@ -257,6 +264,7 @@ describe('Player Stats - allStats Calculations', () => {
       const item2 = createAllStatsItem(3);
       const loadout = {
         relic: null,
+        offhand: null,
         weapon: item1,
         helm: item2,
         armor: null,
@@ -294,6 +302,7 @@ describe('Player Stats - allStats Calculations', () => {
       const item = createRarityItem('common', 5);
       const loadout = {
         relic: null,
+        offhand: null,
         weapon: item,
         helm: null,
         armor: null,
@@ -311,6 +320,7 @@ describe('Player Stats - allStats Calculations', () => {
       const item = createRarityItem('magic', 5);
       const loadout = {
         relic: null,
+        offhand: null,
         weapon: item,
         helm: null,
         armor: null,
@@ -328,6 +338,7 @@ describe('Player Stats - allStats Calculations', () => {
       const item = createRarityItem('rare', 10);
       const loadout = {
         relic: null,
+        offhand: null,
         weapon: item,
         helm: null,
         armor: null,
@@ -345,6 +356,7 @@ describe('Player Stats - allStats Calculations', () => {
       const item = createRarityItem('legendary', 15);
       const loadout = {
         relic: null,
+        offhand: null,
         weapon: item,
         helm: null,
         armor: null,
@@ -364,6 +376,7 @@ describe('Player Stats - allStats Calculations', () => {
       const item = createAllStatsItem(0);
       const loadout = {
         relic: null,
+        offhand: null,
         weapon: item,
         helm: null,
         armor: null,
@@ -396,6 +409,7 @@ describe('Player Stats - allStats Calculations', () => {
       };
       const loadout = {
         relic: null,
+        offhand: null,
         weapon: item,
         helm: null,
         armor: null,
@@ -432,6 +446,7 @@ describe('Player Stats - allStats Calculations', () => {
       };
       const loadout = {
         relic: null,
+        offhand: null,
         weapon: null,
         helm: null,
         armor: null,
@@ -464,6 +479,7 @@ describe('Player Stats - allStats Calculations', () => {
       };
       const loadout = {
         relic: null,
+        offhand: null,
         weapon: item,
         helm: null,
         armor: null,
@@ -496,6 +512,7 @@ describe('Player Stats - allStats Calculations', () => {
       };
       const loadout = {
         relic: null,
+        offhand: null,
         weapon: item,
         helm: null,
         armor: null,
@@ -528,6 +545,7 @@ describe('Player Stats - allStats Calculations', () => {
       };
       const loadout = {
         relic: null,
+        offhand: null,
         weapon: null,
         helm: null,
         armor: item,
@@ -560,6 +578,7 @@ describe('Player Stats - allStats Calculations', () => {
       };
       const loadout = {
         relic: null,
+        offhand: null,
         weapon: null,
         helm: null,
         armor: null,

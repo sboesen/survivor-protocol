@@ -22,7 +22,7 @@ describe('drops', () => {
   });
 
   it('should roll a valid item type', () => {
-    const types = new Set(['weapon', 'helm', 'armor', 'accessory']);
+    const types = new Set(['weapon', 'helm', 'armor', 'accessory', 'offhand']);
     const rolled = rollItemType(() => 0.1);
     expect(types.has(rolled)).toBe(true);
   });

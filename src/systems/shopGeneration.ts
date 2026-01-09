@@ -86,6 +86,6 @@ function rollRarity(): ItemRarity {
 }
 
 function randomItemType(): ItemType {
-  const types: ItemType[] = ['weapon', 'helm', 'armor', 'accessory', 'relic'];
+  const types: ItemType[] = ['weapon', 'helm', 'armor', 'accessory', 'relic', 'offhand'];
   return types[Math.floor(Math.random() * types.length)];
 }
