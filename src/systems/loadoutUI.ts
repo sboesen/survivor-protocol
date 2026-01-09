@@ -289,9 +289,9 @@ class LoadoutUISystem {
     const commonCount = stash.filter(s => s?.rarity === 'common').length;
     const magicCount = stash.filter(s => s?.rarity === 'magic').length;
 
-    this.createBulkButton(container, isMobile ? 'SALVAGE C' : 'SALVAGE ALL COMMONS', ['common'], commonCount);
-    this.createBulkButton(container, isMobile ? 'SALVAGE M' : 'SALVAGE ALL MAGIC', ['magic'], magicCount);
-    this.createBulkButton(container, isMobile ? 'C+M' : 'SALVAGE LOW-TIER (C+M)', ['common', 'magic'], commonCount + magicCount);
+    this.createBulkButton(container, isMobile ? 'SALVAGE\nCOMMON' : 'SALVAGE ALL COMMONS', ['common'], commonCount);
+    this.createBulkButton(container, isMobile ? 'SALVAGE\nMAGIC' : 'SALVAGE ALL MAGIC', ['magic'], magicCount);
+    this.createBulkButton(container, isMobile ? 'SALVAGE\nC+M' : 'SALVAGE LOW-TIER (C+M)', ['common', 'magic'], commonCount + magicCount);
 
     const separator = document.createElement('div');
     separator.className = 'forge-separator';
@@ -305,7 +305,7 @@ class LoadoutUISystem {
     manualSalvageBtn.style.marginTop = '10px';
     manualSalvageBtn.innerHTML = `
       <span class="btn-icon">🔨</span>
-      <span class="btn-text">${this.isSalvageMode ? (isMobile ? 'X' : 'CANCEL SALVAGE') : (isMobile ? '⚡' : 'MANUAL SALVAGE')}</span>
+      <span class="btn-text">${this.isSalvageMode ? (isMobile ? 'CANCEL' : 'CANCEL SALVAGE') : (isMobile ? 'TAP TO\nSALVAGE' : 'MANUAL SALVAGE')}</span>
     `;
     if (this.isSalvageMode) {
       manualSalvageBtn.style.background = 'rgba(255, 100, 100, 0.3)';
@@ -341,7 +341,13 @@ class LoadoutUISystem {
 
     const text = document.createElement('span');
     text.className = 'btn-text';
-    text.textContent = `${label} (${count})`;
+    // Support multi-line labels by splitting on newlines
+    const lines = label.split('\n');
+    if (lines.length > 1) {
+      text.innerHTML = lines.map(l => `<span>${l}</span>`).join('') + ` <span class="btn-count">(${count})</span>`;
+    } else {
+      text.textContent = `${label} (${count})`;
+    }
     btn.appendChild(text);
 
     const start = (e: Event) => {
