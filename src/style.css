@@ -1450,6 +1450,7 @@ canvas {
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .stash-slot {
