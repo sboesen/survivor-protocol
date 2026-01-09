@@ -1417,12 +1417,16 @@ canvas {
     min-height: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    width: 100%;
+    max-width: 100%;
   }
 
   .stash-panel {
     height: auto;
     overflow: visible;
     padding-bottom: 200px;
+    width: 100%;
+    max-width: 100%;
   }
 
   .inventory-panel {
@@ -1431,6 +1435,9 @@ canvas {
     border-radius: 0;
     padding: 10px;
     min-height: 100%;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
   }
 
   .stash-grid {
@@ -1438,6 +1445,9 @@ canvas {
     border: none;
     padding: 0;
     gap: 6px;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
   }
 
   .loadout-grid {
