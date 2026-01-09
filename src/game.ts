@@ -1332,9 +1332,13 @@ class GameCore {
         joyActive: this.input.joy.active,
         joyX: this.input.joy.x,
         joyY: this.input.joy.y,
+        joyOx: this.input.joy.ox,
+        joyOy: this.input.joy.oy,
         aimJoyActive: this.input.aimJoy.active,
         aimJoyX: this.input.aimJoy.x,
         aimJoyY: this.input.aimJoy.y,
+        aimJoyOx: this.input.aimJoy.ox,
+        aimJoyOy: this.input.aimJoy.oy,
       }
     );
   }

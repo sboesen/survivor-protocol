@@ -2104,9 +2104,13 @@ void main() {
       joyActive: boolean;
       joyX: number;
       joyY: number;
+      joyOx: number;
+      joyOy: number;
       aimJoyActive: boolean;
       aimJoyX: number;
       aimJoyY: number;
+      aimJoyOx: number;
+      aimJoyOy: number;
     }
   ): void {
     if (!this.uiCamera || !this.uiScene) return;
@@ -2179,22 +2183,35 @@ void main() {
     joyActive: boolean;
     joyX: number;
     joyY: number;
+    joyOx: number;
+    joyOy: number;
     aimJoyActive: boolean;
     aimJoyX: number;
     aimJoyY: number;
+    aimJoyOx: number;
+    aimJoyOy: number;
   }, cw: number, ch: number): void {
     if (!this.joyGroup || !this.aimJoyGroup) return;
 
     const joyRadius = 50;
     const knobRadius = 20;
 
-    // Movement joystick (left)
+    // Convert screen coordinates to UI camera coordinates
+    // Screen: (0,0) is top-left, Y increases downward
+    // UI Camera: (0,0) is center, Y increases upward
+    const screenToUI = (screenX: number, screenY: number) => ({
+      x: screenX - cw / 2,
+      y: ch / 2 - screenY,
+    });
+
+    // Movement joystick (left) - renders at touch origin
     if (touchData.joyActive) {
       this.joyGroup.visible = true;
+      const joyPos = screenToUI(touchData.joyOx, touchData.joyOy);
       this.updateJoystick(
         this.joyGroup,
-        cw / 2 - 100,
-        ch / 2 - 100,
+        joyPos.x,
+        joyPos.y,
         touchData.joyX,
         touchData.joyY,
         joyRadius,
@@ -2206,13 +2223,14 @@ void main() {
       this.joyGroup.visible = false;
     }
 
-    // Aim joystick (right)
+    // Aim joystick (right) - renders at touch origin
     if (touchData.aimJoyActive) {
       this.aimJoyGroup.visible = true;
+      const aimPos = screenToUI(touchData.aimJoyOx, touchData.aimJoyOy);
       this.updateJoystick(
         this.aimJoyGroup,
-        cw / 2 + 100,
-        ch / 2 - 100,
+        aimPos.x,
+        aimPos.y,
         touchData.aimJoyX,
         touchData.aimJoyY,
         joyRadius,

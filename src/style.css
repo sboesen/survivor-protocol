@@ -1988,27 +1988,48 @@ button:disabled {
 }
 
 /* --- LEVEL UP CARDS --- */
+
+/* Level up screen needs high z-index to overlay game canvas */
+#levelup-screen {
+  z-index: 100;
+  background: rgba(15, 23, 42, 0.98);
+}
+
+#levelup-screen.active {
+  display: flex !important;
+}
+
 #card-container {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  max-width: 90vw;
+  max-height: 70vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 10px;
+  box-sizing: border-box;
 }
 
 @media (min-width: 768px) {
   #card-container {
     flex-direction: row;
+    max-height: none;
+    overflow-y: visible;
   }
 }
 
 .level-card {
   background: var(--ui-bg);
   border: 2px solid var(--text);
-  padding: 15px;
-  width: 200px;
+  padding: 12px;
+  width: 100%;
+  max-width: 200px;
   cursor: pointer;
   transition: 0.2s;
   box-shadow: 4px 4px 0 #000;
   text-align: left;
+  box-sizing: border-box;
 }
 
 .level-card:hover {
