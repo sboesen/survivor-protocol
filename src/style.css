@@ -1576,7 +1576,7 @@ canvas {
 
   /* Add padding so content isn't hidden behind fixed footers */
   .stash-layout {
-    padding-bottom: 130px;
+    padding-bottom: 160px;
   }
 
   /* Stats bar - fixed at bottom above salvage buttons, single compact row */
