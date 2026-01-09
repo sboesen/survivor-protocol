@@ -1415,10 +1415,12 @@ canvas {
     gap: 12px;
     flex: 1;
     min-height: 0;
+    overflow: hidden;
   }
 
   .stash-panel {
-    height: auto;
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding-bottom: 200px;
