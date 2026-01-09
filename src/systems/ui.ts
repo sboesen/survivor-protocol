@@ -151,6 +151,7 @@ class UISystem {
     continueBtn?: HTMLButtonElement | null;
     onContinue?: () => void;
     confettiLayer?: HTMLElement | null;
+    autoReveal?: boolean;
   }): void {
     const {
       items,
@@ -160,9 +161,8 @@ class UISystem {
       continueBtn,
       onContinue,
       confettiLayer,
+      autoReveal,
     } = options;
-
-    if (!revealBtn) return;
 
     let revealed = false;
     let confettiTriggered = false;
@@ -209,8 +209,10 @@ class UISystem {
       empty.className = 'loot-empty';
       empty.textContent = 'No secured items.';
       grid.appendChild(empty);
-      revealBtn.disabled = true;
-      revealBtn.classList.add('btn-disabled');
+      if (revealBtn) {
+        revealBtn.disabled = true;
+        revealBtn.classList.add('btn-disabled');
+      }
       if (continueBtn) {
         continueBtn.disabled = false;
         continueBtn.classList.remove('btn-disabled');
@@ -259,10 +261,12 @@ class UISystem {
       continueBtn.disabled = true;
       continueBtn.classList.add('btn-disabled');
     }
-    revealBtn.disabled = false;
-    revealBtn.classList.remove('btn-disabled');
+    if (revealBtn) {
+      revealBtn.disabled = false;
+      revealBtn.classList.remove('btn-disabled');
+    }
 
-    revealBtn.onclick = () => {
+    const reveal = () => {
       if (revealed) return;
       revealed = true;
       hideTooltip();
@@ -270,8 +274,10 @@ class UISystem {
         continueBtn.disabled = false;
         continueBtn.classList.remove('btn-disabled');
       }
-      revealBtn.disabled = true;
-      revealBtn.classList.add('btn-disabled');
+      if (revealBtn) {
+        revealBtn.disabled = true;
+        revealBtn.classList.add('btn-disabled');
+      }
       grid.classList.add('revealing');
 
       itemButtons.forEach((button, index) => {
@@ -298,11 +304,19 @@ class UISystem {
       }
     };
 
+    if (revealBtn) {
+      revealBtn.onclick = reveal;
+    }
+
     if (continueBtn && onContinue) {
       continueBtn.onclick = () => {
         hideTooltip();
         onContinue();
       };
+    }
+
+    if (autoReveal) {
+      reveal();
     }
 
     hideTooltip();
@@ -596,6 +610,7 @@ class UISystem {
           grid: lootGrid,
           tooltip,
           revealBtn,
+          autoReveal: true,
         });
       } else {
         lootSection.classList.remove('active');
