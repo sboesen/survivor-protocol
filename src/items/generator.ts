@@ -8,8 +8,9 @@ import {
   RARITY_WEIGHTS,
   UNIVERSAL_AFFIXES,
 } from './affixTables';
-import { getBaseByTier, rollBaseTier } from './bases';
+import { getBaseByTier, rollBaseTier, MAX_BASE_TIER } from './bases';
 import type { AffixDefinition, AffixType, GenerateOptions, Item, ItemAffix, ItemRarity, ItemType } from './types';
+import { getRelicDefinitionById, getRelicsForClass, rollWeightedRelic } from '../data/relics';
 
 const PREFIXES: Record<ItemRarity, string[]> = {
   common: ['Plain', 'Worn', 'Simple', 'Dusty', 'Tarnished', 'Faded'],
@@ -208,6 +209,72 @@ function collectAffixPool(itemType: ItemType): AffixDefinition[] {
 }
 
 export class ItemGenerator {
+  static generateRelic(options: GenerateOptions): Item {
+    const { classId, random = Math.random, enemyType = 'basic', relicId } = options;
+    let resolvedClassId = classId;
+    let relic = relicId ? getRelicDefinitionById(relicId) : undefined;
+
+    if (relicId && !relic) {
+      throw new Error(`Relic '${relicId}' not found.`);
+    }
+
+    if (relic) {
+      if (classId && relic.classId !== classId) {
+        throw new Error(`Relic '${relicId}' does not match class '${classId}'.`);
+      }
+      resolvedClassId = relic.classId;
+    }
+
+    if (!resolvedClassId) {
+      throw new Error('Relic generation requires classId.');
+    }
+
+    if (!relic) {
+      const pool = getRelicsForClass(resolvedClassId);
+      if (pool.length === 0) {
+        throw new Error(`No relics available for class '${resolvedClassId}'.`);
+      }
+      relic = rollWeightedRelic(pool, random, enemyType === 'boss');
+    }
+    const rarity: ItemRarity = 'legendary';
+    const affixCount = rollAffixCount(rarity, random);
+    const affixPool = collectAffixPool('relic');
+    const affixes: ItemAffix[] = [];
+    const remaining = [...affixPool];
+
+    for (let i = 0; i < affixCount && remaining.length > 0; i++) {
+      const weights = remaining.map(entry => entry.weight);
+      const index = pickWeightedIndex(weights, random);
+      const definition = remaining.splice(index, 1)[0];
+      const { tier, value } = rollAffixTier(definition, rarity, random);
+      const affix: ItemAffix = {
+        type: definition.type,
+        tier,
+        value,
+        isPercent: definition.isPercent,
+      };
+      affixes.push(affix);
+    }
+
+    return {
+      id: createId(random),
+      name: relic.name,
+      baseId: relic.id,
+      baseName: relic.name,
+      tier: MAX_BASE_TIER,
+      type: 'relic',
+      rarity,
+      affixes,
+      implicits: [],
+      baseTint: relic.tint,
+      relicId: relic.id,
+      relicClassId: relic.classId,
+      relicEffectId: relic.effect.id,
+      relicEffectName: relic.effect.name,
+      relicEffectDescription: relic.effect.description,
+    };
+  }
+
   static generate(options: GenerateOptions): Item {
     const {
       itemType,
@@ -218,6 +285,10 @@ export class ItemGenerator {
       enemyType = 'basic',
       baseTier,
     } = options;
+
+    if (itemType === 'relic') {
+      return this.generateRelic(options);
+    }
 
     const rolledRarity = rollRarity(luck, random);
     const rarity = applyRarityBoost(rolledRarity, rarityBoost);
@@ -259,6 +330,9 @@ export class ItemGenerator {
   }
 
   static generateCorrupted(options: GenerateOptions): Item {
+    if (options.itemType === 'relic') {
+      return this.generate(options);
+    }
     const item = this.generate({ ...options, rarityBoost: 3 }); // Force legendary stats
     item.rarity = 'corrupted';
 

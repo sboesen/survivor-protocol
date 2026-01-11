@@ -1,4 +1,5 @@
 import type { EntityType } from '../types';
+import { hasRelicsForClass } from '../data/relics';
 import type { ItemType } from './types';
 
 const BASE_DROP_CHANCE: Record<EntityType, number> = {
@@ -15,6 +16,13 @@ const ITEM_TYPE_WEIGHTS: Record<ItemType, number> = {
   accessory: 1,
   relic: 0,
   offhand: 0.5,
+};
+
+const BASE_RELIC_DROP_CHANCE: Record<EntityType, number> = {
+  basic: 0.001,
+  bat: 0.0007,
+  elite: 0.01,
+  boss: 0.02,
 };
 
 export function calculateDropChance(
@@ -49,4 +57,21 @@ export function rollItemType(random: () => number = Math.random): ItemType {
     if (roll <= acc) return type;
   }
   return entries[entries.length - 1][0];
+}
+
+export function rollRelicDrop(
+  enemyType: EntityType,
+  luck: number,
+  classId: string | undefined,
+  random: () => number = Math.random,
+  debugBoost: boolean = false
+): boolean {
+  if (!classId || !hasRelicsForClass(classId)) return false;
+
+  const base = BASE_RELIC_DROP_CHANCE[enemyType] ?? 0;
+  const luckMultiplier = 1 + luck / 200;
+  const debugMultiplier = debugBoost ? 20 : 1;
+  const chance = Math.min(base * luckMultiplier * debugMultiplier, 1);
+
+  return random() < chance;
 }

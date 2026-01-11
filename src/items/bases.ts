@@ -16,7 +16,6 @@ const weaponTint = '#7c3aed';
 const helmTint = '#60a5fa';
 const armorTint = '#f97316';
 const accessoryTint = '#eab308';
-const relicTint = '#fbbf24';
 
 export const ITEM_BASES: ItemBase[] = [
   {
@@ -218,14 +217,6 @@ export const ITEM_BASES: ItemBase[] = [
     tier: 5,
     implicits: [{ type: 'luck', tier: 1, value: 24, isPercent: true }],
     tint: accessoryTint,
-  },
-  {
-    id: 'ancient_relic',
-    name: 'Ancient Relic',
-    type: 'relic',
-    tier: 5,
-    implicits: [{ type: 'allStats', tier: 1, value: 3, isPercent: true }],
-    tint: relicTint,
   },
   // Offhand items - quivers and orbs
   {

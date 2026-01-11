@@ -50,6 +50,11 @@ export interface Item {
   affixes: ItemAffix[];
   implicits: ItemAffix[];
   baseTint?: string;
+  relicId?: string;
+  relicClassId?: string;
+  relicEffectId?: string;
+  relicEffectName?: string;
+  relicEffectDescription?: string[];
 }
 
 export type StashSlot = Item | null;
@@ -62,4 +67,6 @@ export interface GenerateOptions {
   minutesElapsed?: number;
   enemyType?: 'basic' | 'bat' | 'elite' | 'boss';
   baseTier?: number;
+  classId?: string;
+  relicId?: string;
 }
