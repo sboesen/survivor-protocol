@@ -246,7 +246,9 @@ class MenuSystem {
 
     Object.keys(SHOP_ITEMS).forEach(k => {
       const item = SHOP_ITEMS[k];
-      const lvl = SaveData.data.shop[k] || 0;
+      const lvl = k === 'safeSlots'
+        ? (SaveData.data.shop.safeSlotsCount ?? 1)
+        : (SaveData.data.shop[k] || 0);
       const cost = item.cost(lvl);
       const max = lvl >= item.max;
 
@@ -261,7 +263,11 @@ class MenuSystem {
       btn.onclick = () => {
         if (!max && SaveData.data.gold >= cost) {
           SaveData.data.gold -= cost;
-          SaveData.data.shop[k] = lvl + 1;
+          if (k === 'safeSlots') {
+            SaveData.data.shop.safeSlotsCount = Math.min(item.max, lvl + 1);
+          } else {
+            SaveData.data.shop[k] = lvl + 1;
+          }
           SaveData.save();
           this.renderShop();
         }

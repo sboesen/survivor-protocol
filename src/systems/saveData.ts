@@ -50,9 +50,18 @@ class SaveDataSystem {
       try {
         const parsed = JSON.parse(saved) as Partial<SaveGameData>;
 
+        const legacySafeSlots = parsed.shop?.safeSlots;
+        const legacySafeSlotsCount = typeof legacySafeSlots === 'number'
+          ? Math.max(1, legacySafeSlots + 1)
+          : undefined;
+        const parsedSafeSlotsCount = parsed.shop?.safeSlotsCount;
+        const safeSlotsCount = Math.max(parsedSafeSlotsCount ?? 1, legacySafeSlotsCount ?? 1);
+        const safeSlotsMigrated = legacySafeSlotsCount !== undefined &&
+          safeSlotsCount !== (parsedSafeSlotsCount ?? 1);
+
         const needsMigration = (parsed.ownedChars ?? []).some(
           charId => charId in CHARACTER_MIGRATION
-        ) || (parsed.selectedChar && parsed.selectedChar in CHARACTER_MIGRATION);
+        ) || (parsed.selectedChar && parsed.selectedChar in CHARACTER_MIGRATION) || safeSlotsMigrated;
 
         const migratedOwnedChars = (parsed.ownedChars ?? ['wizard']).map(
           charId => CHARACTER_MIGRATION[charId] || charId
@@ -70,7 +79,7 @@ class SaveDataSystem {
             health: parsed.shop?.health ?? 0,
             speed: parsed.shop?.speed ?? 0,
             magnet: parsed.shop?.magnet ?? 0,
-            safeSlotsCount: parsed.shop?.safeSlotsCount ?? 1,
+            safeSlotsCount,
           },
           shopInventory: {
             items: parsed.shopInventory?.items ?? [],
