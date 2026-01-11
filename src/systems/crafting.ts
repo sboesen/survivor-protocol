@@ -56,4 +56,21 @@ export class CraftingSystem {
 
         return { count, scrap: totalScrap };
     }
+
+    static previewSalvageAllByRarity(rarities: ItemRarity[]): { count: number, scrap: number } {
+        const stash = Stash.fromJSON(SaveData.data.stash);
+        let count = 0;
+        let totalScrap = 0;
+
+        for (let i = stash.slots.length - 1; i >= 0; i--) {
+            const item = stash.slots[i];
+            if (item && rarities.includes(item.rarity)) {
+                const scrap = SCRAP_VALUES[item.rarity] || 0;
+                count++;
+                totalScrap += scrap;
+            }
+        }
+
+        return { count, scrap: totalScrap };
+    }
 }
