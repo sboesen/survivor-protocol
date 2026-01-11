@@ -58,9 +58,11 @@ import { Particle, type ParticleSpawnConfig, type ParticleType } from './entitie
 import type { InputState, DamageText, ExtractionState } from './types';
 import { ItemGenerator } from './items/generator';
 import type { Item } from './items/types';
-import { rollItemType, shouldDropItem } from './items/drops';
+import { rollItemType, rollRelicDrop, shouldDropItem } from './items/drops';
 import { Stash } from './items/stash';
 import { ItemStats } from './items/stats';
+import { hasRelicsForClass } from './data/relics';
+import { getActiveRelic, getRelicCooldownRefund, getRelicWeaponModifiers } from './systems/relicEffects';
 import {
   applyAreaBonus,
   applyArmorReduction,
@@ -409,11 +411,12 @@ class GameCore {
       bossKills: this.bossKills,
     });
 
-    // Phase 0: Guaranteed first relic on successful extraction
-    if (extracted && SaveData.data.isFirstSuccessfulRun) {
+    // Phase 0: Guaranteed first relic on successful extraction (when available)
+    if (extracted && SaveData.data.isFirstSuccessfulRun && hasRelicsForClass(SaveData.data.selectedChar)) {
       const relic = ItemGenerator.generate({
         itemType: 'relic',
         luck: 0,
+        classId: SaveData.data.selectedChar,
         rarityBoost: 3, // Legendary
       });
       this.collectedLoot.push(relic);
@@ -664,6 +667,9 @@ class GameCore {
       return;
     }
 
+    const activeRelic = getActiveRelic(SaveData.data.loadout.relic, p.charId);
+    const weaponLookup = new Map(p.weapons.map(w => [w.id, w]));
+
     // Weapons
     p.weapons.forEach(w => {
       if (w.curCd > 0) {
@@ -674,14 +680,20 @@ class GameCore {
         );
       }
 
-      const damageResult = calculateWeaponDamage(w.baseDmg + p.flatDamage, p.dmgMult, p.critChance);
+      const relicMods = getRelicWeaponModifiers(activeRelic, w.id);
+      const damageResult = calculateWeaponDamage(
+        w.baseDmg + p.flatDamage,
+        p.dmgMult * relicMods.damageMult,
+        p.critChance
+      );
       const dmg = damageResult.damage;
       const isCrit = damageResult.isCrit;
       const projectileSpeedMult = 1 + (p.items.projectileSpeed || 0);
+      const projectileBonus = p.items.projectile + relicMods.projectileBonus;
 
       // Handle aura separately (returns early)
       if (w.type === 'aura' && w.area) {
-        const result = fireWeapon('aura', w.id, { x: p.x, y: p.y }, this.enemies, w, dmg, isCrit, 1 + p.items.pierce + (w.pierce || 0), this.input.lastDx, this.input.lastDy, this.input.aimAngle, this.frames, p.items.projectile, projectileSpeedMult);
+        const result = fireWeapon('aura', w.id, { x: p.x, y: p.y }, this.enemies, w, dmg, isCrit, 1 + p.items.pierce + (w.pierce || 0), this.input.lastDx, this.input.lastDy, this.input.aimAngle, this.frames, projectileBonus, projectileSpeedMult);
         if (result.fired && result.auraDamage) {
           p.auraAttackFrame = 0;
           const auraArea = applyAreaBonus(result.auraDamage.area, p.areaFlat, p.areaPercent);
@@ -695,7 +707,7 @@ class GameCore {
       }
 
       if (w.curCd <= 0) {
-        const result = fireWeapon(w.type, w.id, { x: p.x, y: p.y }, this.enemies, w, dmg, isCrit, 1 + p.items.pierce + (w.pierce || 0), this.input.lastDx, this.input.lastDy, this.input.aimAngle, this.frames, p.items.projectile, projectileSpeedMult);
+        const result = fireWeapon(w.type, w.id, { x: p.x, y: p.y }, this.enemies, w, dmg, isCrit, 1 + p.items.pierce + (w.pierce || 0), this.input.lastDx, this.input.lastDy, this.input.aimAngle, this.frames, projectileBonus, projectileSpeedMult);
 
         if (result.fired) {
           // Create projectiles from result data
@@ -881,7 +893,7 @@ class GameCore {
             }
           }
 
-          w.curCd = w.cd;
+          w.curCd = w.cd * relicMods.cooldownMult;
         }
       }
     });
@@ -985,6 +997,13 @@ class GameCore {
               ? 0.5 + (p.ricochetDamageBonus || 0)
               : 1;
             this.hitEnemy(e, proj.dmg * ricochetMult, proj.isCrit);
+            const cooldownRefund = getRelicCooldownRefund(activeRelic, weaponId as any);
+            if (cooldownRefund > 0) {
+              const weapon = weaponLookup.get(weaponId as any);
+              if (weapon) {
+                weapon.curCd = Math.max(0, weapon.curCd - weapon.cd * cooldownRefund);
+              }
+            }
             proj.hitList.push(e);
             sharedHitList.push(e); // Mark as hit for all subsequent projectiles of this weapon
 
@@ -1087,6 +1106,13 @@ class GameCore {
 
         if (Utils.getDist(fb.x, fb.y, e.x, e.y) < fb.radius + e.radius) {
           this.hitEnemy(e, fb.dmg, fb.isCrit);
+          const cooldownRefund = getRelicCooldownRefund(activeRelic, weaponId as any);
+          if (cooldownRefund > 0) {
+            const weapon = weaponLookup.get(weaponId as any);
+            if (weapon) {
+              weapon.curCd = Math.max(0, weapon.curCd - weapon.cd * cooldownRefund);
+            }
+          }
           fb.hitList.push(e);
           sharedFireballHitList.push(e); // Mark as hit for all subsequent fireballs of this weapon
 
@@ -1260,15 +1286,15 @@ class GameCore {
       const forceDrop = this.debugLootBoost;
       if (forceDrop || shouldDropItem(e.type, luck, this.mins)) {
         const itemType = rollItemType();
-        const rollRelic = this.debugLootBoost && Math.random() < 0.1;
+        const classId = this.player?.charId;
+        const rollRelic = rollRelicDrop(e.type, luck, classId, Math.random, this.debugLootBoost);
         const finalItemType = rollRelic ? 'relic' : itemType;
-        const rarityBoost = rollRelic ? 3 : 0;
         const item = ItemGenerator.generate({
           itemType: finalItemType,
           luck,
-          rarityBoost,
           minutesElapsed: this.mins,
           enemyType: e.type,
+          classId,
         });
         this.loot.push(new Loot(e.x, e.y, 'orb', item));
       }
