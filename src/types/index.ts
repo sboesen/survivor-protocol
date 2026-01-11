@@ -168,6 +168,8 @@ export interface ExtractionState {
   nextSpawnTime: number;
   warningEndTime: number;
   pendingZone: { x: number; y: number } | null;
+  bossKillTime: number;
+  zoneAfterBossScheduled: boolean;
 }
 
 export interface EnemyType {

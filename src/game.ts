@@ -69,7 +69,7 @@ import {
   applyHealingBonus,
   applyXpBonus,
 } from './systems/statEffects';
-import { initExtractionState, updateExtraction, shouldExtract } from './systems/extraction';
+import { initExtractionState, updateExtraction, shouldExtract, onBossKilled } from './systems/extraction';
 
 class GameCore {
   canvas: HTMLCanvasElement | null = null;
@@ -1238,7 +1238,10 @@ class GameCore {
       const goldGain = applyGoldBonus(baseGold, this.player?.goldMult ?? 0);
       this.goldRun += goldGain;
 
-      if (e.type === 'boss') this.bossKills++;
+      if (e.type === 'boss') {
+        this.bossKills++;
+        onBossKilled(this.extractionState, this.frames);
+      }
 
       UI.updateHud(this.goldRun, this.time, this.player?.level || 1, this.kills, SaveData.data.selectedChar, this.particles.length, this.enemies.length);
 

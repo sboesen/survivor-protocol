@@ -402,19 +402,18 @@ class UISystem {
         const onScreen = Math.abs(dx) < window.innerWidth / 2 - 140 &&
           Math.abs(dy) < window.innerHeight / 2 - 140;
 
-        if (!onScreen) {
-          const angle = Math.atan2(dy, dx);
-          const radius = Math.min(window.innerWidth, window.innerHeight) / 2 - 40;
-          const centerX = window.innerWidth / 2;
-          const centerY = window.innerHeight / 2;
+        const angle = Math.atan2(dy, dx);
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+        const radius = onScreen
+          ? 55
+          : Math.min(window.innerWidth, window.innerHeight) / 2 - 40;
 
-          arrowEl.style.left = `${centerX + Math.cos(angle) * radius}px`;
-          arrowEl.style.top = `${centerY + Math.sin(angle) * radius}px`;
-          arrowEl.style.transform = `translate(-50%, -50%) rotate(${angle + Math.PI / 2}rad)`;
-          arrowEl.style.display = 'block';
-        } else {
-          arrowEl.style.display = 'none';
-        }
+        arrowEl.style.left = `${centerX + Math.cos(angle) * radius}px`;
+        arrowEl.style.top = `${centerY + Math.sin(angle) * radius}px`;
+        arrowEl.style.transform = `translate(-50%, -50%) rotate(${angle + Math.PI / 2}rad) scale(${onScreen ? 0.75 : 1})`;
+        arrowEl.style.opacity = onScreen ? '0.45' : '0.9';
+        arrowEl.style.display = 'block';
       } else {
         arrowEl.style.display = 'none';
       }

@@ -2,7 +2,8 @@ import { CONFIG } from '../config';
 import { Utils } from '../utils';
 import type { ExtractionZone, ExtractionState } from '../types';
 
-export const ZONE_INTERVAL = 60 * 180;
+export const BOSS_DELAY_SECONDS = 120;
+export const BOSS_DELAY_FRAMES = BOSS_DELAY_SECONDS * 60;
 export const ZONE_DURATION = 60 * 30;
 export const EXTRACT_TIME = 60 * 5;
 export const WARNING_TIME = 60 * 15;
@@ -13,9 +14,11 @@ export function initExtractionState(): ExtractionState {
   return {
     currentZone: null,
     lastSpawnTime: 0,
-    nextSpawnTime: ZONE_INTERVAL,
+    nextSpawnTime: 0,
     warningEndTime: 0,
     pendingZone: null,
+    bossKillTime: 0,
+    zoneAfterBossScheduled: false,
   };
 }
 
@@ -30,18 +33,19 @@ export function updateExtraction(
 } {
   let enemiesToSpawn: Array<{ x: number; y: number; type: 'basic' }> | null = null;
 
-  if (!state.currentZone && frames >= state.nextSpawnTime - WARNING_TIME && state.warningEndTime === 0) {
+  if (!state.currentZone && state.zoneAfterBossScheduled && frames >= state.nextSpawnTime - WARNING_TIME && state.warningEndTime === 0) {
     state.warningEndTime = state.nextSpawnTime;
     state.pendingZone = createZonePosition(playerX, playerY);
   }
 
-  if (!state.currentZone && frames >= state.nextSpawnTime) {
+  if (!state.currentZone && state.zoneAfterBossScheduled && frames >= state.nextSpawnTime) {
     const position = state.pendingZone ?? createZonePosition(playerX, playerY);
     state.currentZone = createExtractionZone(position.x, position.y, frames);
     state.lastSpawnTime = frames;
-    state.nextSpawnTime = frames + ZONE_INTERVAL;
+    state.nextSpawnTime = 0;
     state.warningEndTime = 0;
     state.pendingZone = null;
+    state.zoneAfterBossScheduled = false;
   }
 
   if (state.currentZone) {
@@ -72,6 +76,12 @@ export function updateExtraction(
 
 export function shouldExtract(state: ExtractionState): boolean {
   return !!(state.currentZone && state.currentZone.extractionProgress >= EXTRACT_TIME);
+}
+
+export function onBossKilled(state: ExtractionState, frames: number): void {
+  state.bossKillTime = frames;
+  state.nextSpawnTime = frames + BOSS_DELAY_FRAMES;
+  state.zoneAfterBossScheduled = true;
 }
 
 function createExtractionZone(x: number, y: number, frames: number): ExtractionZone {
