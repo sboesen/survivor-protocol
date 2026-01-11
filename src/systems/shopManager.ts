@@ -4,6 +4,7 @@ import { ItemGenerator } from '../items/generator';
 import type { Item } from '../items/types';
 import type { ShopInventoryData, ShopItemListing } from '../types';
 import { generateShopInventory } from './shopGeneration';
+import { calculateShopPrice } from '../data/shop';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MANUAL_REFRESH_COST = 200;
@@ -26,6 +27,12 @@ class ShopManagerSystem {
 
     if (empty || expired || stale) {
       this.generateInventory(now);
+      SaveData.save();
+      return;
+    }
+
+    const repaired = this.repairListings(data.items, true) || this.repairListings(data.gamblerItems, false);
+    if (repaired) {
       SaveData.save();
     }
   }
@@ -113,6 +120,26 @@ class ShopManagerSystem {
     }
 
     return lastItem ?? ItemGenerator.generate({ itemType: listing.type, luck: 0 });
+  }
+
+  private repairListings(listings: ShopItemListing[], forceReveal: boolean): boolean {
+    let repaired = false;
+    listings.forEach(listing => {
+      if (listing.veiled && !forceReveal) return;
+      const shouldReveal = listing.veiled && forceReveal;
+      const item = listing.item;
+      const hasAffixes = Array.isArray(item?.affixes) && item.affixes.length > 0;
+      if (shouldReveal || !item || !hasAffixes) {
+        const generated = this.generateVeiledItem(listing);
+        listing.item = generated;
+        if (forceReveal) {
+          listing.veiled = false;
+          listing.price = calculateShopPrice(generated.rarity, false);
+        }
+        repaired = true;
+      }
+    });
+    return repaired;
   }
 
   private ensureData(): ShopInventoryData {

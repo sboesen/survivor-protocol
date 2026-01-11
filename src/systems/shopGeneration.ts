@@ -14,28 +14,16 @@ export function generateShopInventory(now = Date.now()): {
 
   const itemCount = 4 + Math.floor(Math.random() * 3);
   for (let i = 0; i < itemCount; i++) {
-    const veiled = Math.random() < 0.3;
     const type = randomItemType();
 
-    if (veiled) {
-      const rarity = rollRarity();
-      items.push(createListing({
-        item: null,
-        veiled: true,
-        rarity,
-        type,
-        now,
-      }));
-    } else {
-      const item = ItemGenerator.generate({ itemType: type, luck: 0 });
-      items.push(createListing({
-        item,
-        veiled: false,
-        rarity: item.rarity,
-        type: item.type,
-        now,
-      }));
-    }
+    const item = ItemGenerator.generate({ itemType: type, luck: 0 });
+    items.push(createListing({
+      item,
+      veiled: false,
+      rarity: item.rarity,
+      type: item.type,
+      now,
+    }));
   }
 
   const gamblerCount = 4 + Math.floor(Math.random() * 3);
