@@ -1,11 +1,12 @@
 import { ItemGenerator } from '../items/generator';
+import { hasRelicsForClass } from '../data/relics';
 import type { ItemRarity, ItemType } from '../items/types';
 import type { ShopItemListing } from '../types';
 import { calculateShopPrice } from '../data/shop';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export function generateShopInventory(now = Date.now()): {
+export function generateShopInventory(now = Date.now(), classId?: string): {
   items: ShopItemListing[];
   gamblerItems: ShopItemListing[];
 } {
@@ -14,9 +15,9 @@ export function generateShopInventory(now = Date.now()): {
 
   const itemCount = 4 + Math.floor(Math.random() * 3);
   for (let i = 0; i < itemCount; i++) {
-    const type = randomItemType();
+    const type = randomItemType(classId);
 
-    const item = ItemGenerator.generate({ itemType: type, luck: 0 });
+    const item = ItemGenerator.generate({ itemType: type, luck: 0, classId });
     items.push(createListing({
       item,
       veiled: false,
@@ -30,7 +31,7 @@ export function generateShopInventory(now = Date.now()): {
   for (let i = 0; i < gamblerCount; i++) {
     const rarityRoll = Math.random();
     const rarity = rarityRoll < 0.05 ? 'corrupted' : rollRarity(); // 5% chance for corrupted in gambler
-    const type = randomItemType();
+    const type = randomItemType(classId);
 
     // Gambler items are always veiled in the shop inventory data initially
     // but the ShopManager will generate the item on purchase.
@@ -73,7 +74,8 @@ function rollRarity(): ItemRarity {
   return 'legendary';
 }
 
-function randomItemType(): ItemType {
+function randomItemType(classId?: string): ItemType {
   const types: ItemType[] = ['weapon', 'helm', 'armor', 'accessory', 'relic', 'offhand'];
-  return types[Math.floor(Math.random() * types.length)];
+  const pool = classId && hasRelicsForClass(classId) ? types : types.filter(type => type !== 'relic');
+  return pool[Math.floor(Math.random() * pool.length)];
 }

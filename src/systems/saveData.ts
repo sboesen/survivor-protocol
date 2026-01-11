@@ -100,6 +100,16 @@ class SaveDataSystem {
           },
         };
 
+        this.data.stash = this.data.stash.map(item => {
+          if (!item || item.type !== 'relic') return item;
+          if (!item.relicId || !item.relicClassId) return null;
+          return item;
+        });
+
+        if (this.data.loadout.relic && (!this.data.loadout.relic.relicId || !this.data.loadout.relic.relicClassId)) {
+          this.data.loadout.relic = null;
+        }
+
         if (this.data.selectedChar && !this.data.ownedChars.includes(this.data.selectedChar)) {
           this.data.ownedChars.push(this.data.selectedChar);
         }

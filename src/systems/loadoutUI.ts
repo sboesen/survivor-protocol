@@ -9,6 +9,7 @@ import {
   LOADOUT_SLOT_TYPES,
   type LoadoutSlotId,
   isSlotCompatible,
+  isRelicClassCompatible,
 } from '../items/loadout';
 import { SaveData } from './saveData';
 import { CraftingSystem } from './crafting';
@@ -648,6 +649,29 @@ class LoadoutUISystem {
     const stats = document.createElement('div');
     stats.className = 'loadout-detail-stats';
 
+    const classLine = item.type === 'relic' && item.relicClassId
+      ? (() => {
+          const line = document.createElement('div');
+          line.className = 'loadout-detail-base';
+          line.textContent = `Class: ${CHARACTERS[item.relicClassId]?.name ?? item.relicClassId}`;
+          return line;
+        })()
+      : null;
+
+    const hasRelicEffect = item.type === 'relic' && item.relicEffectDescription?.length;
+    if (hasRelicEffect) {
+      const effectTitle = document.createElement('div');
+      effectTitle.className = 'affix-line implicit-line';
+      effectTitle.textContent = `Unique: ${item.relicEffectName ?? 'Relic Effect'}`;
+      stats.appendChild(effectTitle);
+      item.relicEffectDescription.forEach(desc => {
+        const line = document.createElement('div');
+        line.className = 'affix-line implicit-line';
+        line.textContent = desc;
+        stats.appendChild(line);
+      });
+    }
+
     const implicits = item.implicits ?? [];
     if (implicits.length > 0) {
       implicits.forEach(affix => {
@@ -665,13 +689,16 @@ class LoadoutUISystem {
         line.textContent = this.formatAffix(affix);
         stats.appendChild(line);
       });
-    } else if (implicits.length === 0) {
+    } else if (implicits.length === 0 && !hasRelicEffect) {
       stats.textContent = 'No affixes.';
     }
 
     detailEl.appendChild(title);
     detailEl.appendChild(meta);
     detailEl.appendChild(base);
+    if (classLine) {
+      detailEl.appendChild(classLine);
+    }
     detailEl.appendChild(stats);
   }
 
@@ -939,8 +966,13 @@ class LoadoutUISystem {
       return;
     }
 
+    if (targetType === 'loadout' && !isRelicClassCompatible(sourceItem, SaveData.data.selectedChar)) {
+      return;
+    }
+
     if (sourceType === 'loadout' && targetType === 'loadout' && targetItem) {
       if (!isSlotCompatible(sourceId as LoadoutSlotId, targetItem)) return;
+      if (!isRelicClassCompatible(targetItem, SaveData.data.selectedChar)) return;
     }
 
     this.setItemAt(sourceType, sourceId, targetItem, stash, loadout);
@@ -1021,6 +1053,7 @@ class LoadoutUISystem {
   }
 
   private findAutoEquipSlot(item: Item, loadout: LoadoutData): LoadoutSlotId | null {
+    if (!isRelicClassCompatible(item, SaveData.data.selectedChar)) return null;
     const compatible = LOADOUT_SLOT_ORDER.filter(slot => isSlotCompatible(slot, item));
     if (compatible.length === 0) return null;
     const emptySlot = compatible.find(slot => !loadout[slot]);

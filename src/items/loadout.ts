@@ -56,6 +56,12 @@ export function isSlotCompatible(slot: LoadoutSlotId, item: Item | null): boolea
   return item.type === allowed;
 }
 
+export function isRelicClassCompatible(item: Item | null, classId: string): boolean {
+  if (!item || item.type !== 'relic') return true;
+  if (!item.relicClassId) return false;
+  return item.relicClassId === classId;
+}
+
 export function findFirstCompatibleSlot(loadout: LoadoutData, item: Item): LoadoutSlotId | null {
   for (const slot of LOADOUT_SLOT_ORDER) {
     if (!loadout[slot] && isSlotCompatible(slot, item)) return slot;

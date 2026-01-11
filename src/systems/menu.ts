@@ -518,7 +518,29 @@ class MenuSystem {
     base.className = 'loadout-detail-base';
     base.textContent = `Base: ${item.baseName} (T${item.tier})`;
 
+    const classLine = item.type === 'relic' && item.relicClassId
+      ? (() => {
+          const line = document.createElement('div');
+          line.className = 'loadout-detail-base';
+          line.textContent = `Class: ${CHARACTERS[item.relicClassId]?.name ?? item.relicClassId}`;
+          return line;
+        })()
+      : null;
+
     const implicits = item.implicits ?? [];
+    const hasRelicEffect = item.type === 'relic' && item.relicEffectDescription?.length;
+    if (hasRelicEffect) {
+      const effectTitle = document.createElement('div');
+      effectTitle.className = 'affix-line implicit-line';
+      effectTitle.textContent = `Unique: ${item.relicEffectName ?? 'Relic Effect'}`;
+      stats.appendChild(effectTitle);
+      item.relicEffectDescription.forEach((desc: string) => {
+        const line = document.createElement('div');
+        line.className = 'affix-line implicit-line';
+        line.textContent = desc;
+        stats.appendChild(line);
+      });
+    }
     if (implicits.length > 0) {
       implicits.forEach((affix: any) => {
         const line = document.createElement('div');
@@ -535,7 +557,7 @@ class MenuSystem {
         line.textContent = this.formatAffix(affix);
         stats.appendChild(line);
       });
-    } else if (implicits.length === 0) {
+    } else if (implicits.length === 0 && !hasRelicEffect) {
       stats.textContent = 'No affixes.';
     }
 
@@ -548,6 +570,7 @@ class MenuSystem {
     tooltip.appendChild(title);
     tooltip.appendChild(meta);
     tooltip.appendChild(base);
+    if (classLine) tooltip.appendChild(classLine);
     tooltip.appendChild(stats);
   }
 

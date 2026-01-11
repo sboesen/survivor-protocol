@@ -1,6 +1,7 @@
 import { SaveData } from './saveData';
 import { Stash } from '../items/stash';
 import { ItemGenerator } from '../items/generator';
+import { hasRelicsForClass } from '../data/relics';
 import type { Item } from '../items/types';
 import type { ShopInventoryData, ShopItemListing } from '../types';
 import { generateShopInventory } from './shopGeneration';
@@ -24,8 +25,10 @@ class ShopManagerSystem {
     const empty = data.items.length === 0 && data.gamblerItems.length === 0;
     const expired = this.hasExpired(now);
     const stale = data.lastDailyRefresh > 0 && now - data.lastDailyRefresh >= DAY_MS;
+    const relicMismatch = !hasRelicsForClass(SaveData.data.selectedChar) &&
+      (data.items.some(item => item.type === 'relic') || data.gamblerItems.some(item => item.type === 'relic'));
 
-    if (empty || expired || stale) {
+    if (empty || expired || stale || relicMismatch) {
       this.generateInventory(now);
       SaveData.save();
       return;
@@ -77,7 +80,7 @@ class ShopManagerSystem {
   }
 
   private generateInventory(now: number): void {
-    const inventory = generateShopInventory(now);
+    const inventory = generateShopInventory(now, SaveData.data.selectedChar);
     const data = this.ensureData();
     data.items = inventory.items;
     data.gamblerItems = inventory.gamblerItems;
@@ -108,18 +111,22 @@ class ShopManagerSystem {
   private generateVeiledItem(listing: ShopItemListing): Item {
     const maxAttempts = 50;
     let lastItem: Item | null = null;
+    const classId = SaveData.data.selectedChar;
+    if (listing.type === 'relic' && !hasRelicsForClass(classId)) {
+      return ItemGenerator.generate({ itemType: 'weapon', luck: 0, classId });
+    }
 
     for (let i = 0; i < maxAttempts; i++) {
       const item = listing.rarity === 'corrupted'
-        ? ItemGenerator.generateCorrupted({ itemType: listing.type, luck: 0 })
-        : ItemGenerator.generate({ itemType: listing.type, luck: 0 });
+        ? ItemGenerator.generateCorrupted({ itemType: listing.type, luck: 0, classId })
+        : ItemGenerator.generate({ itemType: listing.type, luck: 0, classId });
       lastItem = item;
       if (item.rarity === listing.rarity) {
         return item;
       }
     }
 
-    return lastItem ?? ItemGenerator.generate({ itemType: listing.type, luck: 0 });
+    return lastItem ?? ItemGenerator.generate({ itemType: listing.type, luck: 0, classId });
   }
 
   private repairListings(listings: ShopItemListing[], forceReveal: boolean): boolean {

@@ -113,8 +113,30 @@ class UISystem {
     base.className = 'loadout-detail-base';
     base.textContent = `Base: ${item.baseName} (T${item.tier})`;
 
+    const classLine = item.type === 'relic' && item.relicClassId
+      ? (() => {
+          const line = document.createElement('div');
+          line.className = 'loadout-detail-base';
+          line.textContent = `Class: ${CHARACTERS[item.relicClassId]?.name ?? item.relicClassId}`;
+          return line;
+        })()
+      : null;
+
     const stats = document.createElement('div');
     stats.className = 'loadout-detail-stats';
+    const hasRelicEffect = item.type === 'relic' && item.relicEffectDescription?.length;
+    if (hasRelicEffect) {
+      const effectTitle = document.createElement('div');
+      effectTitle.className = 'affix-line implicit-line';
+      effectTitle.textContent = `Unique: ${item.relicEffectName ?? 'Relic Effect'}`;
+      stats.appendChild(effectTitle);
+      item.relicEffectDescription.forEach(desc => {
+        const line = document.createElement('div');
+        line.className = 'affix-line implicit-line';
+        line.textContent = desc;
+        stats.appendChild(line);
+      });
+    }
     const implicits = item.implicits ?? [];
     if (implicits.length > 0) {
       implicits.forEach(affix => {
@@ -131,13 +153,14 @@ class UISystem {
         line.textContent = this.formatAffix(affix);
         stats.appendChild(line);
       });
-    } else if (implicits.length === 0) {
+    } else if (implicits.length === 0 && !hasRelicEffect) {
       stats.textContent = 'No affixes.';
     }
 
     tooltip.appendChild(title);
     tooltip.appendChild(meta);
     tooltip.appendChild(base);
+    if (classLine) tooltip.appendChild(classLine);
     tooltip.appendChild(stats);
     tooltip.style.display = 'block';
     this.positionExtractTooltip(tooltip, event, anchor);
