@@ -823,6 +823,34 @@ canvas {
   top: 0;
 }
 
+@media (max-width: 768px) {
+  .loadout-tooltip {
+    pointer-events: auto;
+    max-width: 280px;
+  }
+
+  .tooltip-close {
+    display: block;
+  }
+}
+
+.tooltip-close {
+  display: none;
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  font-size: 16px;
+  color: #9ca3af;
+  cursor: pointer;
+  pointer-events: auto;
+  line-height: 1;
+  padding: 0 4px;
+}
+
+.tooltip-close:hover {
+  color: #fff;
+}
+
 .loadout-tooltip.compare {
   background: transparent;
   border: none;
@@ -2401,6 +2429,222 @@ button:disabled {
   font-size: 9px;
   text-align: center;
   padding: 20px 0;
+}
+
+.sell-grid {
+  padding: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  gap: 6px;
+  max-height: 45vh;
+  overflow-y: auto;
+}
+
+.sell-item {
+  position: relative;
+  background: linear-gradient(135deg, #111827 0%, #0f172a 100%);
+  border: 2px solid #374151;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  text-align: center;
+  transition: 0.2s;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  aspect-ratio: 1;
+  min-height: 70px;
+}
+
+.sell-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 12px rgba(14, 165, 233, 0.2);
+}
+
+.sell-item.rarity-common {
+  border-color: #e5e7eb;
+}
+
+.sell-item.rarity-magic {
+  border-color: #60a5fa;
+}
+
+.sell-item.rarity-rare {
+  border-color: var(--rare);
+}
+
+.sell-item.rarity-legendary {
+  border-color: var(--gold);
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.15);
+}
+
+.sell-item.type-relic {
+  border-color: #f97316;
+  box-shadow: 0 0 8px rgba(249, 115, 22, 0.15);
+}
+
+.sell-item-name {
+  font-size: 7px;
+  color: #e2e8f0;
+  line-height: 1.1;
+  max-height: 2.2em;
+  overflow: hidden;
+}
+
+.sell-item-rarity {
+  font-size: 6px;
+  color: #fbbf24;
+}
+
+.sell-item-value {
+  font-size: 6px;
+  color: var(--gold);
+}
+
+.sell-progress-bar {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.5), rgba(251, 191, 36, 0.7));
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.05s linear;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.sell-item.holding .sell-progress-bar {
+  opacity: var(--progress, 0);
+}
+
+@media (max-width: 768px) {
+  .sell-item::after {
+    content: 'TAP';
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    font-size: 5px;
+    color: rgba(255, 255, 255, 0.3);
+    pointer-events: none;
+  }
+}
+
+.sell-buttons {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid #374151;
+  margin-top: 8px;
+}
+
+.sell-buttons-title {
+  font-size: 9px;
+  color: #fbbf24;
+  text-align: center;
+  padding: 4px 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.sell-buttons-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+#shop-screen #sell-tab.active ~ .shop-footer {
+  display: none;
+}
+
+.sell-btn {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 2px solid #475569;
+  color: #e2e8f0;
+  padding: 8px 6px;
+  font-size: 8px;
+  cursor: pointer;
+  transition: 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.sell-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.sell-btn .btn-count {
+  font-size: 7px;
+  color: #94a3b8;
+}
+
+.confirm-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+}
+
+.confirm-modal.active {
+  display: flex;
+}
+
+.confirm-modal-content {
+  background: #1e293b;
+  border: 2px solid var(--gold);
+  padding: 20px;
+  max-width: 90vw;
+  text-align: center;
+}
+
+.confirm-modal-title {
+  font-size: 12px;
+  color: #fbbf24;
+  margin-bottom: 10px;
+}
+
+.confirm-modal-text {
+  font-size: 10px;
+  color: #e2e8f0;
+  margin-bottom: 16px;
+}
+
+.confirm-modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.confirm-modal-confirm {
+  background: linear-gradient(135deg, #166534 0%, #14532d 100%);
+  border: 2px solid #22c55e;
+  color: #dcfce7;
+}
+
+.confirm-modal-confirm:hover {
+  background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+  border-color: #4ade80;
+}
+
+.confirm-modal-cancel {
+  background: linear-gradient(135deg, #7f1d1d 0%, #450a0a 100%);
+  border: 2px solid #ef4444;
+  color: #fee2e2;
+}
+
+.confirm-modal-cancel:hover {
+  background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%);
+  border-color: #f87171;
 }
 
 .shop-footer {

@@ -5,7 +5,11 @@ import { SHOP_ITEMS } from '../data/shop';
 import { SpriteViewer } from './spriteViewer';
 import { LoadoutUI } from './loadoutUI';
 import { ShopManager } from './shopManager';
+import { SellingSystem } from './selling';
+import { Stash } from '../items/stash';
 import type { ShopItemListing } from '../types';
+import type { ItemRarity, ItemAffix } from '../items/types';
+import { AFFIX_TIER_BRACKETS } from '../items/affixTables';
 
 class MenuSystem {
   private shopTabsBound = false;
@@ -121,6 +125,7 @@ class MenuSystem {
     this.renderUpgrades();
     this.renderShopItems(ShopManager.data.items, 'shop-items-grid');
     this.renderShopItems(ShopManager.data.gamblerItems, 'gambler-grid');
+    this.renderSellTab();
     this.updateShopTimers();
   }
 
@@ -317,8 +322,427 @@ class MenuSystem {
         };
       }
 
+      const tooltip = document.getElementById('loadout-tooltip') as HTMLElement | null;
+
+      const showItemTooltip = (e: MouseEvent) => {
+        if (!tooltip) return;
+        if (!listing.veiled && listing.item) {
+          this.renderItemTooltip(tooltip, listing.item);
+          tooltip.style.display = 'block';
+          this.positionTooltip(tooltip, e.clientX, e.clientY);
+        }
+      };
+
+      const hideItemTooltip = () => {
+        if (!tooltip) return;
+        tooltip.style.display = 'none';
+        tooltip.innerHTML = '';
+      };
+
+      card.addEventListener('mouseenter', showItemTooltip);
+      card.addEventListener('mouseleave', hideItemTooltip);
+
       grid.appendChild(card);
     });
+  }
+
+  private renderSellTab(): void {
+    const grid = document.getElementById('sell-grid');
+    if (!grid) return;
+
+    const stash = Stash.fromJSON(SaveData.data.stash);
+    grid.innerHTML = '';
+
+    if (stash.slots.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'shop-empty';
+      empty.textContent = 'Your stash is empty.';
+      empty.style.gridColumn = '1 / -1';
+      grid.appendChild(empty);
+      return;
+    }
+
+    const HOLD_DURATION = 1000;
+    const tooltip = document.getElementById('loadout-tooltip') as HTMLElement | null;
+
+    stash.slots.forEach((item, index) => {
+      if (!item) return;
+
+      const card = document.createElement('div');
+      card.className = `sell-item rarity-${item.rarity} ${item.type === 'relic' ? 'type-relic' : ''}`;
+      card.dataset.index = index.toString();
+
+      const sellValue = SellingSystem.getSellValue(item.rarity);
+
+      card.innerHTML = `
+        <div class="sell-item-name">${item.name}</div>
+        <div class="sell-item-rarity">${item.rarity.toUpperCase()}</div>
+        <div class="sell-item-value">${sellValue}G</div>
+        <div class="sell-progress-bar"></div>
+      `;
+
+      const progressBar = card.querySelector('.sell-progress-bar') as HTMLElement;
+      let animationFrame: number | null = null;
+      let startTime: number = 0;
+
+      const showItemTooltip = (e?: MouseEvent) => {
+        if (!tooltip) return;
+        this.renderItemTooltip(tooltip, item);
+        tooltip.style.display = 'block';
+        this.positionTooltip(tooltip, e?.clientX, e?.clientY, card);
+      };
+
+      const hideItemTooltip = () => {
+        if (!tooltip) return;
+        tooltip.style.display = 'none';
+        tooltip.innerHTML = '';
+      };
+
+      let touchStartTime = 0;
+
+      const handleStart = (e: MouseEvent | TouchEvent) => {
+        e.preventDefault();
+
+        if (e instanceof TouchEvent) {
+          touchStartTime = Date.now();
+        }
+
+        if (card.classList.contains('holding')) return;
+
+        card.classList.add('holding');
+        startTime = Date.now();
+
+        const updateProgress = () => {
+          if (!card.classList.contains('holding')) return;
+
+          const elapsed = Date.now() - startTime;
+          const progress = Math.min(100, (elapsed / HOLD_DURATION) * 100);
+          progressBar.style.setProperty('--progress', `${progress}%`);
+          progressBar.style.width = `${progress}%`;
+
+          if (elapsed < HOLD_DURATION) {
+            animationFrame = requestAnimationFrame(updateProgress);
+          } else {
+            card.classList.remove('holding');
+            progressBar.style.width = '0%';
+            hideItemTooltip();
+
+            const goldEarned = SellingSystem.sell(index);
+            if (goldEarned > 0) {
+              this.renderShop();
+            }
+          }
+        };
+
+        animationFrame = requestAnimationFrame(updateProgress);
+      };
+
+      const handleEnd = (e?: Event) => {
+        if (e instanceof TouchEvent) {
+          const touchDuration = Date.now() - touchStartTime;
+          if (touchDuration < HOLD_DURATION && touchDuration > 100) {
+            showItemTooltip();
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }
+
+        card.classList.remove('holding');
+        if (animationFrame !== null) {
+          cancelAnimationFrame(animationFrame);
+          animationFrame = null;
+        }
+        progressBar.style.width = '0%';
+        progressBar.style.removeProperty('--progress');
+      };
+
+      card.addEventListener('mouseenter', (e) => showItemTooltip(e));
+      card.addEventListener('mouseleave', () => {
+        hideItemTooltip();
+        handleEnd();
+      });
+      card.addEventListener('click', () => {
+        if (window.innerWidth > 768) {
+          handleEnd();
+        }
+      });
+
+      card.addEventListener('mousedown', handleStart);
+      card.addEventListener('touchstart', handleStart, { passive: false });
+      card.addEventListener('touchend', handleEnd);
+      card.addEventListener('touchcancel', handleEnd);
+
+      grid.appendChild(card);
+    });
+
+    this.renderSellButtons();
+
+    grid.onclick = (e) => {
+      if ((e.target as HTMLElement).classList.contains('sell-grid')) {
+        this.hideTooltip();
+      }
+    };
+  }
+
+  private renderItemTooltip(tooltip: HTMLElement, item: any): void {
+    tooltip.innerHTML = '';
+    tooltip.className = 'loadout-tooltip';
+
+    const rarityColor = item.rarity === 'legendary' ? '#fbbf24'
+      : item.rarity === 'rare' ? '#a855f7'
+      : item.rarity === 'magic' ? '#60a5fa'
+      : item.type === 'relic' ? '#f97316'
+      : '#e5e7eb';
+
+    tooltip.style.borderColor = rarityColor;
+
+    const stats = document.createElement('div');
+    stats.className = 'loadout-detail-stats';
+
+    const title = document.createElement('div');
+    title.className = 'loadout-detail-title';
+    title.style.color = rarityColor;
+    title.textContent = item.name;
+
+    const meta = document.createElement('div');
+    meta.className = 'loadout-detail-meta';
+    meta.textContent = `${item.rarity.toUpperCase()} ${item.type.toUpperCase()}`;
+
+    const base = document.createElement('div');
+    base.className = 'loadout-detail-base';
+    base.textContent = `Base: ${item.baseName} (T${item.tier})`;
+
+    const implicits = item.implicits ?? [];
+    if (implicits.length > 0) {
+      implicits.forEach((affix: any) => {
+        const line = document.createElement('div');
+        line.className = 'affix-line implicit-line';
+        line.textContent = this.formatImplicit(affix);
+        stats.appendChild(line);
+      });
+    }
+
+    if (item.affixes && item.affixes.length > 0) {
+      item.affixes.forEach((affix: any) => {
+        const line = document.createElement('div');
+        line.className = `affix-line tier-${affix.tier}`;
+        line.textContent = this.formatAffix(affix);
+        stats.appendChild(line);
+      });
+    } else if (implicits.length === 0) {
+      stats.textContent = 'No affixes.';
+    }
+
+    const close = document.createElement('div');
+    close.className = 'tooltip-close';
+    close.textContent = '×';
+    close.onclick = () => this.hideTooltip();
+
+    tooltip.appendChild(close);
+    tooltip.appendChild(title);
+    tooltip.appendChild(meta);
+    tooltip.appendChild(base);
+    tooltip.appendChild(stats);
+  }
+
+  private formatImplicit(affix: ItemAffix): string {
+    const labels: Record<string, string> = {
+      flatDamage: 'Damage',
+      percentDamage: 'Damage',
+      areaFlat: 'Area',
+      areaPercent: 'Area',
+      cooldownReduction: 'Cooldown Reduction',
+      projectiles: 'Projectiles',
+      pierce: 'Pierce',
+      duration: 'Duration',
+      speed: 'Speed',
+      projectileSpeed: 'Projectile Speed',
+      maxHp: 'Max HP',
+      armor: 'Armor',
+      hpRegen: 'HP Regen',
+      percentHealing: 'Healing',
+      magnet: 'Magnet',
+      luck: 'Luck',
+      percentGold: 'Gold',
+      pickupRadius: 'Pickup Radius',
+      percentXp: 'XP',
+      allStats: 'All Stats',
+      ricochetDamage: 'Ricochet Damage',
+    };
+    const bracket = AFFIX_TIER_BRACKETS[affix.type]?.[affix.tier - 1];
+    const sign = affix.value >= 0 ? '+' : '';
+    const value = affix.isPercent ? `${affix.value}%` : `${affix.value}`;
+    const bracketSuffix = bracket
+      ? ` (${bracket.min}${affix.isPercent ? '%' : ''}-${bracket.max}${affix.isPercent ? '%' : ''})`
+      : '';
+    return `Implicit: ${sign}${value} ${labels[affix.type] ?? affix.type}${bracketSuffix}`;
+  }
+
+  private formatAffix(affix: ItemAffix): string {
+    const labels: Record<string, string> = {
+      flatDamage: 'Damage',
+      percentDamage: 'Damage',
+      areaFlat: 'Area',
+      areaPercent: 'Area',
+      cooldownReduction: 'Cooldown Reduction',
+      projectiles: 'Projectiles',
+      pierce: 'Pierce',
+      duration: 'Duration',
+      speed: 'Speed',
+      projectileSpeed: 'Projectile Speed',
+      maxHp: 'Max HP',
+      armor: 'Armor',
+      hpRegen: 'HP Regen',
+      percentHealing: 'Healing',
+      magnet: 'Magnet',
+      luck: 'Luck',
+      percentGold: 'Gold',
+      pickupRadius: 'Pickup Radius',
+      percentXp: 'XP',
+      allStats: 'All Stats',
+      ricochetDamage: 'Ricochet Damage',
+    };
+    const bracket = AFFIX_TIER_BRACKETS[affix.type]?.[affix.tier - 1];
+    const sign = affix.value >= 0 ? '+' : '';
+    const value = affix.isPercent ? `${affix.value}%` : `${affix.value}`;
+    const bracketSuffix = bracket
+      ? ` (${bracket.min}${affix.isPercent ? '%' : ''}-${bracket.max}${affix.isPercent ? '%' : ''})`
+      : '';
+    return `T${affix.tier} ${sign}${value} ${labels[affix.type] ?? affix.type}${bracketSuffix}`;
+  }
+
+  private positionTooltip(tooltip: HTMLElement, x?: number, y?: number, anchor?: HTMLElement): void {
+    let posX = 0, posY = 0;
+
+    if (x !== undefined && y !== undefined) {
+      posX = x + 12;
+      posY = y + 12;
+    } else if (anchor) {
+      const rect = anchor.getBoundingClientRect();
+      posX = rect.right + 12;
+      posY = rect.top + 12;
+    }
+
+    const width = tooltip.offsetWidth;
+    const height = tooltip.offsetHeight;
+    const maxX = window.innerWidth - width - 8;
+    const maxY = window.innerHeight - height - 8;
+
+    if (posX > maxX) posX = maxX;
+    if (posY > maxY) posY = maxY;
+    if (posX < 8) posX = 8;
+    if (posY < 8) posY = 8;
+
+    tooltip.style.left = `${posX}px`;
+    tooltip.style.top = `${posY}px`;
+  }
+
+  private renderSellButtons(): void {
+    const buttonsContainer = document.getElementById('sell-buttons');
+    if (!buttonsContainer) return;
+
+    const stash = Stash.fromJSON(SaveData.data.stash);
+    const counts: Record<string, number> = { common: 0, magic: 0, rare: 0, legendary: 0, relic: 0 };
+
+    stash.slots.forEach(item => {
+      if (item) {
+        const key = item.type === 'relic' ? 'relic' : item.rarity;
+        counts[key]++;
+      }
+    });
+
+    const buttonConfigs = [
+      { label: 'COMMON', rarities: ['common' as ItemRarity], key: 'common' },
+      { label: 'MAGIC', rarities: ['magic' as ItemRarity], key: 'magic' },
+      { label: 'RARE', rarities: ['rare' as ItemRarity], key: 'rare' },
+      { label: 'LEGENDARY', rarities: ['legendary' as ItemRarity], key: 'legendary' },
+      { label: 'RELICS', rarities: ['common' as ItemRarity, 'magic' as ItemRarity, 'rare' as ItemRarity, 'legendary' as ItemRarity], key: 'relic', filter: (item: any) => item?.type === 'relic' },
+      { label: 'ALL', rarities: ['common' as ItemRarity, 'magic' as ItemRarity, 'rare' as ItemRarity, 'legendary' as ItemRarity], key: 'all' },
+    ];
+
+    buttonsContainer.innerHTML = '';
+
+    const title = document.createElement('div');
+    title.className = 'sell-buttons-title';
+    title.textContent = 'BULK SELL';
+    buttonsContainer.appendChild(title);
+
+    const row = document.createElement('div');
+    row.className = 'sell-buttons-row';
+
+    buttonConfigs.forEach(config => {
+      const count = config.filter
+        ? stash.slots.filter(config.filter).length
+        : counts[config.key] || 0;
+
+      if (count === 0) return;
+
+      const btn = document.createElement('button');
+      btn.className = 'sell-btn';
+      btn.innerHTML = `
+        <span>${config.label}</span>
+        <span class="btn-count">(${count})</span>
+      `;
+
+      btn.onclick = () => {
+        const preview = config.filter
+          ? SellingSystem.previewSellFiltered(config.filter)
+          : config.key === 'all'
+          ? SellingSystem.previewSellAllByRarity(config.rarities)
+          : SellingSystem.previewSellAllByRarity(config.rarities);
+
+        if (preview.count > 0) {
+          this.showConfirmModal(config.label, preview, () => {
+            config.filter
+              ? SellingSystem.sellFiltered(config.filter)
+              : SellingSystem.sellAllByRarity(config.rarities);
+            this.renderShop();
+          });
+        }
+      };
+
+      row.appendChild(btn);
+    });
+
+    buttonsContainer.appendChild(row);
+  }
+
+  private showConfirmModal(label: string, preview: { count: number; gold: number }, onConfirm: () => void): void {
+    const modal = document.getElementById('sell-confirm-modal');
+    if (!modal) return;
+
+    const titleEl = modal.querySelector('.confirm-modal-title') as HTMLElement;
+    const textEl = modal.querySelector('.confirm-modal-text') as HTMLElement;
+    const confirmBtn = modal.querySelector('.confirm-modal-confirm') as HTMLButtonElement;
+    const cancelBtn = modal.querySelector('.confirm-modal-cancel') as HTMLButtonElement;
+
+    titleEl.textContent = `SELL ${label}`;
+    textEl.textContent = `Sell ${preview.count} item${preview.count > 1 ? 's' : ''} for ${preview.gold} gold?`;
+    modal.classList.add('active');
+
+    const closeModal = () => {
+      modal.classList.remove('active');
+      confirmBtn.onclick = null;
+      cancelBtn.onclick = null;
+      this.hideTooltip();
+    };
+
+    confirmBtn.onclick = () => {
+      closeModal();
+      onConfirm();
+    };
+
+    cancelBtn.onclick = () => {
+      closeModal();
+    };
+  }
+
+  private hideTooltip(): void {
+    const tooltip = document.getElementById('loadout-tooltip') as HTMLElement | null;
+    if (tooltip) {
+      tooltip.style.display = 'none';
+      tooltip.innerHTML = '';
+    }
   }
 
   private bindShopTabs(): void {
@@ -341,6 +765,8 @@ class MenuSystem {
     contents.forEach(content => {
       content.classList.toggle('active', content.id === `${tabId}-tab`);
     });
+
+    this.hideTooltip();
   }
 
   private updateShopTimers(): void {

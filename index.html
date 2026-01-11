@@ -100,7 +100,7 @@
                 </button>
                 <button onclick="Menu.openShop()" class="btn-secondary">
                     <span class="btn-icon">🛠</span>
-                    <span class="btn-text">UPGRADES</span>
+                    <span class="btn-text">MERCHANTS</span>
                 </button>
                 <button onclick="Menu.openStash()" class="btn-secondary">
                     <span class="btn-icon">📦</span>
@@ -155,6 +155,7 @@
                 <button class="shop-tab active" data-tab="upgrades">UPGRADES</button>
                 <button class="shop-tab" data-tab="items">ITEMS</button>
                 <button class="shop-tab" data-tab="gambler">GAMBLER</button>
+                <button class="shop-tab" data-tab="sell">SELL</button>
             </div>
 
             <div id="upgrades-tab" class="shop-tab-content active">
@@ -165,6 +166,10 @@
             </div>
             <div id="gambler-tab" class="shop-tab-content">
                 <div id="gambler-grid" class="shop-items-grid"></div>
+            </div>
+            <div id="sell-tab" class="shop-tab-content">
+                <div id="sell-grid" class="sell-grid"></div>
+                <div id="sell-buttons" class="sell-buttons"></div>
             </div>
 
             <div class="shop-footer">
@@ -305,6 +310,16 @@
         <div id="weapon-tooltip" class="weapon-tooltip"></div>
         <div id="level-info-backdrop" class="level-info-backdrop" onclick="UI.hideLevelInfo()"></div>
         <div id="level-info-popup" class="level-info-popup"></div>
+        <div id="sell-confirm-modal" class="confirm-modal">
+            <div class="confirm-modal-content">
+                <div class="confirm-modal-title">CONFIRM SELL</div>
+                <div class="confirm-modal-text">Are you sure?</div>
+                <div class="confirm-modal-actions">
+                    <button class="confirm-modal-confirm">SELL</button>
+                    <button class="confirm-modal-cancel">CANCEL</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script type="module" src="/src/main.ts"></script>
