@@ -3,6 +3,9 @@ import { CHARACTERS } from '../data/characters';
 import { CONFIG } from '../config';
 import { Game } from '../game';
 import { ShopManager } from './shopManager';
+import { Stash } from '../items/stash';
+import { ItemGenerator } from '../items/generator';
+import { RELIC_DEFINITIONS } from '../data/relics';
 
 class DebugSystem {
   private lootBoostEnabled = false;
@@ -61,6 +64,30 @@ class DebugSystem {
     SaveData.data.shop.safeSlotsCount = 999;
     SaveData.save();
     console.log('Debug: Save all items on death enabled');
+  }
+
+  addAllRelics(): void {
+    const stash = Stash.fromJSON(SaveData.data.stash);
+    let added = 0;
+
+    for (const relic of RELIC_DEFINITIONS) {
+      const item = ItemGenerator.generate({
+        itemType: 'relic',
+        luck: 0,
+        classId: relic.classId,
+        relicId: relic.id,
+      });
+      const slot = stash.addItem(item);
+      if (slot === null) {
+        console.log('Debug: Stash full, stopped adding relics.');
+        break;
+      }
+      added++;
+    }
+
+    SaveData.data.stash = stash.toJSON();
+    SaveData.save();
+    console.log(`Debug: Added ${added} relics to stash.`);
   }
 
   private syncLootBoostUi(): void {

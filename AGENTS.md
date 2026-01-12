@@ -83,6 +83,22 @@ This prevents frustrating the user by unexpectedly stopping or interfering with 
 - Level-up shows 3 random choices from `UPGRADES`
 - `Player.addUpgrade()` handles both new weapons and upgrades
 
+### Relics (Class-Specific Uniques)
+- `src/data/relics.ts` - Defines relics (classId, weight tier, unique effect text, effect params)
+- `src/items/generator.ts` - `ItemGenerator.generateRelic()` rolls a relic for a class; call via `ItemGenerator.generate({ itemType: 'relic', classId })`
+- `src/systems/relicEffects.ts` - Centralizes effect lookups (projectile bonus, damage/cooldown multipliers, cooldown refund)
+- `src/game.ts` - Applies relic weapon modifiers and on-hit cooldown refunds
+- `src/items/loadout.ts` + `src/systems/loadoutUI.ts` - Enforces class-compatible relic equips
+- `src/systems/ui.ts` + `src/systems/menu.ts` - Show unique effect text and class label in tooltips
+- `src/systems/saveData.ts` - Migrates legacy relics out of stash/loadout if they lack relic metadata
+- `RELICS_TODO.md` - Planned relic list and remaining implementation tasks
+
+**Adding a new relic (example path)**:
+1. Add a `RelicDefinition` entry in `src/data/relics.ts` with `classId`, `weightTier`, and effect values.
+2. If it needs new behavior, extend `src/systems/relicEffects.ts` and call it from `src/game.ts`.
+3. Make sure `ItemGenerator.generate({ itemType: 'relic', classId })` is used wherever relics are created.
+4. Add tests in `src/items/__tests__/relicGenerator.test.ts` and `src/systems/__tests__/relicEffects.test.ts`.
+
 ### Enemy Types
 - `basic` - Standard chaser
 - `bat` - Faster but weaker
