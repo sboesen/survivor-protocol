@@ -99,6 +99,12 @@ This prevents frustrating the user by unexpectedly stopping or interfering with 
 3. Make sure `ItemGenerator.generate({ itemType: 'relic', classId })` is used wherever relics are created.
 4. Add tests in `src/items/__tests__/relicGenerator.test.ts` and `src/systems/__tests__/relicEffects.test.ts`.
 
+**End-to-end example (Sunforge Core fireball relic)**:
+1. `src/data/relics.ts` defines `sunforge_core` with `projectileOverride`, merge scaling, and cooldown penalty.
+2. `src/systems/relicEffects.ts` exposes `getRelicFireballMergeEffect` for the fireball-only behavior.
+3. `src/game.ts` applies merge overrides (force single projectile, scale damage, size, and explosion) when firing fireball.
+4. Tests live in `src/items/__tests__/relicGenerator.test.ts` and `src/systems/__tests__/relicEffects.test.ts`.
+
 ### Enemy Types
 - `basic` - Standard chaser
 - `bat` - Faster but weaker

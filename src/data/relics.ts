@@ -8,9 +8,15 @@ export interface RelicEffectDefinition {
   description: string[];
   weaponId?: WeaponType;
   projectileBonus?: number;
+  projectileOverride?: number;
   damageMult?: number;
   cooldownMult?: number;
   cooldownRefund?: number;
+  fireballMergeDamageMult?: number;
+  fireballMergeExplosionRadius?: number;
+  fireballMergeRadius?: number;
+  fireballExplosionBaseRadius?: number;
+  fireballExplosionDamageMult?: number;
 }
 
 export interface RelicDefinition {
@@ -23,6 +29,31 @@ export interface RelicDefinition {
 }
 
 export const RELIC_DEFINITIONS: RelicDefinition[] = [
+  {
+    id: 'sunforge_core',
+    name: 'Sunforge Core',
+    classId: 'wizard',
+    weightTier: 'chase',
+    tint: '#fb923c',
+    effect: {
+      id: 'wizard_sunforge_core',
+      name: 'Sunforge Core',
+      description: [
+        'Fireball fuses into one core; extra projectiles increase its size.',
+        'Each merged projectile grants +40% fireball damage and +50 explosion radius.',
+        'Fireball explosions deal full damage.',
+        'Fireball cooldown +50%.',
+      ],
+      weaponId: 'fireball',
+      projectileOverride: 1,
+      cooldownMult: 1.5,
+      fireballMergeDamageMult: 0.4,
+      fireballMergeExplosionRadius: 50,
+      fireballMergeRadius: 10,
+      fireballExplosionBaseRadius: 40,
+      fireballExplosionDamageMult: 1,
+    },
+  },
   {
     id: 'storm_quiver',
     name: 'Storm Quiver',

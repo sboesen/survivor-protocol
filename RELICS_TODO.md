@@ -1,7 +1,7 @@
 # Relic TODO (Post-MVP)
 
 This file tracks the planned class-specific relics and the remaining implementation work.
-The MVP currently implements a single Ranger relic (Storm Quiver) as the example.
+The MVP currently implements a Ranger relic (Storm Quiver) and a Wizard relic (Sunforge Core) as examples.
 
 ## Current State
 - Relic data lives in `src/data/relics.ts`.
@@ -12,7 +12,7 @@ The MVP currently implements a single Ranger relic (Storm Quiver) as the example
 
 ### Wizard
 - Arcane Die (chase): 5% chance for 10x damage.
-- Meteor Convergence (uncommon): meteors merge into one huge AoE; +40% meteor cooldown; each +projectile affix adds +12% impact radius.
+- Sunforge Core (chase): fireball fuses into one core; merged projectiles boost size/explosion; cooldown +50%. (Implemented)
 - Grimoire of Chains (common): fireballs chain to 3.
 - Warding Screen (rare): +100% luck, -20% damage.
 - Critical Convergence (uncommon): crits double projectile count for 5s.

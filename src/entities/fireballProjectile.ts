@@ -20,6 +20,7 @@ export class FireballProjectile extends Entity {
   isCrit: boolean;
   hitList: Entity[];
   explodeRadius?: number;
+  explosionDamageMultiplier?: number;
   trailDamage?: number;
   weaponId: string; // Track which weapon created this fireball
 

@@ -62,7 +62,7 @@ import { rollItemType, rollRelicDrop, shouldDropItem } from './items/drops';
 import { Stash } from './items/stash';
 import { ItemStats } from './items/stats';
 import { hasRelicsForClass } from './data/relics';
-import { getActiveRelic, getRelicCooldownRefund, getRelicWeaponModifiers } from './systems/relicEffects';
+import { getActiveRelic, getRelicCooldownRefund, getRelicFireballMergeEffect, getRelicWeaponModifiers } from './systems/relicEffects';
 import {
   applyAreaBonus,
   applyArmorReduction,
@@ -686,10 +686,43 @@ class GameCore {
         p.dmgMult * relicMods.damageMult,
         p.critChance
       );
-      const dmg = damageResult.damage;
+      let dmg = damageResult.damage;
       const isCrit = damageResult.isCrit;
       const projectileSpeedMult = 1 + (p.items.projectileSpeed || 0);
-      const projectileBonus = p.items.projectile + relicMods.projectileBonus;
+      const baseProjectileBonus = p.items.projectile + relicMods.projectileBonus;
+      let projectileBonus = baseProjectileBonus;
+      let fireballMergeCount = 0;
+      let fireballMergeExplosionBonus = 0;
+      let fireballMergeRadiusBonus = 0;
+      let fireballBaseExplosionRadius = 0;
+      let fireballExplosionDamageMult = 0;
+
+      if (w.id === 'fireball') {
+        const fireballMerge = getRelicFireballMergeEffect(activeRelic, w.id);
+        if (fireballMerge) {
+          // Relic-only scaling bump at level 5 without changing projectile count.
+          const fireballLevelBonus = w.level >= 5 ? 1 : 0;
+          fireballMergeCount = Math.max(1, (w.projectileCount || 1) + baseProjectileBonus + fireballLevelBonus);
+          if (fireballMerge.projectileOverride !== undefined) {
+            projectileBonus = fireballMerge.projectileOverride - (w.projectileCount || 1);
+          }
+          if (fireballMergeCount > 1 && fireballMerge.mergeDamageMult > 0) {
+            dmg *= 1 + (fireballMergeCount - 1) * fireballMerge.mergeDamageMult;
+          }
+          if (fireballMergeCount > 1 && fireballMerge.mergeExplosionRadius > 0) {
+            fireballMergeExplosionBonus = (fireballMergeCount - 1) * fireballMerge.mergeExplosionRadius;
+          }
+          if (fireballMergeCount > 1 && fireballMerge.mergeRadius > 0) {
+            fireballMergeRadiusBonus = (fireballMergeCount - 1) * fireballMerge.mergeRadius;
+          }
+          if (fireballMerge.baseExplosionRadius > 0) {
+            fireballBaseExplosionRadius = fireballMerge.baseExplosionRadius;
+          }
+          if (fireballMerge.explosionDamageMult > 0) {
+            fireballExplosionDamageMult = fireballMerge.explosionDamageMult;
+          }
+        }
+      }
 
       // Handle aura separately (returns early)
       if (w.type === 'aura' && w.area) {
@@ -765,10 +798,17 @@ class GameCore {
                 fbData.isCrit,
                 w.id
               );
-              if (fbData.explodeRadius) {
-                fireball.explodeRadius = applyAreaBonus(fbData.explodeRadius, p.areaFlat, p.areaPercent);
+              const explodeRadius = (fbData.explodeRadius ?? 0) + fireballBaseExplosionRadius + fireballMergeExplosionBonus;
+              if (explodeRadius > 0) {
+                fireball.explodeRadius = applyAreaBonus(explodeRadius, p.areaFlat, p.areaPercent);
               }
               if (fbData.trailDamage) fireball.trailDamage = fbData.trailDamage;
+              if (fireballMergeRadiusBonus > 0) {
+                fireball.radius += fireballMergeRadiusBonus;
+              }
+              if (fireballExplosionDamageMult > 0) {
+                fireball.explosionDamageMultiplier = fireballExplosionDamageMult;
+              }
               this.fireballs.push(fireball);
             }
           }
@@ -1121,10 +1161,19 @@ class GameCore {
 
           // Explosion radius (level 2+)
           if (fb.explodeRadius) {
+            this.spawnParticles({
+              type: 'ripple' as ParticleType,
+              x: fb.x,
+              y: fb.y,
+              size: Math.max(20, fb.explodeRadius),
+              life: 12,
+              color: '#ffb347',
+            }, 1);
             const explosionResult = findEnemiesInExplosion(fb.x, fb.y, fb.explodeRadius, this.enemies, [e]);
             for (const other of explosionResult.enemies) {
               if (!fb.hitList.includes(other) && !sharedFireballHitList.includes(other)) {
-                this.hitEnemy(other, fb.dmg * explosionResult.damageMultiplier, fb.isCrit);
+                const damageMult = fb.explosionDamageMultiplier ?? explosionResult.damageMultiplier;
+                this.hitEnemy(other, fb.dmg * damageMult, fb.isCrit);
                 fb.hitList.push(other);
                 sharedFireballHitList.push(other);
               }
@@ -1155,9 +1204,18 @@ class GameCore {
 
         // Explosion on expire (level 2+)
         if (fb.explodeRadius) {
+          this.spawnParticles({
+            type: 'ripple' as ParticleType,
+            x: fb.x,
+            y: fb.y,
+            size: Math.max(20, fb.explodeRadius),
+            life: 12,
+            color: '#ffb347',
+          }, 1);
           const explosionResult = findEnemiesInExplosion(fb.x, fb.y, fb.explodeRadius, this.enemies, fb.hitList as Enemy[]);
           for (const e of explosionResult.enemies) {
-            this.hitEnemy(e, fb.dmg * explosionResult.damageMultiplier, fb.isCrit);
+            const damageMult = fb.explosionDamageMultiplier ?? explosionResult.damageMultiplier;
+            this.hitEnemy(e, fb.dmg * damageMult, fb.isCrit);
           }
         }
       }

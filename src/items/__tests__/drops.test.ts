@@ -28,7 +28,7 @@ describe('drops', () => {
   });
 
   it('should not roll relics for missing class pools', () => {
-    const rolled = rollRelicDrop('basic', 0, 'wizard', () => 0, true);
+    const rolled = rollRelicDrop('basic', 0, 'paladin', () => 0, true);
     expect(rolled).toBe(false);
   });
 

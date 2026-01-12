@@ -13,6 +13,17 @@ describe('ItemGenerator.generateRelic', () => {
     expect(item.affixes.length).toBeGreaterThan(0);
   });
 
+  it('creates a wizard relic with metadata', () => {
+    const item = ItemGenerator.generate({ itemType: 'relic', luck: 0, classId: 'wizard', random: () => 0.1 });
+
+    expect(item.type).toBe('relic');
+    expect(item.rarity).toBe('legendary');
+    expect(item.relicId).toBe('sunforge_core');
+    expect(item.relicClassId).toBe('wizard');
+    expect(item.relicEffectDescription?.length).toBeGreaterThan(0);
+    expect(item.affixes.length).toBeGreaterThan(0);
+  });
+
   it('throws when classId is missing', () => {
     expect(() => ItemGenerator.generate({ itemType: 'relic', luck: 0 })).toThrow();
   });
