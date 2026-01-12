@@ -1178,8 +1178,8 @@ class UISystem {
     };
 
     const renderStat = (label: string, value: string | number, highlight: boolean = false) => `
-      <div class="level-stat-line">
-        <span class="level-stat-label">${label}:</span>
+      <div class="level-stat-row">
+        <span class="level-stat-label">${label}</span>
         <span class="level-stat-value ${highlight ? 'highlight' : ''}">${value}</span>
       </div>
     `;
@@ -1257,7 +1257,9 @@ class UISystem {
         <div class="level-row ${isCurrent ? 'current' : ''}">
           <div class="level-num">Level ${i}${isCurrent ? ' (Current)' : ''}</div>
           <div class="level-details">
-            ${statLines}
+            <div class="level-stat-table">
+              ${statLines}
+            </div>
             
             ${dynamicBonuses.length > 0 ? `
               <div class="new-bonus-section">
@@ -1349,8 +1351,8 @@ class UISystem {
       if (!tooltip) return;
       const width = tooltip.offsetWidth;
       const height = tooltip.offsetHeight;
-      let x = event.clientX + 12;
-      let y = event.clientY + 12;
+      let x = event.clientX + 6;
+      let y = event.clientY + 6;
       const maxX = window.innerWidth - width - 8;
       const maxY = window.innerHeight - height - 8;
       if (x > maxX) x = maxX;
