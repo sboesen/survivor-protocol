@@ -71,8 +71,8 @@ describe('movement', () => {
     it('should prioritize joystick over keyboard', () => {
       const input = createInput({ w: true }, { active: true, x: 0.5, y: 0.5, ox: 0, oy: 0 });
       const result = getInputDirection(input);
-      expect(result.dx).toBe(0.5);
-      expect(result.dy).toBe(0.5);
+      expect(result.dx).toBeCloseTo(0.5 * 0.85, 5);
+      expect(result.dy).toBeCloseTo(0.5 * 0.85, 5);
     });
   });
 

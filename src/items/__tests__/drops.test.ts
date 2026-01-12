@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateDropChance, rollItemType, shouldDropItem } from '../drops';
+import { calculateDropChance, rollItemType, rollRelicDrop, shouldDropItem } from '../drops';
 
 describe('drops', () => {
   it('should scale drop chance with time and luck', () => {
@@ -25,5 +25,15 @@ describe('drops', () => {
     const types = new Set(['weapon', 'helm', 'armor', 'accessory', 'offhand']);
     const rolled = rollItemType(() => 0.1);
     expect(types.has(rolled)).toBe(true);
+  });
+
+  it('should not roll relics for missing class pools', () => {
+    const rolled = rollRelicDrop('basic', 0, 'wizard', () => 0, true);
+    expect(rolled).toBe(false);
+  });
+
+  it('should allow relic drops with debug boost', () => {
+    const rolled = rollRelicDrop('basic', 0, 'ranger', () => 0, true);
+    expect(rolled).toBe(true);
   });
 });
