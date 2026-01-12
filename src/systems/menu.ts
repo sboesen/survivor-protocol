@@ -110,7 +110,7 @@ class MenuSystem {
       if (infoBtn) {
         infoBtn.onclick = (e) => {
           e.stopPropagation();
-          (window as any).UI.showLevelInfo(c.weapon);
+          (window as any).UI.showLevelInfo(c.weapon, c.id);
         };
       }
 

@@ -1,8 +1,10 @@
 import { CHARACTERS } from '../data/characters';
 import { UPGRADES } from '../data/upgrades';
 import { WEAPON_LEVELS, ATTRIBUTE_LABELS, UNIVERSAL_UPGRADES } from '../data/leveling';
+import { getRelicsForClass } from '../data/relics';
 import type { Item, ItemAffix } from '../items/types';
 import { AFFIX_TIER_BRACKETS } from '../items/affixTables';
+import { ItemGenerator } from '../items/generator';
 import { Utils } from '../utils';
 import { wrapRelativePosition } from './movement';
 import type { Weapon, ExtractionState } from '../types';
@@ -31,6 +33,22 @@ const AFFIX_LABELS: Record<ItemAffix['type'], string> = {
   ricochetDamage: 'Ricochet Damage',
 };
 
+const hashString = (input: string): number => {
+  let hash = 0;
+  for (let i = 0; i < input.length; i++) {
+    hash = ((hash << 5) - hash + input.charCodeAt(i)) | 0;
+  }
+  return hash >>> 0;
+};
+
+const createSeededRandom = (seed: number): (() => number) => {
+  let state = seed >>> 0;
+  return () => {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return state / 0x100000000;
+  };
+};
+
 class UISystem {
   private cache: Record<string, HTMLElement | null> = {};
 
@@ -50,6 +68,14 @@ class UISystem {
       : '';
     const label = AFFIX_LABELS[affix.type] ?? affix.type;
     return `T${affix.tier} ${sign}${value} ${label}${bracketSuffix}`;
+  }
+
+  private formatAffixRange(affix: ItemAffix): string {
+    const bracket = AFFIX_TIER_BRACKETS[affix.type]?.[affix.tier - 1];
+    const label = AFFIX_LABELS[affix.type] ?? affix.type;
+    if (!bracket) return `T${affix.tier} ${label}`;
+    const suffix = affix.isPercent ? '%' : '';
+    return `T${affix.tier} ${label}: +${bracket.min}${suffix}–${bracket.max}${suffix}`;
   }
 
   private formatImplicit(affix: ItemAffix): string {
@@ -1086,7 +1112,7 @@ class UISystem {
     }
   }
 
-  showLevelInfo(weaponId: string): void {
+  showLevelInfo(weaponId: string, classId?: string): void {
     const popup = this.getEl('level-info-popup');
     const backdrop = this.getEl('level-info-backdrop');
     if (!popup || !backdrop) return;
@@ -1114,11 +1140,9 @@ class UISystem {
     const w = (window as any).Game?.player?.weapons.find((w: any) => w.id === weaponId);
     if (w) currentLevel = w.level;
 
-    let html = `
-      <div class="level-info-title">${name}</div>
-      <div class="level-info-desc">${upgrade.desc}</div>
-      <div class="level-list">
-    `;
+    const relics = classId ? getRelicsForClass(classId) : [];
+    const className = classId ? (CHARACTERS[classId]?.name ?? classId) : '';
+    const relicTooltipData: Record<string, { name: string; affixRanges: string[] }> = {};
 
     // Simulate weapon growth for cumulative stats
     const getWeaponState = (level: number) => {
@@ -1160,6 +1184,7 @@ class UISystem {
       </div>
     `;
 
+    let levelRows = '';
     for (let i = 1; i <= 5; i++) {
       const state = getWeaponState(i);
       const prevState = i > 1 ? getWeaponState(i - 1) : null;
@@ -1196,7 +1221,7 @@ class UISystem {
         }
       }
 
-      html += `
+      levelRows += `
         <div class="level-row ${isCurrent ? 'current' : ''}">
           <div class="level-num">Level ${i}${isCurrent ? ' (Current)' : ''}</div>
           <div class="level-details">
@@ -1224,14 +1249,131 @@ class UISystem {
       `;
     }
 
-    html += `
+    const levelListHtml = `<div class="level-list">${levelRows}</div>`;
+
+    let relicListHtml = '';
+    if (!classId) {
+      relicListHtml = `<div class="relic-empty">Relics are shown when viewing a class.</div>`;
+    } else if (relics.length === 0) {
+      relicListHtml = `<div class="relic-empty">No relics defined for ${className} yet.</div>`;
+    } else {
+      const relicEntries = relics.map(relic => {
+        const seed = hashString(relic.id);
+        const random = createSeededRandom(seed);
+        const sample = ItemGenerator.generate({
+          itemType: 'relic',
+          luck: 0,
+          classId: relic.classId,
+          relicId: relic.id,
+          random,
+        });
+        relicTooltipData[relic.id] = {
+          name: relic.name,
+          affixRanges: sample.affixes.map(affix => this.formatAffixRange(affix)),
+        };
+
+        const effectLines = relic.effect.description
+          .map(line => `<div class="relic-effect-line">${line}</div>`)
+          .join('');
+
+        return `
+          <div class="relic-entry" data-relic-id="${relic.id}">
+            <div class="relic-entry-header">
+              <div class="relic-entry-name">${relic.name}</div>
+              <div class="relic-entry-tier">${relic.weightTier.toUpperCase()}</div>
+            </div>
+            <div class="relic-entry-effect">${effectLines}</div>
+            <div class="relic-entry-hint">Hover for affix ranges</div>
+          </div>
+        `;
+      }).join('');
+
+      relicListHtml = `
+        <div class="relic-list-title">${className} Relics</div>
+        <div class="relic-list">${relicEntries}</div>
+      `;
+    }
+
+    const html = `
+      <div class="level-info-title">${name}</div>
+      <div class="level-info-desc">${upgrade.desc}</div>
+      <div class="level-info-tabs">
+        <button class="level-tab active" data-tab="levels">Levels</button>
+        <button class="level-tab" data-tab="relics">Relics</button>
       </div>
+      <div class="level-info-content">
+        <div class="level-tab-content active" data-tab="levels">${levelListHtml}</div>
+        <div class="level-tab-content" data-tab="relics">${relicListHtml}</div>
+      </div>
+      <div class="relic-tooltip"></div>
       <button class="info-popup-close" onclick="UI.hideLevelInfo()">CLOSE</button>
     `;
 
     popup.innerHTML = html;
     popup.classList.add('active');
     backdrop.classList.add('active');
+
+    const tooltip = popup.querySelector('.relic-tooltip') as HTMLElement | null;
+    const hideRelicTooltip = () => {
+      if (!tooltip) return;
+      tooltip.innerHTML = '';
+      tooltip.style.display = 'none';
+    };
+
+    const positionRelicTooltip = (event: MouseEvent) => {
+      if (!tooltip) return;
+      const width = tooltip.offsetWidth;
+      const height = tooltip.offsetHeight;
+      let x = event.clientX + 12;
+      let y = event.clientY + 12;
+      const maxX = window.innerWidth - width - 8;
+      const maxY = window.innerHeight - height - 8;
+      if (x > maxX) x = maxX;
+      if (y > maxY) y = maxY;
+      if (x < 8) x = 8;
+      if (y < 8) y = 8;
+      tooltip.style.left = `${x}px`;
+      tooltip.style.top = `${y}px`;
+    };
+
+    const entries = popup.querySelectorAll<HTMLElement>('.relic-entry');
+    entries.forEach(entry => {
+      const relicId = entry.dataset.relicId || '';
+      const data = relicTooltipData[relicId];
+      if (!data || !tooltip) return;
+
+      entry.addEventListener('mouseenter', (event: MouseEvent) => {
+        tooltip.innerHTML = `
+          <div class="relic-tooltip-title">${data.name} Affix Ranges</div>
+          <div class="relic-tooltip-list">
+            ${data.affixRanges.map(range => `<div class="relic-tooltip-line">${range}</div>`).join('')}
+          </div>
+        `;
+        tooltip.style.display = 'block';
+        positionRelicTooltip(event);
+      });
+
+      entry.addEventListener('mousemove', (event: MouseEvent) => {
+        positionRelicTooltip(event);
+      });
+
+      entry.addEventListener('mouseleave', () => {
+        hideRelicTooltip();
+      });
+    });
+
+    const tabs = popup.querySelectorAll<HTMLButtonElement>('.level-tab');
+    const contents = popup.querySelectorAll<HTMLElement>('.level-tab-content');
+    tabs.forEach(tab => {
+      tab.onclick = () => {
+        const target = tab.dataset.tab || 'levels';
+        tabs.forEach(other => other.classList.toggle('active', other === tab));
+        contents.forEach(content => {
+          content.classList.toggle('active', content.dataset.tab === target);
+        });
+        hideRelicTooltip();
+      };
+    });
   }
 
   hideLevelInfo(): void {
