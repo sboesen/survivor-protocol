@@ -1184,10 +1184,40 @@ class UISystem {
       </div>
     `;
 
+    const levelStates = Array.from({ length: 5 }, (_, idx) => getWeaponState(idx + 1));
+    const statSpecs: Array<{
+      key: string;
+      label: string;
+      defaultValue: number | boolean;
+      format: (value: any) => string;
+      always?: boolean;
+    }> = [
+      { key: 'baseDmg', label: 'Dmg', defaultValue: 0, format: (value) => Math.round(value).toString(), always: true },
+      { key: 'cd', label: 'CD', defaultValue: 0, format: (value) => `${(value / 60).toFixed(2)}s`, always: true },
+      { key: 'projectileCount', label: 'Projectiles', defaultValue: 1, format: (value) => `${Math.max(1, Math.round(value))}`, always: true },
+      { key: 'pierce', label: 'Pierce', defaultValue: 0, format: (value) => `${Math.round(value)}` },
+      { key: 'bounces', label: 'Bounces', defaultValue: 0, format: (value) => `${Math.round(value)}` },
+      { key: 'explodeRadius', label: 'Aoe', defaultValue: 0, format: (value) => `${Math.round(value)}px` },
+      { key: 'trailDamage', label: 'Trail Dmg', defaultValue: 0, format: (value) => `${Math.round(value)}` },
+      { key: 'speedMult', label: 'Speed', defaultValue: 1, format: (value) => `${Math.round(value * 100)}%` },
+      { key: 'knockback', label: 'Knockback', defaultValue: 0, format: (value) => `${Math.round(value)}` },
+      { key: 'coneLength', label: 'Range', defaultValue: 0, format: (value) => `${Math.round(value)}px` },
+      { key: 'coneWidth', label: 'Cone', defaultValue: 0, format: (value) => `${Math.round((value * 180) / Math.PI)}°` },
+      { key: 'splits', label: 'Splits', defaultValue: false, format: (value) => (value ? 'YES' : 'NO') },
+    ];
+
+    const displayStats = statSpecs.filter(spec => spec.always || levelStates.some(state => {
+      const value = (state as any)[spec.key] ?? spec.defaultValue;
+      if (typeof spec.defaultValue === 'boolean') {
+        return Boolean(value) !== spec.defaultValue;
+      }
+      return value !== spec.defaultValue;
+    }));
+
     let levelRows = '';
     for (let i = 1; i <= 5; i++) {
-      const state = getWeaponState(i);
-      const prevState = i > 1 ? getWeaponState(i - 1) : null;
+      const state = levelStates[i - 1];
+      const prevState = i > 1 ? levelStates[i - 2] : null;
       const isCurrent = currentLevel === i;
 
       // Generate "NEW" bonus lines by comparing current state to previous state
@@ -1216,18 +1246,18 @@ class UISystem {
         }
       }
 
+      const statLines = displayStats.map(spec => {
+        const value = (state as any)[spec.key] ?? spec.defaultValue;
+        const prevValue = prevState ? ((prevState as any)[spec.key] ?? spec.defaultValue) : value;
+        const highlight = prevState ? value !== prevValue : false;
+        return renderStat(spec.label, spec.format(value), highlight);
+      }).join('');
+
       levelRows += `
         <div class="level-row ${isCurrent ? 'current' : ''}">
           <div class="level-num">Level ${i}${isCurrent ? ' (Current)' : ''}</div>
           <div class="level-details">
-            ${renderStat('Dmg', Math.round(state.baseDmg), true)}
-            ${renderStat('CD', (state.cd / 60).toFixed(2) + 's', true)}
-            ${state.projectileCount > 1 ? renderStat('Projectiles', state.projectileCount) : ''}
-            ${state.pierce > 0 ? renderStat('Pierce', state.pierce) : ''}
-            ${state.bounces > 0 ? renderStat('Bounces', state.bounces) : ''}
-            ${state.explodeRadius > 0 ? renderStat('Aoe', state.explodeRadius + 'px') : ''}
-            ${state.splits ? renderStat('Splits', 'YES') : ''}
-            ${state.trailDamage > 0 ? renderStat('Trail Dmg', state.trailDamage) : ''}
+            ${statLines}
             
             ${dynamicBonuses.length > 0 ? `
               <div class="new-bonus-section">
