@@ -1299,18 +1299,25 @@ class UISystem {
           affixRanges: sample.affixes.map(affix => this.formatAffixRange(affix)),
         };
 
-        const effectLines = relic.effect.description
-          .map(line => `<div class="relic-effect-line">${line}</div>`)
+        const effectLines = (sample.relicEffectDescription ?? relic.effect.description)
+          .map(line => `<div class="affix-line implicit-line">${line}</div>`)
           .join('');
+        const affixLines = sample.affixes
+          .map(affix => `<div class="affix-line tier-${affix.tier}">${this.formatAffixRange(affix)}</div>`)
+          .join('');
+        const classLine = `Class: ${CHARACTERS[relic.classId]?.name ?? relic.classId}`;
 
         return `
-          <div class="relic-entry" data-relic-id="${relic.id}">
-            <div class="relic-entry-header">
-              <div class="relic-entry-name">${relic.name}</div>
-              <div class="relic-entry-tier">${relic.weightTier.toUpperCase()}</div>
+          <div class="relic-entry relic-entry-card tooltip-relic" data-relic-id="${relic.id}" style="border-color: #f97316;">
+            <div class="loadout-detail-title">${relic.name}</div>
+            <div class="loadout-detail-meta">${sample.rarity.toUpperCase()} ${sample.type.toUpperCase()}</div>
+            <div class="loadout-detail-base">Base: ${sample.baseName} (T${sample.tier})</div>
+            <div class="loadout-detail-base">${classLine}</div>
+            <div class="loadout-detail-stats">
+              <div class="affix-line implicit-line">Unique: ${sample.relicEffectName ?? relic.effect.name}</div>
+              ${effectLines}
+              ${affixLines}
             </div>
-            <div class="relic-entry-effect">${effectLines}</div>
-            <div class="relic-entry-hint">Hover for affix ranges</div>
           </div>
         `;
       }).join('');
@@ -1341,6 +1348,9 @@ class UISystem {
     backdrop.classList.add('active');
 
     const tooltip = popup.querySelector('.relic-tooltip') as HTMLElement | null;
+    if (tooltip) {
+      document.body.appendChild(tooltip);
+    }
     const hideRelicTooltip = () => {
       if (!tooltip) return;
       tooltip.innerHTML = '';
@@ -1408,6 +1418,8 @@ class UISystem {
     const backdrop = this.getEl('level-info-backdrop');
     if (popup) popup.classList.remove('active');
     if (backdrop) backdrop.classList.remove('active');
+    const tooltip = document.querySelector('.relic-tooltip');
+    if (tooltip) tooltip.remove();
   }
 
   private player: { dmgMult: number; weapons: any[] } | null = null;

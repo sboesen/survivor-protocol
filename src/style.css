@@ -2871,10 +2871,17 @@ button:disabled {
 }
 
 .relic-entry {
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.85) 0%, rgba(11, 18, 32, 0.9) 100%);
-  padding: 8px;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.relic-entry-card {
+  border: 2px solid #f97316;
+  background: rgba(0, 0, 0, 0.85);
+  padding: 10px;
   border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 
 .relic-entry-header {
@@ -2884,43 +2891,14 @@ button:disabled {
   margin-bottom: 4px;
 }
 
-.relic-entry-name {
-  font-size: 11px;
-  color: #e2e8f0;
-  letter-spacing: 0.03em;
-}
-
-.relic-entry-tier {
-  font-size: 8px;
-  color: #fbbf24;
-  background: rgba(251, 191, 36, 0.15);
-  padding: 2px 6px;
-  border-radius: 999px;
-  text-transform: uppercase;
-}
-
-.relic-entry-effect {
-  font-size: 10px;
-  color: #c7d2fe;
-  line-height: 1.45;
-}
-
-.relic-entry-hint {
-  font-size: 8px;
-  color: #7c8aa5;
-  margin-top: 4px;
-}
-
-.relic-effect-line {
-  position: relative;
-  padding-left: 10px;
-}
-
+.relic-entry-header,
+.relic-entry-name,
+.relic-entry-tier,
+.relic-entry-effect,
+.relic-entry-hint,
+.relic-effect-line,
 .relic-effect-line::before {
-  content: '•';
-  position: absolute;
-  left: 0;
-  color: #38bdf8;
+  all: unset;
 }
 
 .relic-empty {
