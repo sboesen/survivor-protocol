@@ -2,6 +2,11 @@
 
 ---
 
+## Status Notes (Current Implementation)
+
+- Relics currently roll standard affixes (same pool as other items) and display unique effect text; implicit min/max roll ranges are not implemented yet.
+- Class-specific relics are now defined in `src/data/relics.ts` and generated via `ItemGenerator.generateRelic()`.
+
 ## System Overview: How Components Tie Together
 
 ```
