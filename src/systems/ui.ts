@@ -1193,11 +1193,6 @@ class UISystem {
       // Generate "NEW" bonus lines by comparing current state to previous state
       const dynamicBonuses: string[] = [];
       if (prevState) {
-        const dmgPct = Math.round((UNIVERSAL_UPGRADES.dmg - 1) * 100);
-        const cdPct = Math.round((1 - UNIVERSAL_UPGRADES.cd) * 100);
-        dynamicBonuses.push(`+${dmgPct}% Damage`);
-        dynamicBonuses.push(`-${cdPct}% Cooldown`);
-
         // Dynamically detect changes based on ATTRIBUTE_LABELS
         for (const [attr, label] of Object.entries(ATTRIBUTE_LABELS)) {
           const val = (state as any)[attr];
