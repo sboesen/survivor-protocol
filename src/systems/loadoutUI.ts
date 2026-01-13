@@ -47,6 +47,16 @@ class LoadoutUISystem {
   private lastStashHash: string = '';
   private lastLoadoutHash: string = '';
   private isSalvageMode = false;
+  private emptySlotIcons: Record<LoadoutSlotId, string> = {
+    relic: '/equipment/empty_ring.png',
+    offhand: '/equipment/empty_shield.png',
+    weapon: '/equipment/empty_ring.png',
+    helm: '/equipment/empty_helm.png',
+    armor: '/equipment/empty_chest.png',
+    accessory1: '/equipment/empty_gloves.png',
+    accessory2: '/equipment/empty_belt.png',
+    accessory3: '/equipment/empty_boots.png',
+  };
   private weaponIconSources: Record<WeaponIconKey, string> = {
     dagger: '/weapons/dagger.png',
     sword: '/weapons/sword.png',
@@ -179,6 +189,15 @@ class LoadoutUISystem {
         }
         body.textContent = slotItem.name;
       } else {
+        const emptyIconSrc = this.emptySlotIcons[slotId];
+        if (emptyIconSrc) {
+          cell.classList.add('has-icon');
+          const icon = document.createElement('img');
+          icon.className = 'slot-icon';
+          icon.src = emptyIconSrc;
+          icon.alt = '';
+          cell.appendChild(icon);
+        }
         body.textContent = 'Empty';
       }
 

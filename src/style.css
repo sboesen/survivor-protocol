@@ -1262,6 +1262,14 @@ canvas {
   image-rendering: pixelated;
 }
 
+.loadout-slot:not(.filled) .slot-icon {
+  opacity: 0.4;
+}
+
+.loadout-slot.has-icon .slot-item {
+  display: none;
+}
+
 .slot-label {
   font-size: 8px;
   color: #9ca3af;
