@@ -105,6 +105,9 @@ This prevents frustrating the user by unexpectedly stopping or interfering with 
 3. `src/game.ts` applies merge overrides (force single projectile, scale damage, size, and explosion) when firing fireball.
 4. Tests live in `src/items/__tests__/relicGenerator.test.ts` and `src/systems/__tests__/relicEffects.test.ts`.
 
+**UI tooltip gotcha**:
+- Tooltips positioned with `clientX/clientY` will drift if rendered inside a container with CSS `transform`. For relic hover tooltips we append to `document.body` to avoid transformed coordinate spaces and keep the cursor alignment accurate.
+
 ### Enemy Types
 - `basic` - Standard chaser
 - `bat` - Faster but weaker
