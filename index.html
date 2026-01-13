@@ -86,7 +86,7 @@
 
         <!-- Main Menu -->
         <div id="menu-screen" class="screen active">
-            <img src="/logo.png" alt="Survivor Protocol" class="menu-logo">
+            <img src="/logo_veilforged.png" alt="Survivor Protocol" class="menu-logo">
             <div class="char-scroll" id="char-select-list"></div>
 
             <div class="menu-actions-grid">
@@ -94,15 +94,15 @@
                     <span class="btn-icon">🚀</span>
                     <span class="btn-text">START</span>
                 </button>
-                <button onclick="Menu.openGacha()" class="btn-secondary">
+                <button onclick="Menu.openGacha()" class="btn-secondary" data-button="summon">
                     <span class="btn-icon">🧬</span>
                     <span class="btn-text">SUMMON</span>
                 </button>
-                <button onclick="Menu.openShop()" class="btn-secondary">
+                <button onclick="Menu.openShop()" class="btn-secondary" data-button="merchants">
                     <span class="btn-icon">🛠</span>
                     <span class="btn-text">MERCHANTS</span>
                 </button>
-                <button onclick="Menu.openStash()" class="btn-secondary">
+                <button onclick="Menu.openStash()" class="btn-secondary" data-button="stash">
                     <span class="btn-icon">📦</span>
                     <span class="btn-text">STASH</span>
                 </button>
@@ -195,9 +195,13 @@
                     <div class="inventory-panel">
                         <div style="display:flex; justify-content: space-between; align-items: center; margin: 0 10px;">
                             <h2 style="margin:0">STASH</h2>
-                            <span
-                                style="color:var(--rare); font-size:12px; display:inline-flex; align-items:center; gap:4px;"><span
-                                    class="scrap-icon">⚙️</span><span id="stash-scrap-counter">0</span></span>
+                            <div class="scrap-currency-wrapper" style="position: relative;">
+                                <span
+                                    class="scrap-currency"
+                                    style="color:var(--rare); font-size:12px; display:inline-flex; align-items:center; gap:4px; cursor: help;"><span
+                                        class="scrap-icon">⚙️</span><span id="stash-scrap-counter">0</span></span>
+                                <div class="scrap-tooltip">SCRAP - Currency for salvaging items and forging upgrades</div>
+                            </div>
                         </div>
                         <div id="stash-grid" class="stash-grid"></div>
                     </div>
