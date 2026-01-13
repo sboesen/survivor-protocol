@@ -60,7 +60,7 @@ class MenuSystem {
         : `<div class="char-portrait-emoji">${c.icon}</div>`;
 
       // Extract first word/sentence for description improvement
-      const shortDesc = c.desc.split('.')[0] + '.';
+      const shortDesc = c.desc.split('.')[0];
 
       el.innerHTML = `
         <div class="char-card-header">
