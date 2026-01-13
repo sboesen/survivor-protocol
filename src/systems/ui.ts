@@ -2,9 +2,8 @@ import { CHARACTERS } from '../data/characters';
 import { UPGRADES } from '../data/upgrades';
 import { WEAPON_LEVELS, ATTRIBUTE_LABELS, UNIVERSAL_UPGRADES } from '../data/leveling';
 import { getRelicsForClass } from '../data/relics';
-import type { Item, ItemAffix } from '../items/types';
-import { AFFIX_TIER_BRACKETS } from '../items/affixTables';
-import { ItemGenerator } from '../items/generator';
+import type { AffixDefinition, Item, ItemAffix } from '../items/types';
+import { AFFIX_TIER_BRACKETS, AFFIX_POOLS, UNIVERSAL_AFFIXES } from '../items/affixTables';
 import { Utils } from '../utils';
 import { wrapRelativePosition } from './movement';
 import type { Weapon, ExtractionState } from '../types';
@@ -33,22 +32,6 @@ const AFFIX_LABELS: Record<ItemAffix['type'], string> = {
   ricochetDamage: 'Ricochet Damage',
 };
 
-const hashString = (input: string): number => {
-  let hash = 0;
-  for (let i = 0; i < input.length; i++) {
-    hash = ((hash << 5) - hash + input.charCodeAt(i)) | 0;
-  }
-  return hash >>> 0;
-};
-
-const createSeededRandom = (seed: number): (() => number) => {
-  let state = seed >>> 0;
-  return () => {
-    state = (state * 1664525 + 1013904223) >>> 0;
-    return state / 0x100000000;
-  };
-};
-
 class UISystem {
   private cache: Record<string, HTMLElement | null> = {};
 
@@ -70,12 +53,17 @@ class UISystem {
     return `T${affix.tier} ${sign}${value} ${label}${bracketSuffix}`;
   }
 
-  private formatAffixRange(affix: ItemAffix): string {
-    const bracket = AFFIX_TIER_BRACKETS[affix.type]?.[affix.tier - 1];
-    const label = AFFIX_LABELS[affix.type] ?? affix.type;
-    if (!bracket) return `T${affix.tier} ${label}`;
-    const suffix = affix.isPercent ? '%' : '';
-    return `T${affix.tier} ${label}: +${bracket.min}${suffix}–${bracket.max}${suffix}`;
+  private formatAffixPoolRange(definition: AffixDefinition): string {
+    const label = AFFIX_LABELS[definition.type] ?? definition.type;
+    const values = definition.tiers.filter((value): value is number => typeof value === 'number');
+    if (values.length === 0) return label;
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const suffix = definition.isPercent ? '%' : '';
+    if (min === max) {
+      return `${label}: +${min}${suffix}`;
+    }
+    return `${label}: +${min}${suffix}–${max}${suffix}`;
   }
 
   private formatImplicit(affix: ItemAffix): string {
@@ -1049,7 +1037,7 @@ class UISystem {
 
     if (weapon.explodeRadius) {
       const explodeLine = document.createElement('div');
-      explodeLine.textContent = `Explosion: ${weapon.explodeRadius}px`;
+      explodeLine.textContent = `Explosion: ${weapon.explodeRadius} pixels`;
       stats.appendChild(explodeLine);
     }
 
@@ -1061,13 +1049,13 @@ class UISystem {
 
     if (weapon.area) {
       const areaLine = document.createElement('div');
-      areaLine.textContent = `Area: ${weapon.area}px`;
+      areaLine.textContent = `Area: ${weapon.area} pixels`;
       stats.appendChild(areaLine);
     }
 
     if (weapon.coneLength) {
       const coneLine = document.createElement('div');
-      coneLine.textContent = `Range: ${weapon.coneLength}px`;
+      coneLine.textContent = `Range: ${weapon.coneLength} pixels`;
       stats.appendChild(coneLine);
     }
 
@@ -1143,6 +1131,8 @@ class UISystem {
     const relics = classId ? getRelicsForClass(classId) : [];
     const className = classId ? (CHARACTERS[classId]?.name ?? classId) : '';
     const relicTooltipData: Record<string, { name: string; affixRanges: string[] }> = {};
+    const relicAffixPool = [...AFFIX_POOLS.relic, ...UNIVERSAL_AFFIXES];
+    const relicAffixRanges = relicAffixPool.map(definition => this.formatAffixPoolRange(definition));
 
     // Simulate weapon growth for cumulative stats
     const getWeaponState = (level: number) => {
@@ -1197,11 +1187,11 @@ class UISystem {
       { key: 'projectileCount', label: 'Projectiles', defaultValue: 1, format: (value) => `${Math.max(1, Math.round(value))}`, always: true },
       { key: 'pierce', label: 'Pierce', defaultValue: 0, format: (value) => `${Math.round(value)}` },
       { key: 'bounces', label: 'Bounces', defaultValue: 0, format: (value) => `${Math.round(value)}` },
-      { key: 'explodeRadius', label: 'Aoe', defaultValue: 0, format: (value) => `${Math.round(value)}px` },
+      { key: 'explodeRadius', label: 'Aoe', defaultValue: 0, format: (value) => `${Math.round(value)} pixels` },
       { key: 'trailDamage', label: 'Trail Dmg', defaultValue: 0, format: (value) => `${Math.round(value)}` },
       { key: 'speedMult', label: 'Speed', defaultValue: 1, format: (value) => `${Math.round(value * 100)}%` },
       { key: 'knockback', label: 'Knockback', defaultValue: 0, format: (value) => `${Math.round(value)}` },
-      { key: 'coneLength', label: 'Range', defaultValue: 0, format: (value) => `${Math.round(value)}px` },
+      { key: 'coneLength', label: 'Range', defaultValue: 0, format: (value) => `${Math.round(value)} pixels` },
       { key: 'coneWidth', label: 'Cone', defaultValue: 0, format: (value) => `${Math.round((value * 180) / Math.PI)}°` },
       { key: 'splits', label: 'Splits', defaultValue: false, format: (value) => (value ? 'YES' : 'NO') },
     ];
@@ -1285,37 +1275,29 @@ class UISystem {
       relicListHtml = `<div class="relic-empty">No relics defined for ${className} yet.</div>`;
     } else {
       const relicEntries = relics.map(relic => {
-        const seed = hashString(relic.id);
-        const random = createSeededRandom(seed);
-        const sample = ItemGenerator.generate({
-          itemType: 'relic',
-          luck: 0,
-          classId: relic.classId,
-          relicId: relic.id,
-          random,
-        });
         relicTooltipData[relic.id] = {
           name: relic.name,
-          affixRanges: sample.affixes.map(affix => this.formatAffixRange(affix)),
+          affixRanges: relicAffixRanges,
         };
 
-        const effectLines = (sample.relicEffectDescription ?? relic.effect.description)
+        const effectLines = relic.effect.description
           .map(line => `<div class="affix-line implicit-line">${line}</div>`)
           .join('');
-        const affixLines = sample.affixes
-          .map(affix => `<div class="affix-line tier-${affix.tier}">${this.formatAffixRange(affix)}</div>`)
+        const affixLines = relicAffixRanges
+          .map(range => `<div class="affix-line">${range}</div>`)
           .join('');
         const classLine = `Class: ${CHARACTERS[relic.classId]?.name ?? relic.classId}`;
 
         return `
           <div class="relic-entry relic-entry-card tooltip-relic" data-relic-id="${relic.id}" style="border-color: #f97316;">
             <div class="loadout-detail-title">${relic.name}</div>
-            <div class="loadout-detail-meta">${sample.rarity.toUpperCase()} ${sample.type.toUpperCase()}</div>
-            <div class="loadout-detail-base">Base: ${sample.baseName} (T${sample.tier})</div>
+            <div class="loadout-detail-meta">LEGENDARY RELIC</div>
+            <div class="loadout-detail-base">Base: ${relic.name} (T5)</div>
             <div class="loadout-detail-base">${classLine}</div>
             <div class="loadout-detail-stats">
-              <div class="affix-line implicit-line">Unique: ${sample.relicEffectName ?? relic.effect.name}</div>
+              <div class="affix-line implicit-line">Unique: ${relic.effect.name}</div>
               ${effectLines}
+              <div class="affix-line implicit-line">Affix Pool</div>
               ${affixLines}
             </div>
           </div>
