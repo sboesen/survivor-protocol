@@ -308,10 +308,14 @@ class LoadoutUISystem {
 
     const commonCount = stash.filter(s => s?.rarity === 'common').length;
     const magicCount = stash.filter(s => s?.rarity === 'magic').length;
+    const rareCount = stash.filter(s => s?.rarity === 'rare').length;
+    const legendaryCount = stash.filter(s => s?.rarity === 'legendary').length;
 
     this.createBulkButton(container, isMobile ? 'SALVAGE\nCOMMON' : 'SALVAGE ALL COMMONS', ['common'], commonCount);
     this.createBulkButton(container, isMobile ? 'SALVAGE\nMAGIC' : 'SALVAGE ALL MAGIC', ['magic'], magicCount);
-    this.createBulkButton(container, isMobile ? 'SALVAGE\nC+M' : 'SALVAGE LOW-TIER (C+M)', ['common', 'magic'], commonCount + magicCount);
+    this.createBulkButton(container, isMobile ? 'SALVAGE\nLOW' : 'SALVAGE LOW-TIER', ['common', 'magic'], commonCount + magicCount);
+    this.createBulkButton(container, isMobile ? 'SALVAGE\nRARE' : 'SALVAGE ALL RARE', ['rare'], rareCount);
+    this.createBulkButton(container, isMobile ? 'SALVAGE\nLEGENDARY' : 'SALVAGE ALL LEGENDARY', ['legendary'], legendaryCount);
 
     const separator = document.createElement('div');
     separator.className = 'forge-separator';
@@ -677,18 +681,20 @@ class LoadoutUISystem {
         })()
       : null;
 
-    const hasRelicEffect = item.type === 'relic' && item.relicEffectDescription?.length;
+    const hasRelicEffect = item.type === 'relic' && item.relicEffectDescription && item.relicEffectDescription.length > 0;
     if (hasRelicEffect) {
       const effectTitle = document.createElement('div');
       effectTitle.className = 'affix-line implicit-line';
       effectTitle.textContent = `Unique: ${item.relicEffectName ?? 'Relic Effect'}`;
       stats.appendChild(effectTitle);
-      item.relicEffectDescription.forEach(desc => {
-        const line = document.createElement('div');
-        line.className = 'affix-line implicit-line';
-        line.textContent = desc;
-        stats.appendChild(line);
-      });
+      if (item.relicEffectDescription) {
+        item.relicEffectDescription.forEach(desc => {
+          const line = document.createElement('div');
+          line.className = 'affix-line implicit-line';
+          line.textContent = desc;
+          stats.appendChild(line);
+        });
+      }
     }
 
     const implicits = item.implicits ?? [];
