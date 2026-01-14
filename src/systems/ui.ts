@@ -1,6 +1,5 @@
 import type { Item } from '../items/types';
 import type { Weapon, ExtractionState } from '../types';
-import { LootRevealSystem } from './ui/LootRevealSystem';
 import { DamageTextSystem } from './ui/DamageTextSystem';
 import { ExtractionHudSystem } from './ui/ExtractionHudSystem';
 import { LevelUpSystem } from './ui/LevelUpSystem';
@@ -10,6 +9,7 @@ import { LevelInfoSystem } from './ui/LevelInfoSystem';
 import { HudSystem } from './ui/HudSystem';
 import { LootInventorySystem } from './ui/LootInventorySystem';
 import { ItemSlotsSystem } from './ui/ItemSlotsSystem';
+import { ExtractionScreenSystem } from './ui/ExtractionScreenSystem';
 
 class UISystem {
   private cache: Record<string, HTMLElement | null> = {};
@@ -22,6 +22,7 @@ class UISystem {
   private hudSystem = new HudSystem();
   private lootInventorySystem = new LootInventorySystem();
   private itemSlotsSystem = new ItemSlotsSystem();
+  private extractionScreenSystem = new ExtractionScreenSystem();
 
   private getEl(id: string): HTMLElement | null {
     if (!(id in this.cache)) {
@@ -105,38 +106,11 @@ class UISystem {
   }
 
   showExtractionScreen(items: Item[], onContinue: () => void): void {
-    const screen = this.getEl('extract-screen');
-    const grid = this.getEl('extract-grid');
-    const revealBtn = this.getEl('extract-reveal-btn') as HTMLButtonElement | null;
-    const continueBtn = this.getEl('extract-continue-btn') as HTMLButtonElement | null;
-    const tooltip = this.getEl('extract-tooltip');
-    const confettiLayer = this.getEl('extract-confetti');
-
-    if (screen) screen.classList.add('active');
-    if (!grid) return;
-
-    new LootRevealSystem({
-      items,
-      grid,
-      tooltip,
-      revealBtn,
-      continueBtn: continueBtn ?? undefined,
-      onContinue: () => {
-        this.hideExtractionScreen();
-        onContinue();
-      },
-      confettiLayer: confettiLayer ?? undefined,
-    });
+    this.extractionScreenSystem.showExtractionScreen(items, onContinue, this.getEl.bind(this), () => this.hideExtractionScreen());
   }
 
   hideExtractionScreen(): void {
-    const screen = this.getEl('extract-screen');
-    const tooltip = this.getEl('extract-tooltip');
-    if (screen) screen.classList.remove('active');
-    if (tooltip) {
-      tooltip.innerHTML = '';
-      tooltip.style.display = 'none';
-    }
+    this.extractionScreenSystem.hideExtractionScreen(this.getEl.bind(this));
   }
 
   showLootInventory(items: Item[], safeSlotCount: number): void {
