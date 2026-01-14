@@ -8,8 +8,10 @@ import { WeaponSlotsSystem } from './ui/WeaponSlotsSystem';
 import { GameOverScreenSystem } from './ui/GameOverScreenSystem';
 import { LevelInfoSystem } from './ui/LevelInfoSystem';
 import { HudSystem } from './ui/HudSystem';
+import { LootInventorySystem } from './ui/LootInventorySystem';
 
 class UISystem {
+  private cache: Record<string, HTMLElement | null> = {};
   private damageTextSystem = new DamageTextSystem();
   private extractionHudSystem = new ExtractionHudSystem();
   private levelUpSystem = new LevelUpSystem();
@@ -17,6 +19,7 @@ class UISystem {
   private gameOverScreenSystem = new GameOverScreenSystem();
   private levelInfoSystem = new LevelInfoSystem();
   private hudSystem = new HudSystem();
+  private lootInventorySystem = new LootInventorySystem();
 
   private getEl(id: string): HTMLElement | null {
     if (!(id in this.cache)) {
@@ -156,59 +159,11 @@ class UISystem {
   }
 
   showLootInventory(items: Item[], safeSlotCount: number): void {
-    const screen = this.getEl('loot-inventory-screen');
-    const grid = this.getEl('loot-inventory-grid');
-    const securedEl = this.getEl('loot-secure-slot');
-    if (screen) screen.classList.add('active');
-    if (securedEl) {
-      const itemsWillSecure = Math.min(items.length, safeSlotCount);
-      securedEl.textContent = `Auto-Safe Slots: ${itemsWillSecure}/${safeSlotCount}`;
-    }
-
-    if (!grid) return;
-    grid.innerHTML = '';
-
-    if (items.length === 0) {
-      const empty = document.createElement('div');
-      empty.className = 'loot-empty';
-      empty.textContent = 'No loot collected.';
-      grid.appendChild(empty);
-      return;
-    }
-
-    const typeIcon = (type: string): string => {
-      switch (type) {
-        case 'weapon':
-          return '🗡';
-        case 'helm':
-          return '🪖';
-        case 'armor':
-          return '🛡';
-        case 'accessory':
-          return '💍';
-        case 'relic':
-          return '⭐';
-        default:
-          return '❔';
-      }
-    };
-
-    items.forEach(item => {
-      const button = document.createElement('button');
-      button.className = `loot-item rarity-${item.rarity} ${item.type === 'relic' ? 'type-relic' : ''}`;
-      button.innerHTML = `
-        ${item.type === 'relic' ? '<span class="loot-badge">★</span>' : ''}
-        <span class="loot-icon">${typeIcon(item.type)}</span>
-        <span class="loot-name">${item.rarity.toUpperCase()} ${item.type.toUpperCase()}</span>
-        <span class="loot-meta">VEILED</span>
-      `;
-      grid.appendChild(button);
-    });
+    this.lootInventorySystem.showLootInventory(items, safeSlotCount);
   }
 
   hideLootInventory(): void {
-    const screen = this.getEl('loot-inventory-screen');
-    if (screen) screen.classList.remove('active');
+    this.lootInventorySystem.hideLootInventory();
   }
 
   showLevelUpScreen(
