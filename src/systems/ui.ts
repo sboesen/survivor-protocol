@@ -5,14 +5,15 @@ import { getRelicsForClass } from '../data/relics';
 import type { AffixDefinition, Item } from '../items/types';
 import { AFFIX_POOLS, UNIVERSAL_AFFIXES } from '../items/affixTables';
 import { Utils } from '../utils';
-import { wrapRelativePosition } from './movement';
 import type { Weapon, ExtractionState } from '../types';
 import { LootRevealSystem } from './ui/LootRevealSystem';
 import { DamageTextSystem } from './ui/DamageTextSystem';
+import { ExtractionHudSystem } from './ui/ExtractionHudSystem';
 
 class UISystem {
   private cache: Record<string, HTMLElement | null> = {};
   private damageTextSystem = new DamageTextSystem();
+  private extractionHudSystem = new ExtractionHudSystem();
 
   private getEl(id: string): HTMLElement | null {
     if (!(id in this.cache)) {
@@ -87,84 +88,11 @@ class UISystem {
   }
 
   updateExtractionHud(state: ExtractionState, playerX: number, playerY: number, frames: number): void {
-    const warningEl = this.getEl('extract-warning');
-    const countdownEl = this.getEl('extract-countdown');
-    const progressEl = this.getEl('extract-progress');
-    const arrowEl = this.getEl('extract-arrow');
-
-    const warningActive = state.warningEndTime > frames;
-    if (warningEl) {
-      if (warningActive) {
-        const seconds = Math.max(0, Math.ceil((state.warningEndTime - frames) / 60));
-        warningEl.textContent = `EXTRACT IN: ${seconds}s`;
-        warningEl.style.display = 'block';
-      } else {
-        warningEl.style.display = 'none';
-      }
-    }
-
-    const zone = state.currentZone && state.currentZone.active ? state.currentZone : null;
-    if (countdownEl) {
-      if (zone) {
-        const seconds = Math.max(0, Math.ceil((zone.expiresAt - frames) / 60));
-        countdownEl.textContent = `EXTRACT ZONE: ${seconds}s`;
-        countdownEl.style.display = 'block';
-      } else {
-        countdownEl.style.display = 'none';
-      }
-    }
-
-    if (progressEl) {
-      if (zone && zone.inZone) {
-        const progress = Math.min(100, Math.floor((zone.extractionProgress / (60 * 5)) * 100));
-        progressEl.textContent = `EXTRACTING: ${progress}%`;
-        progressEl.style.display = 'block';
-      } else {
-        progressEl.style.display = 'none';
-      }
-    }
-
-    const target = state.pendingZone
-      ? state.pendingZone
-      : zone
-        ? { x: zone.x, y: zone.y }
-        : null;
-
-    if (arrowEl) {
-      if (target) {
-        const dx = wrapRelativePosition(target.x - playerX);
-        const dy = wrapRelativePosition(target.y - playerY);
-        const onScreen = Math.abs(dx) < window.innerWidth / 2 - 140 &&
-          Math.abs(dy) < window.innerHeight / 2 - 140;
-
-        const angle = Math.atan2(dy, dx);
-        const centerX = window.innerWidth / 2;
-        const centerY = window.innerHeight / 2;
-        const radius = onScreen
-          ? 55
-          : Math.min(window.innerWidth, window.innerHeight) / 2 - 40;
-
-        arrowEl.style.left = `${centerX + Math.cos(angle) * radius}px`;
-        arrowEl.style.top = `${centerY + Math.sin(angle) * radius}px`;
-        arrowEl.style.transform = `translate(-50%, -50%) rotate(${angle + Math.PI / 2}rad) scale(${onScreen ? 0.75 : 1})`;
-        arrowEl.style.opacity = onScreen ? '0.45' : '0.9';
-        arrowEl.style.display = 'block';
-      } else {
-        arrowEl.style.display = 'none';
-      }
-    }
+    this.extractionHudSystem.updateExtractionHud(state, playerX, playerY, frames);
   }
 
   hideExtractionHud(): void {
-    const warningEl = this.getEl('extract-warning');
-    const countdownEl = this.getEl('extract-countdown');
-    const progressEl = this.getEl('extract-progress');
-    const arrowEl = this.getEl('extract-arrow');
-
-    if (warningEl) warningEl.style.display = 'none';
-    if (countdownEl) countdownEl.style.display = 'none';
-    if (progressEl) progressEl.style.display = 'none';
-    if (arrowEl) arrowEl.style.display = 'none';
+    this.extractionHudSystem.hideExtractionHud();
   }
 
   updateLootSummaryHud(items: Item[]): void {
