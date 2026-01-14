@@ -4,6 +4,7 @@
  * Extracted from game.ts for better testability.
  */
 
+import { CONFIG } from '../config';
 import { calculateWrappedAngle, findNearestEnemy } from './targeting';
 import type { Enemy } from '../entities/enemy';
 import type { Weapon } from '../types';
@@ -190,8 +191,8 @@ export function fireNearest(
   projectileBonus: number = 0,
   projectileSpeedMult: number = 1
 ): WeaponFireResult {
-  const target = findTarget(enemies, p.x, p.y, 400);
-  
+  const target = findTarget(enemies, p.x, p.y, CONFIG.weaponTargetRange);
+
   if (!target) {
     return { fired: false };
   }

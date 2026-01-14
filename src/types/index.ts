@@ -4,6 +4,9 @@ import type { Item, ItemRarity, ItemType as LootItemType } from '../items/types'
 export interface Config {
   worldSize: number;
   viewDist: number;
+  weaponTargetRange: number;
+  healthRegenInterval: number;
+  playerDamageInterval: number;
   colors: Colors;
 }
 
@@ -212,15 +215,6 @@ export interface DamageText {
   wx: number;
   wy: number;
   life: number;
-}
-
-export interface GachaParticle {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  life: number;
-  c: string;
 }
 
 // Canvas context type

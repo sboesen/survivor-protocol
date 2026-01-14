@@ -609,7 +609,7 @@ class GameCore {
     // Aura animation frame tracking
     p.auraAttackFrame++;
 
-    if (p.hpRegen > 0 && this.frames % 60 === 0) {
+    if (p.hpRegen > 0 && this.frames % CONFIG.healthRegenInterval === 0) {
       const regen = applyHealingBonus(p.hpRegen, p.healMult);
       if (regen > 0) {
         p.hp = Math.min(p.maxHp, p.hp + regen);
@@ -992,7 +992,7 @@ class GameCore {
       if (Utils.getDist(p.x, p.y, e.x, e.y) < p.radius + e.radius) {
         if (hasDamageImmunity(p.ultName, p.ultActiveTime)) return;
 
-        if (this.frames % 30 === 0) {
+        if (this.frames % CONFIG.playerDamageInterval === 0) {
           const dmg = applyArmorReduction(5, p.armor);
           p.hp -= dmg;
           this.spawnDamageText(p.x, p.y, `-${dmg}`, '#f00');
