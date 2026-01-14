@@ -1868,7 +1868,7 @@ button:disabled {
 
 .char-card {
   position: relative;
-  border: 1px solid #222;
+  border: 3px solid #222;
   background: #111;
   background-image: url('/char_card.png');
   background-size: 100% 100%;
@@ -1888,6 +1888,7 @@ button:disabled {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  box-sizing: border-box;
 }
 
 .char-card.owned {
@@ -1896,7 +1897,6 @@ button:disabled {
 
 .char-card.selected {
   border-color: #22c55e;
-  border-width: 3px;
   box-shadow: 0 0 15px rgba(239, 68, 68, 0.4), 0 4px 10px rgba(0, 0, 0, 0.5);
   z-index: 10;
   filter: drop-shadow(0 0 4px #22c55e) drop-shadow(0 0 2px #22c55e);
@@ -1904,14 +1904,12 @@ button:disabled {
 
 .char-card:hover {
   border-color: #22c55e;
-  border-width: 3px;
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.7);
   transform: translateY(-2px);
 }
 
 .char-card.selected:hover {
   border-color: #22c55e;
-  border-width: 3px;
   box-shadow: 0 0 20px rgba(239, 68, 68, 0.6), 0 8px 16px rgba(0, 0, 0, 0.7);
   transform: translateY(-2px);
   filter: drop-shadow(0 0 4px #22c55e) drop-shadow(0 0 2px #22c55e);
