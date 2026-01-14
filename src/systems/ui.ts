@@ -1,6 +1,4 @@
-import { CHARACTERS } from '../data/characters';
 import type { Item } from '../items/types';
-import { Utils } from '../utils';
 import type { Weapon, ExtractionState } from '../types';
 import { LootRevealSystem } from './ui/LootRevealSystem';
 import { DamageTextSystem } from './ui/DamageTextSystem';
@@ -9,15 +7,16 @@ import { LevelUpSystem } from './ui/LevelUpSystem';
 import { WeaponSlotsSystem } from './ui/WeaponSlotsSystem';
 import { GameOverScreenSystem } from './ui/GameOverScreenSystem';
 import { LevelInfoSystem } from './ui/LevelInfoSystem';
+import { HudSystem } from './ui/HudSystem';
 
 class UISystem {
-  private cache: Record<string, HTMLElement | null> = {};
   private damageTextSystem = new DamageTextSystem();
   private extractionHudSystem = new ExtractionHudSystem();
   private levelUpSystem = new LevelUpSystem();
   private weaponSlotsSystem = new WeaponSlotsSystem();
   private gameOverScreenSystem = new GameOverScreenSystem();
   private levelInfoSystem = new LevelInfoSystem();
+  private hudSystem = new HudSystem();
 
   private getEl(id: string): HTMLElement | null {
     if (!(id in this.cache)) {
@@ -35,24 +34,7 @@ class UISystem {
     particles: number = 0,
     enemies: number = 0
   ): void {
-    const goldEl = this.getEl('hud-gold');
-    const timerEl = this.getEl('hud-timer');
-    const levelEl = this.getEl('hud-level');
-    const killsEl = this.getEl('hud-kills');
-    const charEl = this.getEl('hud-char');
-    const particlesEl = this.getEl('hud-particles');
-    const enemiesEl = this.getEl('hud-enemies');
-
-    if (goldEl) goldEl.textContent = `💰 ${gold}`;
-    if (timerEl) timerEl.textContent = Utils.fmtTime(time);
-    if (levelEl) levelEl.textContent = level.toString();
-    if (killsEl) killsEl.textContent = kills.toString();
-    if (particlesEl) particlesEl.textContent = particles.toString();
-    if (enemiesEl) enemiesEl.textContent = enemies.toString();
-    if (charEl) {
-      const char = CHARACTERS[selectedChar];
-      if (char) charEl.textContent = char.name;
-    }
+    this.hudSystem.updateHud(gold, time, level, kills, selectedChar, particles, enemies);
   }
 
   updateExtractionHud(state: ExtractionState, playerX: number, playerY: number, frames: number): void {
@@ -64,60 +46,19 @@ class UISystem {
   }
 
   updateLootSummaryHud(items: Item[]): void {
-    const el = this.getEl('hud-loot-summary');
-    if (!el) return;
-
-    const counts: Record<string, number> = {
-      legendary: 0,
-      relic: 0,
-      rare: 0,
-      magic: 0,
-      common: 0
-    };
-
-    items.forEach(item => {
-      if (counts[item.rarity] !== undefined) counts[item.rarity]++;
-    });
-
-    const rarityOrder = ['legendary', 'relic', 'rare', 'magic', 'common'];
-    const rarityIcons: Record<string, string> = {
-      legendary: '★',
-      relic: '★',
-      rare: '★',
-      magic: '★',
-      common: '★'
-    };
-
-    let html = '<span style="color:#aaa;margin-right:2px">LOOT:</span>';
-    rarityOrder.forEach(rarity => {
-      html += `<span class="loot-rarity-tag rarity-${rarity}"><span class="star-icon">${rarityIcons[rarity]}</span>${counts[rarity]}</span> `;
-    });
-    el.innerHTML = html;
+    this.hudSystem.updateLootSummaryHud(items);
   }
 
   updateXp(current: number, max: number, level: number): void {
-    const xpBar = this.getEl('xp-bar-fill');
-    const levelEl = this.getEl('hud-level');
-
-    if (xpBar) xpBar.style.width = `${(current / max) * 100}%`;
-    if (levelEl) levelEl.textContent = level.toString();
+    this.hudSystem.updateXp(current, max, level);
   }
 
   updateUlt(current: number, max: number): void {
-    const pct = Math.min(1, current / max);
-    const btn = this.getEl('ult-btn');
-    const overlay = this.getEl('ult-cooldown-overlay');
-
-    if (overlay) overlay.style.height = `${100 - pct * 100}%`;
-    if (btn) {
-      if (pct >= 1) btn.classList.add('ready');
-      else btn.classList.remove('ready');
-    }
+    this.hudSystem.updateUlt(current, max);
   }
 
   updateVeiledCount(count: number): void {
-    const veiledEl = this.getEl('hud-veiled');
-    if (veiledEl) veiledEl.textContent = `Veiled: ${count}`;
+    this.hudSystem.updateVeiledCount(count);
   }
 
   updateItemSlots(_items: { pierce: number; cooldown: number; projectile: number }, inventory: Record<string, number>): void {
