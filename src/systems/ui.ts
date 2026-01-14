@@ -8,9 +8,11 @@ import { Utils } from '../utils';
 import { wrapRelativePosition } from './movement';
 import type { Weapon, ExtractionState } from '../types';
 import { LootRevealSystem } from './ui/LootRevealSystem';
+import { DamageTextSystem } from './ui/DamageTextSystem';
 
 class UISystem {
   private cache: Record<string, HTMLElement | null> = {};
+  private damageTextSystem = new DamageTextSystem();
 
   private getEl(id: string): HTMLElement | null {
     if (!(id in this.cache)) {
@@ -248,25 +250,13 @@ class UISystem {
   }
 
   spawnDamageText(
-    _wx: number,
-    _wy: number,
+    wx: number,
+    wy: number,
     txt: string | number,
     color = '#fff',
     isCrit = false
   ): HTMLElement | null {
-    const el = document.createElement('div');
-    el.className = 'dmg-text ' + (isCrit ? 'crit-text' : '');
-    if (color === '#f00') el.classList.add('player-hit');
-    el.textContent = txt.toString() + (isCrit ? '!' : '');
-    el.style.color = color;
-
-    const layer = this.getEl('damage-layer');
-    if (layer) {
-      layer.appendChild(el);
-      return el;
-    }
-
-    return null;
+    return this.damageTextSystem.spawnDamageText(wx, wy, txt, color, isCrit);
   }
 
   updateDamageTexts(
@@ -275,24 +265,7 @@ class UISystem {
     py: number,
     _frames: number
   ): void {
-    texts.forEach(t => {
-      t.life--;
-      t.el.style.opacity = (t.life / 20).toString();
-
-      let rx = t.wx - px;
-      let ry = t.wy - py;
-
-      // World wrapping for text
-      const worldSize = 2000;
-      if (rx < -worldSize / 2) rx += worldSize;
-      if (rx > worldSize / 2) rx -= worldSize;
-      if (ry < -worldSize / 2) ry += worldSize;
-      if (ry > worldSize / 2) ry -= worldSize;
-
-      const scale = t.el.classList.contains('crit-text') ? 1.5 : 1;
-      // Position text above sprites - use larger offset to clear enemy sprites
-      t.el.style.transform = `translate(${rx + window.innerWidth / 2}px, ${ry + window.innerHeight / 2 - (80 - t.life)}px) scale(${scale})`;
-    });
+    this.damageTextSystem.updateDamageTexts(texts, px, py);
   }
 
   showGameOverScreen(
