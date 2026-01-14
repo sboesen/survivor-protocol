@@ -10,12 +10,14 @@ import { LootRevealSystem } from './ui/LootRevealSystem';
 import { DamageTextSystem } from './ui/DamageTextSystem';
 import { ExtractionHudSystem } from './ui/ExtractionHudSystem';
 import { LevelUpSystem } from './ui/LevelUpSystem';
+import { WeaponSlotsSystem } from './ui/WeaponSlotsSystem';
 
 class UISystem {
   private cache: Record<string, HTMLElement | null> = {};
   private damageTextSystem = new DamageTextSystem();
   private extractionHudSystem = new ExtractionHudSystem();
   private levelUpSystem = new LevelUpSystem();
+  private weaponSlotsSystem = new WeaponSlotsSystem();
 
   private getEl(id: string): HTMLElement | null {
     if (!(id in this.cache)) {
@@ -372,242 +374,16 @@ class UISystem {
     this.levelUpSystem.showLevelUpScreen(choices, inventory, currentStats, onSelect);
   }
 
-  // Map weapon IDs to icon image paths
-  private weaponIconMap: Record<string, string> = {
-    bubble_stream: '/bubble_stream.png',
-    frying_pan: '/frying_pan.png',
-    thrown_cds: '/thrown_cds.png',
-    fireball: '/fireball.png',
-    lighter: '/lighter.png',
-    shield_bash: '/shield_bash.png',
-    bow: '/weapons/arrow.png',
-  };
-
-  // Fallback emoji icons for weapons without image sprites
-  private weaponEmojiMap: Record<string, string> = {
-    bubble_stream: '🫧',
-    frying_pan: '🍳',
-    thrown_cds: '💿',
-    fireball: '🔥',
-    lighter: '🔥',
-    shield_bash: '🛡️',
-    bow: '🏹',
-  };
-
   updateWeaponSlots(weapons: Weapon[]): void {
-    const container = this.getEl('weapon-slots');
-    if (!container) return;
-
-    // Only rebuild if weapon count changed (optimization)
-    const currentSlots = container.querySelectorAll('.weapon-slot').length;
-    if (currentSlots !== weapons.length) {
-      container.innerHTML = '';
-      weapons.forEach(w => {
-        const slot = document.createElement('div');
-        slot.className = 'weapon-slot';
-        slot.dataset.weaponId = w.id;
-
-        const icon = document.createElement('img');
-        icon.className = 'weapon-icon';
-        // Check if we have an image sprite for this weapon
-        if (this.weaponIconMap[w.id]) {
-          icon.src = this.weaponIconMap[w.id];
-          icon.onerror = () => {
-            // Fallback to emoji if image fails to load
-            icon.style.display = 'none';
-            const emoji = document.createElement('span');
-            emoji.className = 'weapon-icon';
-            emoji.style.fontSize = '16px';
-            emoji.textContent = this.weaponEmojiMap[w.id] || '⚔️';
-            icon.parentElement?.insertBefore(emoji, icon);
-          };
-        } else {
-          // Use emoji directly
-          icon.style.display = 'none';
-          const emoji = document.createElement('span');
-          emoji.className = 'weapon-icon';
-          emoji.style.fontSize = '16px';
-          emoji.textContent = this.weaponEmojiMap[w.id] || '⚔️';
-          slot.appendChild(emoji);
-        }
-
-        const level = document.createElement('span');
-        level.className = 'weapon-level';
-        level.textContent = `Lv${w.level}`;
-
-        const name = document.createElement('span');
-        name.className = 'weapon-name';
-        const upgrade = UPGRADES[w.id];
-        name.textContent = upgrade ? upgrade.name.replace(/[A-Z]/g, m => ' ' + m).trim() : w.id;
-
-        const infoBtn = document.createElement('div');
-        infoBtn.className = 'info-btn';
-        infoBtn.textContent = 'i';
-        infoBtn.title = 'View Level Path';
-        infoBtn.onclick = (e) => {
-          e.stopPropagation();
-          this.showLevelInfo(w.id);
-        };
-
-        slot.appendChild(icon);
-        slot.appendChild(level);
-        slot.appendChild(name);
-        slot.appendChild(infoBtn);
-        container.appendChild(slot);
-      });
-    }
-
-    // Update cooldown ready state, level, and tooltip handlers
-    weapons.forEach((w, i) => {
-      const slot = container.querySelectorAll('.weapon-slot')[i] as HTMLElement;
-      if (slot) {
-        if (w.curCd <= 0) {
-          slot.classList.add('cooldown-ready');
-        } else {
-          slot.classList.remove('cooldown-ready');
-        }
-        const level = slot.querySelector('.weapon-level');
-        if (level) {
-          level.textContent = `Lv${w.level}`;
-        }
-
-        slot.onmouseenter = (event: MouseEvent) => this.showWeaponTooltip(w, event);
-        slot.onmousemove = (event: MouseEvent) => {
-          const tooltip = this.getEl('weapon-tooltip');
-          if (tooltip && tooltip.style.display !== 'none') {
-            this.showWeaponTooltip(w, event);
-          }
-        };
-        slot.onmouseleave = () => this.hideWeaponTooltip();
-      }
-    });
-    weapons.forEach((w, i) => {
-      const slot = container.querySelectorAll('.weapon-slot')[i];
-      if (slot) {
-        if (w.curCd <= 0) {
-          slot.classList.add('cooldown-ready');
-        } else {
-          slot.classList.remove('cooldown-ready');
-        }
-        const level = slot.querySelector('.weapon-level');
-        if (level) {
-          level.textContent = `Lv${w.level}`;
-        }
-      }
-    });
+    this.weaponSlotsSystem.updateWeaponSlots(weapons, (weaponId) => this.showLevelInfo(weaponId));
   }
 
   showWeaponTooltip(weapon: Weapon, event?: MouseEvent): void {
-    const tooltip = this.getEl('weapon-tooltip');
-    if (!tooltip) return;
-    tooltip.innerHTML = '';
-    tooltip.className = 'weapon-tooltip';
-
-    const upgrade = UPGRADES[weapon.id];
-    const name = upgrade ? upgrade.name.replace(/[A-Z]/g, m => ' ' + m).trim() : weapon.id;
-
-    const title = document.createElement('div');
-    title.className = 'weapon-tooltip-title';
-    title.textContent = `${name} (Lv${weapon.level})`;
-
-    const desc = document.createElement('div');
-    desc.className = 'weapon-tooltip-desc';
-    desc.textContent = upgrade?.desc || '';
-
-    const stats = document.createElement('div');
-    stats.className = 'weapon-tooltip-stats';
-
-    const dmgMult = this.player?.dmgMult ?? 0;
-    const dmg = weapon.dmg * (1 + dmgMult);
-    const dmgLine = document.createElement('div');
-    dmgLine.textContent = `Damage: ${dmg.toFixed(1)}`;
-    stats.appendChild(dmgLine);
-
-    const cdLine = document.createElement('div');
-    cdLine.textContent = `Cooldown: ${(weapon.cd / 60).toFixed(1)}s`;
-    stats.appendChild(cdLine);
-
-    if (weapon.projectileCount) {
-      const projLine = document.createElement('div');
-      projLine.textContent = `Projectiles: ${weapon.projectileCount}`;
-      stats.appendChild(projLine);
-    }
-
-    if (weapon.speedMult) {
-      const speedLine = document.createElement('div');
-      speedLine.textContent = `Speed: ${(weapon.speedMult * 100).toFixed(0)}%`;
-      stats.appendChild(speedLine);
-    }
-
-    if (weapon.splits) {
-      const splitLine = document.createElement('div');
-      splitLine.textContent = `Splits on hit`;
-      stats.appendChild(splitLine);
-    }
-
-    if (weapon.explodeRadius) {
-      const explodeLine = document.createElement('div');
-      explodeLine.textContent = `Explosion: ${weapon.explodeRadius} pixels`;
-      stats.appendChild(explodeLine);
-    }
-
-    if (weapon.knockback) {
-      const kbLine = document.createElement('div');
-      kbLine.textContent = `Knockback: ${weapon.knockback}`;
-      stats.appendChild(kbLine);
-    }
-
-    if (weapon.area) {
-      const areaLine = document.createElement('div');
-      areaLine.textContent = `Area: ${weapon.area} pixels`;
-      stats.appendChild(areaLine);
-    }
-
-    if (weapon.coneLength) {
-      const coneLine = document.createElement('div');
-      coneLine.textContent = `Range: ${weapon.coneLength} pixels`;
-      stats.appendChild(coneLine);
-    }
-
-    if (weapon.coneWidth) {
-      const widthLine = document.createElement('div');
-      widthLine.textContent = `Cone: ${(weapon.coneWidth * 180 / Math.PI).toFixed(0)}°`;
-      stats.appendChild(widthLine);
-    }
-
-    if (weapon.trailDamage) {
-      const trailLine = document.createElement('div');
-      trailLine.textContent = `Trail Dmg: ${weapon.trailDamage}`;
-      stats.appendChild(trailLine);
-    }
-
-    tooltip.appendChild(title);
-    tooltip.appendChild(desc);
-    tooltip.appendChild(stats);
-    tooltip.style.display = 'block';
-
-    if (event) {
-      const width = tooltip.offsetWidth;
-      const height = tooltip.offsetHeight;
-      let x = event.clientX + 12;
-      let y = event.clientY + 12;
-      const maxX = window.innerWidth - width - 8;
-      const maxY = window.innerHeight - height - 8;
-      if (x > maxX) x = maxX;
-      if (y > maxY) y = maxY;
-      if (x < 8) x = 8;
-      if (y < 8) y = 8;
-      tooltip.style.left = `${x}px`;
-      tooltip.style.top = `${y}px`;
-    }
+    this.weaponSlotsSystem.showWeaponTooltip(weapon, event);
   }
 
   hideWeaponTooltip(): void {
-    const tooltip = this.getEl('weapon-tooltip');
-    if (tooltip) {
-      tooltip.innerHTML = '';
-      tooltip.style.display = 'none';
-    }
+    this.weaponSlotsSystem.hideWeaponTooltip();
   }
 
   showLevelInfo(weaponId: string, classId?: string): void {
@@ -914,9 +690,8 @@ class UISystem {
     if (tooltip) tooltip.remove();
   }
 
-  private player: { dmgMult: number; weapons: any[] } | null = null;
   setPlayer(player: { dmgMult: number; weapons: any[] }): void {
-    this.player = player;
+    this.weaponSlotsSystem.setPlayer(player);
   }
 }
 
