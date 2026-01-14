@@ -11,6 +11,7 @@ import { DamageTextSystem } from './ui/DamageTextSystem';
 import { ExtractionHudSystem } from './ui/ExtractionHudSystem';
 import { LevelUpSystem } from './ui/LevelUpSystem';
 import { WeaponSlotsSystem } from './ui/WeaponSlotsSystem';
+import { GameOverScreenSystem } from './ui/GameOverScreenSystem';
 
 class UISystem {
   private cache: Record<string, HTMLElement | null> = {};
@@ -18,6 +19,7 @@ class UISystem {
   private extractionHudSystem = new ExtractionHudSystem();
   private levelUpSystem = new LevelUpSystem();
   private weaponSlotsSystem = new WeaponSlotsSystem();
+  private gameOverScreenSystem = new GameOverScreenSystem();
 
   private getEl(id: string): HTMLElement | null {
     if (!(id in this.cache)) {
@@ -208,66 +210,11 @@ class UISystem {
     bossKills: number,
     securedItems: Item[] = []
   ): void {
-    const survivalBonus = Math.floor(goldRun * (mins * 0.2));
-    const killBonus = Math.floor(kills / 100) * 50;
-    const bossBonus = bossKills * 200;
-    const total = goldRun + survivalBonus + killBonus + bossBonus;
+    this.gameOverScreenSystem.showGameOverScreen(success, goldRun, mins, kills, bossKills, securedItems);
+  }
 
-    const title = success ? 'MISSION COMPLETE' : 'MIA - FAILED';
-    const color = success ? '#22c55e' : '#ff3333';
-
-    const titleEl = this.getEl('go-title');
-    const statsEl = this.getEl('go-stats');
-
-    if (titleEl) {
-      titleEl.textContent = title;
-      titleEl.style.color = color;
-    }
-
-    if (statsEl) {
-      statsEl.innerHTML = `
-        <div class="score-row"><span>Base Loot:</span> <span class="score-val">${goldRun}</span></div>
-        <div class="score-row"><span>Time Bonus:</span> <span class="score-val">+${survivalBonus}</span></div>
-        <div class="score-row"><span>Kill Bonus:</span> <span class="score-val">+${killBonus}</span></div>
-        <div class="score-row"><span>Boss Bounties:</span> <span class="score-val">+${bossBonus}</span></div>
-        <div class="score-row total-row"><span>TOTAL:</span> <span>${total} G</span></div>
-      `;
-    }
-
-    const lootSection = this.getEl('go-loot');
-    const lootGrid = this.getEl('go-loot-grid');
-    const revealBtn = this.getEl('go-reveal-btn') as HTMLButtonElement | null;
-    const tooltip = this.getEl('extract-tooltip');
-
-    if (!success && lootSection && lootGrid) {
-      if (securedItems.length > 0) {
-        lootSection.classList.add('active');
-        new LootRevealSystem({
-          items: securedItems,
-          grid: lootGrid,
-          tooltip,
-          revealBtn,
-          autoReveal: true,
-        });
-      } else {
-        lootSection.classList.remove('active');
-        lootGrid.innerHTML = '';
-        if (revealBtn) {
-          revealBtn.disabled = true;
-          revealBtn.classList.add('btn-disabled');
-        }
-      }
-    } else if (lootSection) {
-      lootSection.classList.remove('active');
-      if (lootGrid) lootGrid.innerHTML = '';
-      if (revealBtn) {
-        revealBtn.disabled = true;
-        revealBtn.classList.add('btn-disabled');
-      }
-    }
-
-    const screen = this.getEl('gameover-screen');
-    if (screen) screen.classList.add('active');
+  hideGameOverScreen(): void {
+    this.gameOverScreenSystem.hideGameOverScreen();
   }
 
   showExtractionScreen(items: Item[], onContinue: () => void): void {
