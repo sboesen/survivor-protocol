@@ -76,8 +76,6 @@ export class Player extends Entity {
     this.baseSpeed = baseSpeed;
     this.basePickup = basePickup;
     this.baseDmgMult = baseDmgMult;
-    
-    console.log(`[Player Speed] baseSpeed: ${baseSpeed.toFixed(2)} (hpMod: ${hpMod}, spdMod: ${spdMod}, shopSpeed: ${shopUpgrades.speed})`);
 
     this.loadoutStats = createEmptyStats();
     this.maxHp = baseHp;
@@ -241,7 +239,6 @@ export class Player extends Entity {
     }
 
     this.speed = this.baseSpeed + stats.speed + (this.baseSpeed * stats.allStats);
-    console.log(`[Player Speed] finalSpeed: ${this.speed.toFixed(2)} (baseSpeed: ${this.baseSpeed.toFixed(2)}, stats.speed: ${stats.speed}, stats.allStats: ${stats.allStats})`);
     this.pickupRange = this.basePickup + stats.magnet + stats.pickupRadius + (this.basePickup * stats.allStats);
     this.dmgMult = this.baseDmgMult + stats.percentDamage + (this.baseDmgMult * stats.allStats);
     this.flatDamage = stats.flatDamage;
