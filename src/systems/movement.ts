@@ -252,6 +252,8 @@ export function processPlayerMovement(
 
   const normalized = normalizeMovement(dir);
   const speed = calculateSpeedMultiplier(baseSpeed, ultName, ultActiveTime);
+  
+  console.log(`[Movement] dir: (${dir.dx.toFixed(2)}, ${dir.dy.toFixed(2)}) normalized: (${normalized.dx.toFixed(2)}, ${normalized.dy.toFixed(2)}) inputSpeed: ${speed.toFixed(2)}`);
 
   const newPos = calculateMovementWithCollision(
     currentX,
