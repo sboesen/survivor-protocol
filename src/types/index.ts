@@ -219,3 +219,12 @@ export interface DamageText {
 
 // Canvas context type
 export type CanvasContext = CanvasRenderingContext2D;
+
+export interface GachaParticle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  c: string;
+}

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { CameraController } from '../../CameraController';
 import type { Particle } from '../../../../entities/particle';
-import { standardVertexShader, softFragmentShader } from '../shaders/standardVertex';
+import { standardVertexShader } from '../shaders/standardVertex';
 import { waterFragmentShader } from '../shaders/waterFragment';
 import { ParticleRenderer } from '../interfaces';
 
