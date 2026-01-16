@@ -1459,12 +1459,6 @@ class GameCore {
       console.log(`[Timing] FPS: ${this.fpsFrames}, Updates/sec: ${this.updatesPerSecond}, Timestep: ${this.timestep.toFixed(2)}ms, Accumulator: ${this.accumulator.toFixed(2)}ms, DeltaTime: ${deltaTime.toFixed(2)}ms`);
     }
 
-    // Prevent timing issues on first frame
-    if (deltaTime <= 0 || deltaTime > 200) {
-      requestAnimationFrame((t) => this.loop(t));
-      return;
-    }
-
     this.accumulator += deltaTime;
 
     // Cap accumulator to prevent spiral death on alt-tab (max 100ms catchup)
