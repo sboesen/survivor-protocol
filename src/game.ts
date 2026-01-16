@@ -1432,9 +1432,14 @@ class GameCore {
     );
   }
 
+  private updatesPerSecond = 0;
+  private updateCount = 0;
+  private lastUpdateSecond = 0;
+
   loop(currentTime = 0): void {
     if (!this.lastTime) this.lastTime = currentTime;
     if (!this.fpsLastTime) this.fpsLastTime = currentTime;
+    if (!this.lastUpdateSecond) this.lastUpdateSecond = currentTime;
     const deltaTime = currentTime - this.lastTime;
     this.lastTime = currentTime;
 
@@ -1443,6 +1448,15 @@ class GameCore {
     if (currentTime - this.fpsLastTime >= 1000) {
       this.fpsFrames = 0;
       this.fpsLastTime = currentTime;
+    }
+
+    // Update rate tracking (diagnostic)
+    this.updateCount++;
+    if (currentTime - this.lastUpdateSecond >= 1000) {
+      this.updatesPerSecond = this.updateCount;
+      this.updateCount = 0;
+      this.lastUpdateSecond = currentTime;
+      console.log(`[Timing] FPS: ${this.fpsFrames}, Updates/sec: ${this.updatesPerSecond}, Timestep: ${this.timestep.toFixed(2)}ms, Accumulator: ${this.accumulator.toFixed(2)}ms`);
     }
 
     this.accumulator += deltaTime;
