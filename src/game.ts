@@ -1456,7 +1456,13 @@ class GameCore {
       this.updatesPerSecond = this.updateCount;
       this.updateCount = 0;
       this.lastUpdateSecond = currentTime;
-      console.log(`[Timing] FPS: ${this.fpsFrames}, Updates/sec: ${this.updatesPerSecond}, Timestep: ${this.timestep.toFixed(2)}ms, Accumulator: ${this.accumulator.toFixed(2)}ms`);
+      console.log(`[Timing] FPS: ${this.fpsFrames}, Updates/sec: ${this.updatesPerSecond}, Timestep: ${this.timestep.toFixed(2)}ms, Accumulator: ${this.accumulator.toFixed(2)}ms, DeltaTime: ${deltaTime.toFixed(2)}ms`);
+    }
+
+    // Prevent timing issues on first frame
+    if (deltaTime <= 0 || deltaTime > 200) {
+      requestAnimationFrame((t) => this.loop(t));
+      return;
     }
 
     this.accumulator += deltaTime;
